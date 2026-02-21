@@ -1,0 +1,8 @@
+node_modules
+.dist
+.output
+.env
+.env.*
+routeTree.gen.ts
+.DS_Store
+drizzle
