@@ -5,4 +5,4 @@ node_modules
 .env.*
 routeTree.gen.ts
 .DS_Store
-drizzle
+drizzle/meta/*.*
