@@ -27,8 +27,6 @@ services:
     image: postgres:16-alpine
     container_name: moim-postgres-dev
     restart: no
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_DB: ${DB_NAME:-moim}
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -45,8 +43,6 @@ services:
     image: postgres:16-alpine
     container_name: moim-postgres-migration-dev
     restart: no
-    ports:
-      - "5433:5432"
     environment:
       POSTGRES_DB: ${DB_NAME:-moim}_migration
       POSTGRES_USER: ${DB_USER:-postgres}
