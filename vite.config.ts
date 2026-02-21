@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     tanstackStart({
       server: {
-        entry: "./src/server-entry.ts",
+        entry: "./server-entry.ts",
       },
     }),
     tsconfigPaths(),

@@ -11,6 +11,7 @@ import {
   parseSemVer,
   Person,
 } from "@fedify/fedify";
+import type { Context, RequestContext } from "@fedify/fedify";
 import { and, count, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, users } from "~/server/db/schema";
@@ -18,8 +19,22 @@ import { env } from "~/server/env";
 
 export const federation = createFederation<void>({
   kv: new MemoryKvStore(),
-  origin: env.baseUrl,
 });
+
+/**
+ * Get a Fedify context for use in business logic (no request needed).
+ * Uses the configured BASE_URL as the canonical origin.
+ */
+export function getFederationContext(): Context<void> {
+  return federation.createContext(new URL(env.baseUrl), undefined as void);
+}
+
+/**
+ * Get a request-aware Fedify context for use in API route handlers.
+ */
+export function getRequestContext(request: Request): RequestContext<void> {
+  return federation.createContext(request, undefined as void);
+}
 
 // --- Actor dispatcher ---
 federation

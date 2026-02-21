@@ -1,6 +1,10 @@
-import { Outlet, Link } from "@tanstack/react-router";
+import { createRootRoute, Outlet, Link } from "@tanstack/react-router";
 
-export default function RootLayout() {
+export const Route = createRootRoute({
+  component: RootLayout,
+});
+
+function RootLayout() {
   return (
     <div style={{ fontFamily: "ui-sans-serif", padding: 24 }}>
       <header style={{ marginBottom: 24 }}>
