@@ -4,5 +4,4 @@ export type ActorProfile = {
   displayName: string;
   summary?: string | null;
   iconUrl?: string | null;
-  publicKeyPem?: string | null;
 };

@@ -1,5 +1,6 @@
 import {
   Accept,
+  Application,
   createFederation,
   Endpoints,
   exportJwk,
@@ -7,23 +8,55 @@ import {
   generateCryptoKeyPair,
   Image,
   importJwk,
+  InProcessMessageQueue,
   MemoryKvStore,
   parseSemVer,
   Person,
+  Reject,
+  Undo,
 } from "@fedify/fedify";
 import type { Context, RequestContext } from "@fedify/fedify";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, users } from "~/server/db/schema";
+import { actors, follows, keypairs, users } from "~/server/db/schema";
 import { env } from "~/server/env";
 
+// --- Instance actor key (parsed once at startup) ---
+let instanceKeyPair: CryptoKeyPair | undefined;
+
+async function loadInstanceKey(): Promise<CryptoKeyPair | undefined> {
+  if (!env.instanceActorKey) return undefined;
+  try {
+    const jwk = JSON.parse(env.instanceActorKey);
+    if (jwk.kty !== "RSA") return undefined;
+    const privateKey = await importJwk(jwk, "private");
+    const publicKey = await importJwk(
+      { kty: jwk.kty, alg: jwk.alg, e: jwk.e, n: jwk.n, key_ops: ["verify"] },
+      "public",
+    );
+    return { privateKey, publicKey };
+  } catch {
+    return undefined;
+  }
+}
+
+const instanceKeyPromise = loadInstanceKey().then((kp) => {
+  instanceKeyPair = kp;
+  return kp;
+});
+
+function getInstanceHostname(): string {
+  return new URL(env.federationOrigin).hostname;
+}
+
+// --- Federation instance ---
 export const federation = createFederation<void>({
   kv: new MemoryKvStore(),
+  queue: new InProcessMessageQueue(),
 });
 
 /**
  * Get a Fedify context for use in business logic (no request needed).
- * Uses the configured BASE_URL as the canonical origin.
  */
 export function getFederationContext(): Context<void> {
   return federation.createContext(new URL(env.baseUrl), undefined as void);
@@ -39,6 +72,28 @@ export function getRequestContext(request: Request): RequestContext<void> {
 // --- Actor dispatcher ---
 federation
   .setActorDispatcher("/ap/{identifier}", async (ctx, identifier) => {
+    await instanceKeyPromise;
+
+    // Instance actor
+    if (instanceKeyPair && identifier === getInstanceHostname()) {
+      const keys = await ctx.getActorKeyPairs(identifier);
+      return new Application({
+        id: ctx.getActorUri(identifier),
+        preferredUsername: identifier,
+        name: "Moim",
+        summary: "An instance actor for Moim.",
+        manuallyApprovesFollowers: true,
+        inbox: ctx.getInboxUri(identifier),
+        outbox: ctx.getOutboxUri(identifier),
+        endpoints: new Endpoints({ sharedInbox: ctx.getInboxUri() }),
+        following: ctx.getFollowingUri(identifier),
+        followers: ctx.getFollowersUri(identifier),
+        publicKey: keys[0]?.cryptographicKey,
+        assertionMethods: keys.map((k) => k.multikey),
+      });
+    }
+
+    // User actor
     const [user] = await db
       .select()
       .from(users)
@@ -46,16 +101,49 @@ federation
       .limit(1);
     if (!user) return null;
 
+    // Ensure actor record exists
+    let [actor] = await db
+      .select()
+      .from(actors)
+      .where(and(eq(actors.handle, identifier), eq(actors.isLocal, true)))
+      .limit(1);
+    if (!actor) {
+      const [inserted] = await db
+        .insert(actors)
+        .values({
+          handle: identifier,
+          type: "Person",
+          actorUrl: ctx.getActorUri(identifier).href,
+          iri: ctx.getActorUri(identifier).href,
+          url: new URL(`/@${user.handle}`, ctx.canonicalOrigin).href,
+          name: user.displayName,
+          summary: user.summary ?? "",
+          inboxUrl: ctx.getInboxUri(identifier).href,
+          outboxUrl: ctx.getOutboxUri(identifier).href,
+          sharedInboxUrl: ctx.getInboxUri().href,
+          followersUrl: ctx.getFollowersUri(identifier).href,
+          followingUrl: ctx.getFollowingUri(identifier).href,
+          domain: new URL(ctx.canonicalOrigin).hostname,
+          isLocal: true,
+          userId: user.id,
+        })
+        .returning();
+      actor = inserted;
+    }
+
     const keys = await ctx.getActorKeyPairs(identifier);
     return new Person({
       id: ctx.getActorUri(identifier),
       preferredUsername: user.handle,
       name: user.displayName,
       summary: user.summary ?? "",
-      url: new URL(`/@/${user.handle}`, ctx.canonicalOrigin),
+      url: new URL(`/@${user.handle}`, ctx.canonicalOrigin),
       inbox: ctx.getInboxUri(identifier),
       outbox: ctx.getOutboxUri(identifier),
       endpoints: new Endpoints({ sharedInbox: ctx.getInboxUri() }),
+      following: ctx.getFollowingUri(identifier),
+      followers: ctx.getFollowersUri(identifier),
+      manuallyApprovesFollowers: actor.manuallyApprovesFollowers,
       publicKey: keys[0]?.cryptographicKey,
       assertionMethods: keys.map((k) => k.multikey),
       icon: user.avatarUrl
@@ -63,7 +151,14 @@ federation
         : undefined,
     });
   })
-  .mapHandle(async (_ctx, username) => {
+  .mapHandle(async (ctx, username) => {
+    await instanceKeyPromise;
+
+    // Instance actor
+    if (instanceKeyPair && username === getInstanceHostname()) {
+      return username;
+    }
+
     const [user] = await db
       .select({ handle: users.handle })
       .from(users)
@@ -72,61 +167,79 @@ federation
     return user?.handle ?? null;
   })
   .mapAlias((_ctx, resource: URL) => {
-    const m = /^\/@\/(\w+)$/.exec(resource.pathname);
+    const m = /^\/@(\w+)$/.exec(resource.pathname);
     if (m == null) return null;
     return { username: m[1] };
   })
   .setKeyPairsDispatcher(async (ctx, identifier) => {
+    await instanceKeyPromise;
+
+    // Instance actor key
+    if (instanceKeyPair && identifier === getInstanceHostname()) {
+      return [instanceKeyPair];
+    }
+
+    // Find actor by handle
     const [actor] = await db
       .select()
       .from(actors)
       .where(and(eq(actors.handle, identifier), eq(actors.isLocal, true)))
       .limit(1);
+    if (!actor) return [];
 
-    if (actor?.publicKeyPem && actor?.privateKeyPem) {
-      return [
-        {
-          privateKey: await importJwk(
-            JSON.parse(actor.privateKeyPem),
-            "private",
-          ),
-          publicKey: await importJwk(
-            JSON.parse(actor.publicKeyPem),
-            "public",
-          ),
-        },
-      ];
+    // Load existing key pairs
+    const existingKeys = await db
+      .select()
+      .from(keypairs)
+      .where(and(eq(keypairs.actorId, actor.id), eq(keypairs.isActive, true)))
+      .orderBy(keypairs.algorithm, keypairs.createdAt);
+
+    const result: CryptoKeyPair[] = [];
+
+    for (const algorithm of ["RSASSA-PKCS1-v1_5", "Ed25519"] as const) {
+      const existing = existingKeys.find((k) => k.algorithm === algorithm);
+      if (existing) {
+        result.push({
+          privateKey: await importJwk(JSON.parse(existing.privateKey), "private"),
+          publicKey: await importJwk(JSON.parse(existing.publicKey), "public"),
+        });
+      } else {
+        // Auto-generate missing key type
+        const generated = await generateCryptoKeyPair(algorithm);
+        const publicJwk = JSON.stringify(await exportJwk(generated.publicKey));
+        const privateJwk = JSON.stringify(await exportJwk(generated.privateKey));
+
+        await db.insert(keypairs).values({
+          algorithm,
+          publicKey: publicJwk,
+          privateKey: privateJwk,
+          actorId: actor.id,
+        });
+
+        result.push(generated);
+      }
     }
 
-    // Generate new RSA key pair
-    const keyPair = await generateCryptoKeyPair("RSASSA-PKCS1-v1_5");
-    const publicJwk = JSON.stringify(await exportJwk(keyPair.publicKey));
-    const privateJwk = JSON.stringify(await exportJwk(keyPair.privateKey));
-
-    if (!actor) {
-      await db.insert(actors).values({
-        handle: identifier,
-        actorUrl: ctx.getActorUri(identifier).href,
-        inboxUrl: ctx.getInboxUri(identifier).href,
-        outboxUrl: ctx.getOutboxUri(identifier).href,
-        publicKeyPem: publicJwk,
-        privateKeyPem: privateJwk,
-        isLocal: true,
-      });
-    } else {
-      await db
-        .update(actors)
-        .set({ publicKeyPem: publicJwk, privateKeyPem: privateJwk })
-        .where(eq(actors.id, actor.id));
-    }
-
-    return [keyPair];
+    return result;
   });
 
 // --- NodeInfo ---
-federation.setNodeInfoDispatcher("/nodeinfo/2.0", async () => {
+federation.setNodeInfoDispatcher("/nodeinfo/2.1", async () => {
   const [result] = await db.select({ total: count() }).from(users);
   const totalUsers = result?.total ?? 0;
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const halfYearAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+
+  const [activeMonth] = await db
+    .select({ total: count() })
+    .from(users)
+    .where(sql`${users.updatedAt} > ${thirtyDaysAgo}`);
+
+  const [activeHalfyear] = await db
+    .select({ total: count() })
+    .from(users)
+    .where(sql`${users.updatedAt} > ${halfYearAgo}`);
 
   return {
     software: {
@@ -136,7 +249,11 @@ federation.setNodeInfoDispatcher("/nodeinfo/2.0", async () => {
     protocols: ["activitypub"] as const,
     services: { inbound: [], outbound: [] },
     usage: {
-      users: { total: totalUsers, activeMonth: totalUsers, activeHalfyear: totalUsers },
+      users: {
+        total: totalUsers,
+        activeMonth: activeMonth?.total ?? 0,
+        activeHalfyear: activeHalfyear?.total ?? 0,
+      },
       localPosts: 0,
       localComments: 0,
     },
@@ -147,6 +264,9 @@ federation.setNodeInfoDispatcher("/nodeinfo/2.0", async () => {
 // --- Inbox listeners ---
 federation
   .setInboxListeners("/ap/{identifier}/inbox", "/ap/inbox")
+  .setSharedKeyDispatcher((_ctx) => ({
+    identifier: getInstanceHostname(),
+  }))
   .on(Follow, async (ctx, follow) => {
     if (follow.objectId == null) return;
 
@@ -156,21 +276,311 @@ federation
     const follower = await follow.getActor();
     if (follower?.id == null || follower?.inboxId == null) return;
 
-    // Auto-accept: send Accept back to follower
-    const accept = new Accept({
-      actor: follow.objectId,
-      to: follow.actorId,
-      object: follow,
-    });
-    await ctx.sendActivity(
-      { identifier: parsed.identifier },
-      follower,
-      accept,
-    );
+    // Find or create target actor
+    const [targetActor] = await db
+      .select()
+      .from(actors)
+      .where(eq(actors.handle, parsed.identifier))
+      .limit(1);
+    if (!targetActor) return;
+
+    // Persist remote follower as actor if not exists
+    let [followerActor] = await db
+      .select()
+      .from(actors)
+      .where(eq(actors.actorUrl, follower.id.href))
+      .limit(1);
+
+    if (!followerActor) {
+      const [inserted] = await db
+        .insert(actors)
+        .values({
+          handle: `${follower.preferredUsername}@${follower.id.hostname}`,
+          type: "Person",
+          actorUrl: follower.id.href,
+          iri: follower.id.href,
+          url: follower.url instanceof URL ? follower.url.href : null,
+          name: follower.name?.toString() ?? null,
+          summary: follower.summary?.toString() ?? null,
+          inboxUrl: follower.inboxId?.href ?? null,
+          outboxUrl: follower.outboxId?.href ?? null,
+          sharedInboxUrl: follower.endpoints?.sharedInbox instanceof URL
+            ? follower.endpoints.sharedInbox.href
+            : null,
+          domain: follower.id.hostname,
+          isLocal: false,
+        })
+        .returning();
+      followerActor = inserted;
+    }
+
+    // Create follow relationship
+    const [existingFollow] = await db
+      .select()
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followerId, followerActor.id),
+          eq(follows.followingId, targetActor.id),
+        ),
+      )
+      .limit(1);
+
+    if (!existingFollow) {
+      await db.insert(follows).values({
+        followerId: followerActor.id,
+        followingId: targetActor.id,
+        status: "pending",
+      });
+    }
+
+    // Auto-accept if target doesn't manually approve
+    if (!targetActor.manuallyApprovesFollowers) {
+      await db
+        .update(follows)
+        .set({ status: "accepted", acceptedAt: new Date() })
+        .where(
+          and(
+            eq(follows.followerId, followerActor.id),
+            eq(follows.followingId, targetActor.id),
+          ),
+        );
+
+      // Increment follower count
+      await db
+        .update(actors)
+        .set({ followersCount: sql`${actors.followersCount} + 1` })
+        .where(eq(actors.id, targetActor.id));
+
+      const accept = new Accept({
+        actor: follow.objectId,
+        to: follow.actorId,
+        object: follow,
+      });
+      await ctx.sendActivity(
+        { identifier: parsed.identifier },
+        follower,
+        accept,
+      );
+    }
+  })
+  .on(Undo, async (ctx, undo) => {
+    const object = await undo.getObject();
+
+    if (object instanceof Follow) {
+      // Undo Follow
+      if (undo.actorId == null || object.objectId == null) return;
+
+      const parsed = ctx.parseUri(object.objectId);
+      if (parsed == null || parsed.type !== "actor") return;
+
+      const [followerActor] = await db
+        .select()
+        .from(actors)
+        .where(eq(actors.actorUrl, undo.actorId.href))
+        .limit(1);
+
+      const [followedActor] = await db
+        .select()
+        .from(actors)
+        .where(eq(actors.handle, parsed.identifier))
+        .limit(1);
+
+      if (followerActor && followedActor) {
+        // Check if follow was accepted before deleting
+        const [existingFollow] = await db
+          .select()
+          .from(follows)
+          .where(
+            and(
+              eq(follows.followerId, followerActor.id),
+              eq(follows.followingId, followedActor.id),
+            ),
+          )
+          .limit(1);
+
+        if (existingFollow?.status === "accepted") {
+          await db
+            .update(actors)
+            .set({ followersCount: sql`GREATEST(${actors.followersCount} - 1, 0)` })
+            .where(eq(actors.id, followedActor.id));
+        }
+
+        await db
+          .delete(follows)
+          .where(
+            and(
+              eq(follows.followerId, followerActor.id),
+              eq(follows.followingId, followedActor.id),
+            ),
+          );
+      }
+    }
+  })
+  .on(Accept, async (ctx, accept) => {
+    const object = await accept.getObject({ crossOrigin: "trust" });
+    if (!(object instanceof Follow)) return;
+    if (accept.actorId == null || object.actorId == null) return;
+
+    // Find the requesting actor (who sent the Follow)
+    const [requestedActor] = await db
+      .select()
+      .from(actors)
+      .where(eq(actors.actorUrl, object.actorId.href))
+      .limit(1);
+
+    // Find the target actor (who accepted)
+    const [targetActor] = await db
+      .select()
+      .from(actors)
+      .where(eq(actors.actorUrl, accept.actorId.href))
+      .limit(1);
+
+    if (requestedActor && targetActor) {
+      await db
+        .update(follows)
+        .set({ status: "accepted", acceptedAt: new Date() })
+        .where(
+          and(
+            eq(follows.followerId, requestedActor.id),
+            eq(follows.followingId, targetActor.id),
+          ),
+        );
+    }
+  })
+  .on(Reject, async (ctx, reject) => {
+    const object = await reject.getObject({ crossOrigin: "trust" });
+    if (!(object instanceof Follow)) return;
+    if (reject.actorId == null || object.actorId == null) return;
+
+    const [requestedActor] = await db
+      .select()
+      .from(actors)
+      .where(eq(actors.actorUrl, object.actorId.href))
+      .limit(1);
+
+    const [targetActor] = await db
+      .select()
+      .from(actors)
+      .where(eq(actors.actorUrl, reject.actorId.href))
+      .limit(1);
+
+    if (requestedActor && targetActor) {
+      await db
+        .delete(follows)
+        .where(
+          and(
+            eq(follows.followerId, requestedActor.id),
+            eq(follows.followingId, targetActor.id),
+          ),
+        );
+    }
   });
 
-// --- Outbox dispatcher (empty for now) ---
+// --- Outbox dispatcher (empty for now — moim has events/places, not notes) ---
 federation.setOutboxDispatcher(
   "/ap/{identifier}/outbox",
   async () => ({ items: [] }),
 );
+
+// --- Followers collection ---
+federation
+  .setFollowersDispatcher(
+    "/ap/{identifier}/followers",
+    async (_ctx, identifier, cursor) => {
+      const [actor] = await db
+        .select()
+        .from(actors)
+        .where(eq(actors.handle, identifier))
+        .limit(1);
+      if (!actor) return null;
+
+      const limit = 10;
+      const offset = cursor ? parseInt(cursor, 10) : 0;
+
+      const followerRows = await db
+        .select({
+          followerActorUrl: actors.actorUrl,
+          followerInboxUrl: actors.inboxUrl,
+        })
+        .from(follows)
+        .innerJoin(actors, eq(follows.followerId, actors.id))
+        .where(
+          and(
+            eq(follows.followingId, actor.id),
+            eq(follows.status, "accepted"),
+          ),
+        )
+        .limit(limit)
+        .offset(offset);
+
+      const [totalResult] = await db
+        .select({ total: count() })
+        .from(follows)
+        .where(
+          and(
+            eq(follows.followingId, actor.id),
+            eq(follows.status, "accepted"),
+          ),
+        );
+      const total = totalResult?.total ?? 0;
+      const isLast = offset + limit >= total;
+
+      return {
+        items: followerRows.map((row) => ({
+          id: new URL(row.followerActorUrl),
+          inboxId: row.followerInboxUrl ? new URL(row.followerInboxUrl) : null,
+        })),
+        nextCursor: isLast ? null : String(offset + limit),
+      };
+    },
+  )
+  .setFirstCursor(async () => "0");
+
+// --- Following collection ---
+federation
+  .setFollowingDispatcher(
+    "/ap/{identifier}/following",
+    async (_ctx, identifier, cursor) => {
+      const [actor] = await db
+        .select()
+        .from(actors)
+        .where(eq(actors.handle, identifier))
+        .limit(1);
+      if (!actor) return null;
+
+      const limit = 10;
+      const offset = cursor ? parseInt(cursor, 10) : 0;
+
+      const followingRows = await db
+        .select({ followingActorUrl: actors.actorUrl })
+        .from(follows)
+        .innerJoin(actors, eq(follows.followingId, actors.id))
+        .where(
+          and(
+            eq(follows.followerId, actor.id),
+            eq(follows.status, "accepted"),
+          ),
+        )
+        .limit(limit)
+        .offset(offset);
+
+      const [totalResult] = await db
+        .select({ total: count() })
+        .from(follows)
+        .where(
+          and(
+            eq(follows.followerId, actor.id),
+            eq(follows.status, "accepted"),
+          ),
+        );
+      const total = totalResult?.total ?? 0;
+      const isLast = offset + limit >= total;
+
+      return {
+        items: followingRows.map((row) => new URL(row.followingActorUrl)),
+        nextCursor: isLast ? null : String(offset + limit),
+      };
+    },
+  )
+  .setFirstCursor(async () => "0");

@@ -17,19 +17,56 @@ export const users = pgTable("users", {
   summary: text("summary"),
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const actors = pgTable("actors", {
   id: uuid("id").defaultRandom().primaryKey(),
   handle: varchar("handle", { length: 64 }).notNull().unique(),
+  type: varchar("type", { length: 32 }).notNull().default("Person"), // Person, Group, Application, Service
   actorUrl: text("actor_url").notNull(),
+  iri: text("iri"),
+  url: text("url"),
+  name: text("name"),
+  summary: text("summary"),
   inboxUrl: text("inbox_url"),
   outboxUrl: text("outbox_url"),
-  publicKeyPem: text("public_key_pem"),
-  privateKeyPem: text("private_key_pem"),
+  sharedInboxUrl: text("shared_inbox_url"),
+  followersUrl: text("followers_url"),
+  followingUrl: text("following_url"),
+  domain: text("domain"),
   isLocal: boolean("is_local").default(false).notNull(),
+  manuallyApprovesFollowers: boolean("manually_approves_followers").default(false).notNull(),
+  followersCount: integer("followers_count").default(0).notNull(),
+  followingCount: integer("following_count").default(0).notNull(),
+  // Polymorphic owner: local actor is either a user or an event (or neither for remote)
+  userId: uuid("user_id").references(() => users.id),
+  eventId: uuid("event_id").references(() => events.id),
   raw: jsonb("raw"),
+  lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const keypairs = pgTable("keypairs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  algorithm: varchar("algorithm", { length: 32 }).notNull(), // 'RSASSA-PKCS1-v1_5' or 'Ed25519'
+  publicKey: text("public_key").notNull(),  // JWK JSON
+  privateKey: text("private_key").notNull(), // JWK JSON
+  actorId: uuid("actor_id").references(() => actors.id).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const follows = pgTable("follows", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  followerId: uuid("follower_id").references(() => actors.id).notNull(),
+  followingId: uuid("following_id").references(() => actors.id).notNull(),
+  status: varchar("status", { length: 32 }).notNull().default("pending"), // 'pending', 'accepted', 'rejected'
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
 });
 
 export const events = pgTable("events", {

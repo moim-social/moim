@@ -13,7 +13,6 @@ services:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-moim}
       - MIGRATION_DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres-migration:5432/${DB_NAME:-moim}_migration
-      - BASE_URL=http://localhost:3000
     command: ["pnpm", "dev", "--host", "0.0.0.0", "--port", "3000"]
     volumes:
       - .:/app
@@ -44,6 +43,8 @@ services:
     image: postgres:16-alpine
     container_name: moim-postgres-migration-dev
     restart: no
+    ports:
+      - "5434:5432"
     environment:
       POSTGRES_DB: ${DB_NAME:-moim}_migration
       POSTGRES_USER: ${DB_USER:-postgres}
