@@ -36,11 +36,12 @@ Federation is handled by Fedify (`src/server/fediverse/federation.ts`).
 requests before TanStack Start routing — no route files needed for AP endpoints.
 
 Endpoints:
-- Actor: `/ap/{identifier}` (content-negotiated; non-AP requests redirect to `/@/{identifier}`)
-- Inbox: `/ap/{identifier}/inbox` (handles Follow → auto-Accept)
-- Outbox: `/ap/{identifier}/outbox` (empty collection)
+- Actor: `/ap/actors/{identifier}` (content-negotiated; non-AP requests redirect to `/@/{identifier}`)
+- Inbox: `/ap/actors/{identifier}/inbox` (handles Follow → auto-Accept)
+- Outbox: `/ap/actors/{identifier}/outbox`
+- Notes: `/ap/notes/{noteId}`
 - WebFinger: `/.well-known/webfinger` (automatic via Fedify `mapHandle`/`mapAlias`)
-- NodeInfo: `/.well-known/nodeinfo` → `/nodeinfo/2.0`
+- NodeInfo: `/.well-known/nodeinfo` → `/nodeinfo/2.1`
 
 Key pairs (RSA) are auto-generated and stored as JWK in the `actors` table.
 Human-readable profiles are served at `/@/{identifier}`.

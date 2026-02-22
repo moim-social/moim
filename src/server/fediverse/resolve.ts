@@ -11,7 +11,7 @@ export async function resolveActorUrl(handle: string): Promise<string> {
     throw new Error("Handle must include host (e.g., alice@example.com)");
   }
   if (host === baseHost) {
-    return `${env.baseUrl}/ap/${username}`;
+    return `${env.baseUrl}/ap/actors/${username}`;
   }
 
   const resource = `acct:${handle}`;

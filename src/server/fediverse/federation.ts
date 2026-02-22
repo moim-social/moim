@@ -76,7 +76,7 @@ export function getRequestContext(request: Request): RequestContext<void> {
 
 // --- Actor dispatcher ---
 federation
-  .setActorDispatcher("/ap/{identifier}", async (ctx, identifier) => {
+  .setActorDispatcher("/ap/actors/{identifier}", async (ctx, identifier) => {
     await instanceKeyPromise;
 
     // Instance actor
@@ -312,29 +312,29 @@ federation
 // --- Note object dispatcher ---
 federation.setObjectDispatcher(
   Note,
-  "/ap/{identifier}/notes/{noteId}",
-  async (ctx, { identifier, noteId }) => {
-    const [actor] = await db
-      .select()
-      .from(actors)
-      .where(and(eq(actors.handle, identifier), eq(actors.isLocal, true)))
-      .limit(1);
-    if (!actor) return null;
-
+  "/ap/notes/{noteId}",
+  async (ctx, { noteId }) => {
     const [post] = await db
       .select()
       .from(posts)
-      .where(and(eq(posts.id, noteId), eq(posts.actorId, actor.id)))
+      .where(eq(posts.id, noteId))
       .limit(1);
     if (!post) return null;
 
+    const [actor] = await db
+      .select()
+      .from(actors)
+      .where(and(eq(actors.id, post.actorId), eq(actors.isLocal, true)))
+      .limit(1);
+    if (!actor) return null;
+
     return new Note({
-      id: ctx.getObjectUri(Note, { identifier, noteId }),
-      attribution: ctx.getActorUri(identifier),
+      id: ctx.getObjectUri(Note, { noteId }),
+      attribution: ctx.getActorUri(actor.handle),
       content: post.content,
       published: Temporal.Instant.from(post.published.toISOString()),
       to: new URL("https://www.w3.org/ns/activitystreams#Public"),
-      ccs: [ctx.getFollowersUri(identifier)],
+      ccs: [ctx.getFollowersUri(actor.handle)],
     });
   },
 );
@@ -379,7 +379,7 @@ federation.setNodeInfoDispatcher("/nodeinfo/2.1", async () => {
 
 // --- Inbox listeners ---
 federation
-  .setInboxListeners("/ap/{identifier}/inbox", "/ap/inbox")
+  .setInboxListeners("/ap/actors/{identifier}/inbox", "/ap/inbox")
   .setSharedKeyDispatcher((_ctx) => ({
     identifier: getInstanceHostname(),
   }))
@@ -596,7 +596,7 @@ federation
 // --- Outbox dispatcher ---
 federation
   .setOutboxDispatcher(
-    "/ap/{identifier}/outbox",
+    "/ap/actors/{identifier}/outbox",
     async (ctx, identifier, cursor) => {
       const [actor] = await db
         .select()
@@ -618,7 +618,6 @@ federation
 
       const items = postRows.map((post) => {
         const noteUri = ctx.getObjectUri(Note, {
-          identifier,
           noteId: post.id,
         });
         return new Create({
@@ -653,7 +652,7 @@ federation
 // --- Followers collection ---
 federation
   .setFollowersDispatcher(
-    "/ap/{identifier}/followers",
+    "/ap/actors/{identifier}/followers",
     async (_ctx, identifier, cursor) => {
       const [actor] = await db
         .select()
@@ -707,7 +706,7 @@ federation
 // --- Following collection ---
 federation
   .setFollowingDispatcher(
-    "/ap/{identifier}/following",
+    "/ap/actors/{identifier}/following",
     async (_ctx, identifier, cursor) => {
       const [actor] = await db
         .select()

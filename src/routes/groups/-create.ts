@@ -92,7 +92,7 @@ async function sendMentionNotification(
   const content = `<p>You have been added as a moderator of <a href="${ctx.getActorUri(groupHandle).href}">@${groupHandle}</a>.</p>`;
 
   const noteId = new URL(
-    `/ap/${instanceHostname}/notes/mention-${groupHandle}-${Date.now()}`,
+    `/ap/notes/mention-${groupHandle}-${Date.now()}`,
     env.baseUrl,
   );
 

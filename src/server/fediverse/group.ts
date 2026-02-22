@@ -138,7 +138,6 @@ export async function createAndDeliverNote(
 
   // Build Note
   const noteUri = ctx.getObjectUri(Note, {
-    identifier: actorHandle,
     noteId: post.id,
   });
   const note = new Note({
