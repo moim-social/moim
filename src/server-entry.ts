@@ -9,6 +9,9 @@ import { POST as requestOtp } from "./routes/auth/-request-otp";
 import { POST as verifyOtp } from "./routes/auth/-verify-otp";
 import { GET as getMe } from "./routes/auth/-me";
 import { POST as signout } from "./routes/auth/-signout";
+import { GET as searchUsers } from "./routes/groups/-search-users";
+import { POST as resolveModerator } from "./routes/groups/-resolve-moderator";
+import { POST as createGroup } from "./routes/groups/-create";
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -34,6 +37,22 @@ app.use("/auth/me", defineEventHandler(async (event) => {
 app.use("/auth/signout", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return signout({ request });
+}));
+
+// Group API routes
+app.use("/groups/search-users", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return searchUsers({ request });
+}));
+
+app.use("/groups/resolve-moderator", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return resolveModerator({ request });
+}));
+
+app.use("/groups/create", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return createGroup({ request });
 }));
 
 app.use(

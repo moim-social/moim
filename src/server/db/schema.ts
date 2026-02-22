@@ -41,6 +41,8 @@ export const actors = pgTable("actors", {
   followingCount: integer("following_count").default(0).notNull(),
   // Owner: for Person actors, points to the user; for Group actors, can be null (managed via group_members)
   userId: uuid("user_id").references(() => users.id),
+  website: text("website"),
+  categories: jsonb("categories"), // string[] of category IDs (for Group actors)
   raw: jsonb("raw"),
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

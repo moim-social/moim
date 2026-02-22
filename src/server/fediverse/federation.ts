@@ -15,6 +15,7 @@ import {
   Note,
   parseSemVer,
   Person,
+  PropertyValue,
   Reject,
   Undo,
 } from "@fedify/fedify";
@@ -22,7 +23,7 @@ import type { Context, RequestContext } from "@fedify/fedify";
 import { Temporal } from "@js-temporal/polyfill";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, follows, keypairs, posts, users } from "~/server/db/schema";
+import { actors, follows, groupMembers, keypairs, posts, users } from "~/server/db/schema";
 import { env } from "~/server/env";
 
 // --- Instance actor key (parsed once at startup) ---
@@ -107,6 +108,48 @@ federation
     // Group actor
     if (actor?.type === "Group") {
       const keys = await ctx.getActorKeyPairs(identifier);
+
+      // Build PropertyValue attachments
+      const attachments: PropertyValue[] = [];
+
+      // Page link
+      const pageUrl = new URL(`/@/${identifier}`, ctx.canonicalOrigin).href;
+      attachments.push(
+        new PropertyValue({
+          name: "page",
+          value: `<a href="${pageUrl}" rel="nofollow noopener noreferrer" target="_blank">${pageUrl}</a>`,
+        }),
+      );
+
+      // Website (if set)
+      if (actor.website) {
+        attachments.push(
+          new PropertyValue({
+            name: "website",
+            value: `<a href="${actor.website}" rel="nofollow noopener noreferrer" target="_blank">${actor.website}</a>`,
+          }),
+        );
+      }
+
+      // Moderators
+      const moderatorRows = await db
+        .select({
+          handle: actors.handle,
+          actorUrl: actors.actorUrl,
+        })
+        .from(groupMembers)
+        .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+        .where(eq(groupMembers.groupActorId, actor.id));
+
+      if (moderatorRows.length > 0) {
+        const moderatorLinks = moderatorRows
+          .map((m) => `<a href="${m.actorUrl}" rel="nofollow noopener noreferrer" target="_blank">@${m.handle}</a>`)
+          .join(", ");
+        attachments.push(
+          new PropertyValue({ name: "moderators", value: moderatorLinks }),
+        );
+      }
+
       return new Group({
         id: ctx.getActorUri(identifier),
         preferredUsername: identifier,
@@ -121,6 +164,7 @@ federation
         manuallyApprovesFollowers: actor.manuallyApprovesFollowers,
         publicKey: keys[0]?.cryptographicKey,
         assertionMethods: keys.map((k) => k.multikey),
+        attachments,
       });
     }
 

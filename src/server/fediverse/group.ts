@@ -19,8 +19,19 @@ export async function createGroupActor(
   name: string,
   summary: string,
   hostUserId: string,
+  options?: { website?: string; categories?: string[] },
 ): Promise<typeof actors.$inferSelect> {
   const ctx = getFederationContext();
+
+  // Check if handle is already taken
+  const [existing] = await db
+    .select({ id: actors.id })
+    .from(actors)
+    .where(eq(actors.handle, handle))
+    .limit(1);
+  if (existing) {
+    throw new Error(`Handle "${handle}" is already taken`);
+  }
 
   // Create the Group actor
   const [actor] = await db
@@ -40,6 +51,8 @@ export async function createGroupActor(
       followingUrl: ctx.getFollowingUri(handle).href,
       domain: new URL(ctx.canonicalOrigin).hostname,
       isLocal: true,
+      website: options?.website ?? null,
+      categories: options?.categories ?? null,
     })
     .returning();
 
@@ -47,7 +60,7 @@ export async function createGroupActor(
   let [hostActor] = await db
     .select()
     .from(actors)
-    .where(and(eq(actors.userId, hostUserId), eq(actors.isLocal, true)))
+    .where(eq(actors.userId, hostUserId))
     .limit(1);
 
   if (!hostActor) {
