@@ -1,12 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { sessions } from "~/server/db/schema";
-
-function parseCookie(cookieHeader: string | null, name: string): string | null {
-  if (!cookieHeader) return null;
-  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
-  return match ? match[1] : null;
-}
+import { parseCookie } from "~/server/auth";
 
 export const POST = async ({ request }: { request: Request }) => {
   const token = parseCookie(request.headers.get("cookie"), "session_token");

@@ -57,20 +57,23 @@ function RootLayout() {
               <Link to="/places">Places</Link>
               {loaded && (
                 user ? (
-                  <button
-                    onClick={handleSignOut}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      font: "inherit",
-                      cursor: "pointer",
-                      color: "inherit",
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Sign out (@{user.handle})
-                  </button>
+                  <>
+                    <Link to="/groups/create">Create Group</Link>
+                    <button
+                      onClick={handleSignOut}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        font: "inherit",
+                        cursor: "pointer",
+                        color: "inherit",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      Sign out (@{user.handle})
+                    </button>
+                  </>
                 ) : (
                   <Link to="/auth/signin">Sign in</Link>
                 )
