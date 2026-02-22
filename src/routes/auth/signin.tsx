@@ -1,5 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Alert, AlertDescription } from "~/components/ui/alert";
 
 export const Route = createFileRoute("/auth/signin")({
   component: SignInPage,
@@ -74,22 +78,13 @@ function SignInPage() {
   }
 
   return (
-    <main style={{ maxWidth: 480 }}>
-      <h2>Sign in</h2>
+    <main className="max-w-md">
+      <h2 className="text-xl font-semibold mb-4">Sign in</h2>
 
       {error && phase === "handle" && (
-        <div
-          style={{
-            background: "#fef2f2",
-            border: "1px solid #fca5a5",
-            borderRadius: 8,
-            padding: "12px 16px",
-            marginBottom: 16,
-            color: "#991b1b",
-          }}
-        >
-          {error}
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {phase === "handle" && (
@@ -98,74 +93,43 @@ function SignInPage() {
             e.preventDefault();
             requestOtp();
           }}
+          className="space-y-4"
         >
-          <label style={{ display: "block", marginBottom: 8 }}>
-            Fediverse handle
-          </label>
-          <input
-            type="text"
-            placeholder="@user@mastodon.social"
-            value={handle}
-            onChange={(e) => setHandle(e.target.value)}
-            required
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              fontSize: 16,
-              boxSizing: "border-box",
-            }}
-          />
-          <button
-            type="submit"
-            style={{ marginTop: 12, padding: "8px 24px", fontSize: 16 }}
-          >
-            Request OTP
-          </button>
+          <div className="space-y-2">
+            <Label htmlFor="handle">Fediverse handle</Label>
+            <Input
+              id="handle"
+              type="text"
+              placeholder="@user@mastodon.social"
+              value={handle}
+              onChange={(e) => setHandle(e.target.value)}
+              required
+            />
+          </div>
+          <Button type="submit">Request OTP</Button>
         </form>
       )}
 
       {phase === "otp" && (
-        <div>
+        <div className="space-y-4">
           <p>Post this code on your Fediverse account, then click Verify.</p>
-          <div
-            style={{
-              fontFamily: "monospace",
-              fontSize: 36,
-              letterSpacing: 8,
-              padding: "16px 24px",
-              background: "#f5f5f5",
-              borderRadius: 8,
-              display: "inline-block",
-              marginBottom: 16,
-              userSelect: "all",
-            }}
-          >
+          <div className="font-mono text-4xl tracking-[8px] px-6 py-4 bg-muted rounded-lg inline-block select-all">
             {otp}
           </div>
           {expiresAt && (
-            <p style={{ fontSize: 14, color: "#666" }}>
+            <p className="text-sm text-muted-foreground">
               Expires: {new Date(expiresAt).toLocaleTimeString()}
             </p>
           )}
-          <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
-            <button
-              onClick={verifyOtp}
-              style={{ padding: "8px 24px", fontSize: 16 }}
-            >
-              Verify
-            </button>
-            <button
-              onClick={reset}
-              style={{ padding: "8px 24px", fontSize: 16 }}
-            >
-              Cancel
-            </button>
+          <div className="flex gap-3">
+            <Button onClick={verifyOtp}>Verify</Button>
+            <Button variant="outline" onClick={reset}>Cancel</Button>
           </div>
         </div>
       )}
 
       {phase === "verifying" && (
-        <p>Checking your outbox for the OTP...</p>
+        <p className="text-muted-foreground">Checking your outbox for the OTP...</p>
       )}
 
       {phase === "success" && (
@@ -173,32 +137,13 @@ function SignInPage() {
       )}
 
       {phase === "error" && (
-        <div>
-          <div
-            style={{
-              background: "#fef2f2",
-              border: "1px solid #fca5a5",
-              borderRadius: 8,
-              padding: "12px 16px",
-              marginBottom: 16,
-              color: "#991b1b",
-            }}
-          >
-            {error || "Verification failed"}
-          </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <button
-              onClick={() => setPhase("otp")}
-              style={{ padding: "8px 24px", fontSize: 16 }}
-            >
-              Retry
-            </button>
-            <button
-              onClick={reset}
-              style={{ padding: "8px 24px", fontSize: 16 }}
-            >
-              Start over
-            </button>
+        <div className="space-y-4">
+          <Alert variant="destructive">
+            <AlertDescription>{error || "Verification failed"}</AlertDescription>
+          </Alert>
+          <div className="flex gap-3">
+            <Button onClick={() => setPhase("otp")}>Retry</Button>
+            <Button variant="outline" onClick={reset}>Start over</Button>
           </div>
         </div>
       )}

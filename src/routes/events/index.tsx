@@ -7,8 +7,8 @@ export const Route = createFileRoute("/events/")({
 function EventsPage() {
   return (
     <main>
-      <h2>Events</h2>
-      <p>Event discovery coming soon.</p>
+      <h2 className="text-xl font-semibold mb-2">Events</h2>
+      <p className="text-muted-foreground">Event discovery coming soon.</p>
     </main>
   );
 }

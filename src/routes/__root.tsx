@@ -7,6 +7,8 @@ import {
   Scripts,
   useNavigate,
 } from "@tanstack/react-router";
+import { Button } from "~/components/ui/button";
+import appCss from "~/styles/globals.css?url";
 
 type SessionUser = { handle: string; displayName: string } | null;
 
@@ -17,6 +19,7 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Moim" },
     ],
+    links: [{ rel: "stylesheet", href: appCss }],
   }),
   component: RootLayout,
 });
@@ -48,34 +51,23 @@ function RootLayout() {
         <HeadContent />
       </head>
       <body>
-        <div style={{ fontFamily: "ui-sans-serif", padding: 24 }}>
-          <header style={{ marginBottom: 24 }}>
-            <h1 style={{ margin: 0 }}>Moim</h1>
-            <nav style={{ display: "flex", gap: 12, marginTop: 12 }}>
-              <Link to="/">Home</Link>
-              <Link to="/events">Events</Link>
-              <Link to="/places">Places</Link>
+        <div className="font-sans p-6 max-w-4xl mx-auto">
+          <header className="mb-6">
+            <h1 className="text-2xl font-bold">Moim</h1>
+            <nav className="flex gap-3 mt-3 items-center">
+              <Link to="/" className="text-sm hover:underline">Home</Link>
+              <Link to="/events" className="text-sm hover:underline">Events</Link>
+              <Link to="/places" className="text-sm hover:underline">Places</Link>
               {loaded && (
                 user ? (
                   <>
-                    <Link to="/groups/create">Create Group</Link>
-                    <button
-                      onClick={handleSignOut}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        padding: 0,
-                        font: "inherit",
-                        cursor: "pointer",
-                        color: "inherit",
-                        textDecoration: "underline",
-                      }}
-                    >
+                    <Link to="/groups/create" className="text-sm hover:underline">Create Group</Link>
+                    <Button variant="link" onClick={handleSignOut} className="p-0 h-auto text-sm">
                       Sign out (@{user.handle})
-                    </button>
+                    </Button>
                   </>
                 ) : (
-                  <Link to="/auth/signin">Sign in</Link>
+                  <Link to="/auth/signin" className="text-sm hover:underline">Sign in</Link>
                 )
               )}
             </nav>
