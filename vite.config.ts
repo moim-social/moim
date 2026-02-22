@@ -11,4 +11,8 @@ export default defineConfig({
     }),
     tsconfigPaths(),
   ],
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "react",
+  },
 });
