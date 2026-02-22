@@ -29,9 +29,34 @@ export async function fetchOutboxItems(outboxUrl: string): Promise<OutboxItem[]>
   const data = (await response.json()) as {
     orderedItems?: OutboxItem[];
     items?: OutboxItem[];
+    first?: string | { id?: string };
   };
 
-  return data.orderedItems ?? data.items ?? [];
+  // If items exist at root level, return them directly
+  if (data.orderedItems?.length || data.items?.length) {
+    return data.orderedItems ?? data.items ?? [];
+  }
+
+  // Follow pagination: Mastodon puts items on the `first` page
+  if (data.first) {
+    const firstUrl = typeof data.first === "string"
+      ? data.first
+      : data.first.id;
+    if (!firstUrl) return [];
+
+    const pageResponse = await fetch(firstUrl, {
+      headers: { Accept: "application/activity+json" },
+    });
+    if (!pageResponse.ok) return [];
+
+    const pageData = (await pageResponse.json()) as {
+      orderedItems?: OutboxItem[];
+      items?: OutboxItem[];
+    };
+    return pageData.orderedItems ?? pageData.items ?? [];
+  }
+
+  return [];
 }
 
 export function outboxContainsOtp(items: OutboxItem[], otp: string): boolean {

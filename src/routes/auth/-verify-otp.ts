@@ -1,10 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "~/server/db/client";
-import { otpChallenges, sessions, users } from "~/server/db/schema";
+import { actors, otpChallenges, sessions, users } from "~/server/db/schema";
 import { env } from "~/server/env";
 import { fetchOutboxItems, outboxContainsOtp } from "~/server/fediverse/outbox";
-import { resolveActorUrl, resolveOutboxUrl } from "~/server/fediverse/resolve";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -19,10 +18,12 @@ export const POST = async ({ request }: { request: Request }) => {
     return Response.json({ error: "handle is required" }, { status: 400 });
   }
 
+  const handle = body.handle.startsWith("@") ? body.handle.slice(1) : body.handle;
+
   const [challenge] = await db
     .select()
     .from(otpChallenges)
-    .where(and(eq(otpChallenges.handle, body.handle), eq(otpChallenges.status, "pending")))
+    .where(and(eq(otpChallenges.handle, handle), eq(otpChallenges.status, "pending")))
     .orderBy(desc(otpChallenges.createdAt))
     .limit(1);
 
@@ -38,14 +39,25 @@ export const POST = async ({ request }: { request: Request }) => {
     return Response.json({ error: "challenge expired" }, { status: 410 });
   }
 
-  const actorUrl = await resolveActorUrl(body.handle);
-  const outboxUrl = await resolveOutboxUrl(actorUrl);
+  // Use persisted actor's outbox URL instead of re-resolving
+  const [actor] = await db
+    .select()
+    .from(actors)
+    .where(eq(actors.handle, handle))
+    .limit(1);
+
+  if (!actor?.outboxUrl) {
+    return Response.json(
+      { error: "Actor not found. Call /auth/request-otp first." },
+      { status: 400 },
+    );
+  }
 
   const start = Date.now();
   let verified = false;
 
   while (Date.now() - start < env.otpPollTimeoutMs) {
-    const items = await fetchOutboxItems(outboxUrl);
+    const items = await fetchOutboxItems(actor.outboxUrl);
     if (outboxContainsOtp(items, challenge.otp)) {
       verified = true;
       break;
@@ -62,21 +74,31 @@ export const POST = async ({ request }: { request: Request }) => {
     .set({ status: "verified" })
     .where(eq(otpChallenges.id, challenge.id));
 
+  // Find or create user
   let [user] = await db
     .select()
     .from(users)
-    .where(eq(users.handle, body.handle))
+    .where(eq(users.handle, handle))
     .limit(1);
 
   if (!user) {
     const [created] = await db
       .insert(users)
       .values({
-        handle: body.handle,
-        displayName: body.handle,
+        handle: handle,
+        displayName: actor.name ?? handle,
+        summary: actor.summary,
       })
       .returning();
     user = created;
+  }
+
+  // Link actor to user (signing as Person actor)
+  if (!actor.userId) {
+    await db
+      .update(actors)
+      .set({ userId: user.id, updatedAt: new Date() })
+      .where(eq(actors.id, actor.id));
   }
 
   const sessionToken = randomUUID().replace(/-/g, "");
@@ -91,11 +113,11 @@ export const POST = async ({ request }: { request: Request }) => {
   const headers = new Headers();
   headers.set(
     "Set-Cookie",
-    `session_token=${sessionToken}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`
+    `session_token=${sessionToken}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`,
   );
 
   return new Response(
     JSON.stringify({ ok: true, user: { id: user.id, handle: user.handle } }),
-    { headers, status: 200 }
+    { headers, status: 200 },
   );
 };
