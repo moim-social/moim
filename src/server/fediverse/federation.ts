@@ -113,7 +113,7 @@ federation
       const attachments: PropertyValue[] = [];
 
       // Page link
-      const pageUrl = new URL(`/@/${identifier}`, ctx.canonicalOrigin).href;
+      const pageUrl = new URL(`/groups/@${identifier}`, ctx.canonicalOrigin).href;
       attachments.push(
         new PropertyValue({
           name: "page",
@@ -155,7 +155,7 @@ federation
         preferredUsername: identifier,
         name: actor.name ?? identifier,
         summary: actor.summary ?? "",
-        url: new URL(`/@${identifier}`, ctx.canonicalOrigin),
+        url: new URL(`/groups/@${identifier}`, ctx.canonicalOrigin),
         inbox: ctx.getInboxUri(identifier),
         outbox: ctx.getOutboxUri(identifier),
         endpoints: new Endpoints({ sharedInbox: ctx.getInboxUri() }),
@@ -184,7 +184,7 @@ federation
           type: "Person",
           actorUrl: ctx.getActorUri(identifier).href,
           iri: ctx.getActorUri(identifier).href,
-          url: new URL(`/@${user.handle}`, ctx.canonicalOrigin).href,
+          url: new URL(`/users/@${user.handle}`, ctx.canonicalOrigin).href,
           name: user.displayName,
           summary: user.summary ?? "",
           inboxUrl: ctx.getInboxUri(identifier).href,
@@ -214,7 +214,7 @@ federation
       preferredUsername: user.handle,
       name: user.displayName,
       summary: user.summary ?? "",
-      url: new URL(`/@${user.handle}`, ctx.canonicalOrigin),
+      url: new URL(`/users/@${user.handle}`, ctx.canonicalOrigin),
       inbox: ctx.getInboxUri(identifier),
       outbox: ctx.getOutboxUri(identifier),
       endpoints: new Endpoints({ sharedInbox: ctx.getInboxUri() }),

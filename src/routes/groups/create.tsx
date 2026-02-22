@@ -366,7 +366,7 @@ function CreateGroupPage() {
             <AlertDescription>Group created successfully!</AlertDescription>
           </Alert>
           <Button
-            onClick={() => navigate({ to: "/@$identifier", params: { identifier: createdHandle } })}
+            onClick={() => navigate({ to: "/groups/$identifier", params: { identifier: `@${createdHandle}` } })}
           >
             View Group
           </Button>

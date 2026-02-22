@@ -89,7 +89,7 @@ async function sendMentionNotification(
   const ctx = getFederationContext();
   const instanceHostname = new URL(env.federationOrigin).hostname;
 
-  const groupPageUrl = new URL(`/@${groupHandle}`, env.baseUrl).href;
+  const groupPageUrl = new URL(`/groups/@${groupHandle}`, env.baseUrl).href;
   const content = `<p>You have been added as a moderator of <a href="${groupPageUrl}">@${groupHandle}</a>.</p>`;
 
   const noteId = new URL(
