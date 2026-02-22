@@ -1,66 +1,51 @@
-export type OutboxItem = {
-  id?: string;
-  type?: string;
-  content?: string;
-  contentMap?: Record<string, string>;
-  object?: { content?: string; contentMap?: Record<string, string> };
-};
+import {
+  lookupObject,
+  traverseCollection,
+  Collection,
+  Create,
+  Update,
+  Note,
+  Article,
+} from "@fedify/fedify";
 
-function extractContent(item: OutboxItem): string[] {
+/**
+ * Fetch recent outbox items and return their text content.
+ * Uses Fedify's lookupObject + traverseCollection for proper
+ * ActivityPub collection traversal and object dereferencing.
+ */
+export async function fetchOutboxContent(outboxUrl: string): Promise<string[]> {
+  const outbox = await lookupObject(outboxUrl);
+  if (!(outbox instanceof Collection)) return [];
+
   const contents: string[] = [];
-  if (item.content) contents.push(item.content);
-  if (item.contentMap) contents.push(...Object.values(item.contentMap));
-  if (item.object?.content) contents.push(item.object.content);
-  if (item.object?.contentMap) contents.push(...Object.values(item.object.contentMap));
+  let count = 0;
+
+  for await (const item of traverseCollection(outbox, { suppressError: true })) {
+    // Extract content from Create/Update activities
+    if (item instanceof Create || item instanceof Update) {
+      const object = await item.getObject();
+      if (object instanceof Note || object instanceof Article) {
+        for (const c of object.contents) {
+          contents.push(c.toString());
+        }
+      }
+    }
+
+    // Also handle bare Note/Article (some servers inline objects directly)
+    if (item instanceof Note || item instanceof Article) {
+      for (const c of item.contents) {
+        contents.push(c.toString());
+      }
+    }
+
+    count++;
+    // Only check first page worth of items
+    if (count >= 50) break;
+  }
+
   return contents;
 }
 
-export async function fetchOutboxItems(outboxUrl: string): Promise<OutboxItem[]> {
-  const response = await fetch(outboxUrl, {
-    headers: {
-      Accept: "application/activity+json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch outbox: ${response.status}`);
-  }
-
-  const data = (await response.json()) as {
-    orderedItems?: OutboxItem[];
-    items?: OutboxItem[];
-    first?: string | { id?: string };
-  };
-
-  // If items exist at root level, return them directly
-  if (data.orderedItems?.length || data.items?.length) {
-    return data.orderedItems ?? data.items ?? [];
-  }
-
-  // Follow pagination: Mastodon puts items on the `first` page
-  if (data.first) {
-    const firstUrl = typeof data.first === "string"
-      ? data.first
-      : data.first.id;
-    if (!firstUrl) return [];
-
-    const pageResponse = await fetch(firstUrl, {
-      headers: { Accept: "application/activity+json" },
-    });
-    if (!pageResponse.ok) return [];
-
-    const pageData = (await pageResponse.json()) as {
-      orderedItems?: OutboxItem[];
-      items?: OutboxItem[];
-    };
-    return pageData.orderedItems ?? pageData.items ?? [];
-  }
-
-  return [];
-}
-
-export function outboxContainsOtp(items: OutboxItem[], otp: string): boolean {
-  return items.some((item) =>
-    extractContent(item).some((text) => text.includes(otp))
-  );
+export function contentContainsOtp(contents: string[], otp: string): boolean {
+  return contents.some((text) => text.includes(otp));
 }

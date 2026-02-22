@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "~/server/db/client";
 import { actors, otpChallenges, sessions, users } from "~/server/db/schema";
 import { env } from "~/server/env";
-import { fetchOutboxItems, outboxContainsOtp } from "~/server/fediverse/outbox";
+import { fetchOutboxContent, contentContainsOtp } from "~/server/fediverse/outbox";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -57,8 +57,8 @@ export const POST = async ({ request }: { request: Request }) => {
   let verified = false;
 
   while (Date.now() - start < env.otpPollTimeoutMs) {
-    const items = await fetchOutboxItems(actor.outboxUrl);
-    if (outboxContainsOtp(items, challenge.otp)) {
+    const contents = await fetchOutboxContent(actor.outboxUrl);
+    if (contentContainsOtp(contents, challenge.otp)) {
       verified = true;
       break;
     }
