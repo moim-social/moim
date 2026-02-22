@@ -1,24 +1,28 @@
 import {
   Accept,
   Application,
+  Create,
   createFederation,
   Endpoints,
   exportJwk,
   Follow,
   generateCryptoKeyPair,
+  Group,
   Image,
   importJwk,
   InProcessMessageQueue,
   MemoryKvStore,
+  Note,
   parseSemVer,
   Person,
   Reject,
   Undo,
 } from "@fedify/fedify";
 import type { Context, RequestContext } from "@fedify/fedify";
+import { Temporal } from "@js-temporal/polyfill";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, follows, keypairs, users } from "~/server/db/schema";
+import { actors, follows, keypairs, posts, users } from "~/server/db/schema";
 import { env } from "~/server/env";
 
 // --- Instance actor key (parsed once at startup) ---
@@ -93,21 +97,42 @@ federation
       });
     }
 
-    // User actor
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.handle, identifier))
-      .limit(1);
-    if (!user) return null;
-
-    // Ensure actor record exists
+    // Check actors table first (covers Group and pre-created Person actors)
     let [actor] = await db
       .select()
       .from(actors)
       .where(and(eq(actors.handle, identifier), eq(actors.isLocal, true)))
       .limit(1);
+
+    // Group actor
+    if (actor?.type === "Group") {
+      const keys = await ctx.getActorKeyPairs(identifier);
+      return new Group({
+        id: ctx.getActorUri(identifier),
+        preferredUsername: identifier,
+        name: actor.name ?? identifier,
+        summary: actor.summary ?? "",
+        url: new URL(`/@${identifier}`, ctx.canonicalOrigin),
+        inbox: ctx.getInboxUri(identifier),
+        outbox: ctx.getOutboxUri(identifier),
+        endpoints: new Endpoints({ sharedInbox: ctx.getInboxUri() }),
+        following: ctx.getFollowingUri(identifier),
+        followers: ctx.getFollowersUri(identifier),
+        manuallyApprovesFollowers: actor.manuallyApprovesFollowers,
+        publicKey: keys[0]?.cryptographicKey,
+        assertionMethods: keys.map((k) => k.multikey),
+      });
+    }
+
+    // Person actor: lazy-create from users table if no actor exists yet
     if (!actor) {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.handle, identifier))
+        .limit(1);
+      if (!user) return null;
+
       const [inserted] = await db
         .insert(actors)
         .values({
@@ -130,6 +155,14 @@ federation
         .returning();
       actor = inserted;
     }
+
+    // Load user for Person actor display info
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, actor.userId!))
+      .limit(1);
+    if (!user) return null;
 
     const keys = await ctx.getActorKeyPairs(identifier);
     return new Person({
@@ -159,6 +192,15 @@ federation
       return username;
     }
 
+    // Check actors table first (covers Group + pre-created Person actors)
+    const [actor] = await db
+      .select({ handle: actors.handle })
+      .from(actors)
+      .where(and(eq(actors.handle, username), eq(actors.isLocal, true)))
+      .limit(1);
+    if (actor) return actor.handle;
+
+    // Fallback: users table (for Person actors not yet in actors table)
     const [user] = await db
       .select({ handle: users.handle })
       .from(users)
@@ -223,6 +265,36 @@ federation
     return result;
   });
 
+// --- Note object dispatcher ---
+federation.setObjectDispatcher(
+  Note,
+  "/ap/{identifier}/notes/{noteId}",
+  async (ctx, { identifier, noteId }) => {
+    const [actor] = await db
+      .select()
+      .from(actors)
+      .where(and(eq(actors.handle, identifier), eq(actors.isLocal, true)))
+      .limit(1);
+    if (!actor) return null;
+
+    const [post] = await db
+      .select()
+      .from(posts)
+      .where(and(eq(posts.id, noteId), eq(posts.actorId, actor.id)))
+      .limit(1);
+    if (!post) return null;
+
+    return new Note({
+      id: ctx.getObjectUri(Note, { identifier, noteId }),
+      attribution: ctx.getActorUri(identifier),
+      content: post.content,
+      published: Temporal.Instant.from(post.published.toISOString()),
+      to: new URL("https://www.w3.org/ns/activitystreams#Public"),
+      ccs: [ctx.getFollowersUri(identifier)],
+    });
+  },
+);
+
 // --- NodeInfo ---
 federation.setNodeInfoDispatcher("/nodeinfo/2.1", async () => {
   const [result] = await db.select({ total: count() }).from(users);
@@ -254,7 +326,7 @@ federation.setNodeInfoDispatcher("/nodeinfo/2.1", async () => {
         activeMonth: activeMonth?.total ?? 0,
         activeHalfyear: activeHalfyear?.total ?? 0,
       },
-      localPosts: 0,
+      localPosts: await db.select({ total: count() }).from(posts).then(([r]) => r?.total ?? 0),
       localComments: 0,
     },
     openRegistrations: false,
@@ -477,11 +549,62 @@ federation
     }
   });
 
-// --- Outbox dispatcher (empty for now — moim has events/places, not notes) ---
-federation.setOutboxDispatcher(
-  "/ap/{identifier}/outbox",
-  async () => ({ items: [] }),
-);
+// --- Outbox dispatcher ---
+federation
+  .setOutboxDispatcher(
+    "/ap/{identifier}/outbox",
+    async (ctx, identifier, cursor) => {
+      const [actor] = await db
+        .select()
+        .from(actors)
+        .where(and(eq(actors.handle, identifier), eq(actors.isLocal, true)))
+        .limit(1);
+      if (!actor) return null;
+
+      const limit = 20;
+      const offset = cursor ? parseInt(cursor, 10) : 0;
+
+      const postRows = await db
+        .select()
+        .from(posts)
+        .where(eq(posts.actorId, actor.id))
+        .orderBy(sql`${posts.published} DESC`)
+        .limit(limit)
+        .offset(offset);
+
+      const items = postRows.map((post) => {
+        const noteUri = ctx.getObjectUri(Note, {
+          identifier,
+          noteId: post.id,
+        });
+        return new Create({
+          id: new URL(`${noteUri.href}#activity`),
+          actor: ctx.getActorUri(identifier),
+          object: new Note({
+            id: noteUri,
+            attribution: ctx.getActorUri(identifier),
+            content: post.content,
+            published: Temporal.Instant.from(post.published.toISOString()),
+            to: new URL("https://www.w3.org/ns/activitystreams#Public"),
+            ccs: [ctx.getFollowersUri(identifier)],
+          }),
+        });
+      });
+
+      const [totalResult] = await db
+        .select({ total: count() })
+        .from(posts)
+        .where(eq(posts.actorId, actor.id));
+      const total = totalResult?.total ?? 0;
+      const isLast = offset + limit >= total;
+
+      return {
+        items,
+        nextCursor: isLast ? null : String(offset + limit),
+      };
+    },
+  )
+  .setFirstCursor(async () => "0");
 
 // --- Followers collection ---
 federation

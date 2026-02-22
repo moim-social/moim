@@ -24,7 +24,8 @@
     "pg": "^8.12.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "@js-temporal/polyfill": "^0.5.1"
   },
   "devDependencies": {
     "@tanstack/router-devtools": "1.157.16",

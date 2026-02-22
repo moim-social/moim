@@ -15,6 +15,13 @@
       "when": 1771660325596,
       "tag": "0001_salty_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771740865668,
+      "tag": "0002_ambitious_night_nurse",
+      "breakpoints": true
     }
   ]
 }

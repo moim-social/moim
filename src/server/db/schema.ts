@@ -39,9 +39,8 @@ export const actors = pgTable("actors", {
   manuallyApprovesFollowers: boolean("manually_approves_followers").default(false).notNull(),
   followersCount: integer("followers_count").default(0).notNull(),
   followingCount: integer("following_count").default(0).notNull(),
-  // Polymorphic owner: local actor is either a user or an event (or neither for remote)
+  // Owner: for Person actors, points to the user; for Group actors, can be null (managed via group_members)
   userId: uuid("user_id").references(() => users.id),
-  eventId: uuid("event_id").references(() => events.id),
   raw: jsonb("raw"),
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -69,9 +68,26 @@ export const follows = pgTable("follows", {
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
 });
 
+export const posts = pgTable("posts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorId: uuid("actor_id").references(() => actors.id).notNull(),
+  content: text("content").notNull(), // HTML
+  published: timestamp("published", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const groupMembers = pgTable("group_members", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  groupActorId: uuid("group_actor_id").references(() => actors.id).notNull(),
+  memberActorId: uuid("member_actor_id").references(() => actors.id).notNull(),
+  role: varchar("role", { length: 32 }).notNull().default("host"), // 'host', 'moderator'
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const events = pgTable("events", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizerId: uuid("organizer_id").references(() => users.id).notNull(),
+  groupActorId: uuid("group_actor_id").references(() => actors.id),
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description"),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
