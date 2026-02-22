@@ -12,6 +12,7 @@ import { POST as signout } from "./routes/auth/-signout";
 import { GET as searchUsers } from "./routes/groups/-search-users";
 import { POST as resolveModerator } from "./routes/groups/-resolve-moderator";
 import { POST as createGroup } from "./routes/groups/-create";
+import { POST as webfingerLookup } from "./routes/api/-webfinger";
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -53,6 +54,12 @@ app.use("/groups/resolve-moderator", defineEventHandler(async (event) => {
 app.use("/groups/create", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return createGroup({ request });
+}));
+
+// API routes
+app.use("/api/webfinger", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return webfingerLookup({ request });
 }));
 
 app.use(
