@@ -8,6 +8,13 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import appCss from "~/styles/globals.css?url";
 
 type SessionUser = { handle: string; displayName: string } | null;
@@ -23,6 +30,17 @@ export const Route = createRootRoute({
   }),
   component: RootLayout,
 });
+
+function NavLink(props: { to: string; children: React.ReactNode }) {
+  return (
+    <Link
+      to={props.to}
+      className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {props.children}
+    </Link>
+  );
+}
 
 function RootLayout() {
   const [user, setUser] = useState<SessionUser>(null);
@@ -50,29 +68,69 @@ function RootLayout() {
       <head>
         <HeadContent />
       </head>
-      <body>
-        <div className="font-sans p-6 max-w-4xl mx-auto">
-          <header className="mb-6">
-            <h1 className="text-2xl font-bold">Moim</h1>
-            <nav className="flex gap-3 mt-3 items-center">
-              <Link to="/" className="text-sm hover:underline">Home</Link>
-              <Link to="/events" className="text-sm hover:underline">Events</Link>
-              <Link to="/places" className="text-sm hover:underline">Places</Link>
-              {loaded && (
-                user ? (
-                  <>
-                    <Link to="/groups/create" className="text-sm hover:underline">Create Group</Link>
-                    <Button variant="link" onClick={handleSignOut} className="p-0 h-auto text-sm">
-                      Sign out (@{user.handle})
+      <body className="min-h-screen bg-background font-sans antialiased">
+        <div className="relative flex min-h-screen flex-col">
+          {/* Header */}
+          <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="mx-auto flex h-14 w-full max-w-5xl items-center px-6">
+              <Link to="/" className="mr-8 flex items-center gap-2">
+                <span className="text-lg font-bold tracking-tight">Moim</span>
+              </Link>
+              <nav className="flex items-center gap-6">
+                <NavLink to="/events">Events</NavLink>
+                <NavLink to="/places">Places</NavLink>
+              </nav>
+              <div className="ml-auto flex items-center gap-3">
+                {loaded && (
+                  user ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="gap-1.5">
+                          <span className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                            {(user.displayName || user.handle).charAt(0).toUpperCase()}
+                          </span>
+                          <span className="text-sm">@{user.handle}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => navigate({ to: "/groups/create" })}>
+                          Create Group
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleSignOut}>
+                          Sign out
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to="/auth/signin">Sign in</Link>
                     </Button>
-                  </>
-                ) : (
-                  <Link to="/auth/signin" className="text-sm hover:underline">Sign in</Link>
-                )
-              )}
-            </nav>
+                  )
+                )}
+              </div>
+            </div>
           </header>
-          <Outlet />
+
+          {/* Main content */}
+          <main className="flex-1">
+            <div className="mx-auto w-full max-w-5xl px-6 py-8">
+              <Outlet />
+            </div>
+          </main>
+
+          {/* Footer */}
+          <footer className="border-t">
+            <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
+              <p className="text-sm text-muted-foreground">
+                Moim &mdash; Federated events & places
+              </p>
+              <nav className="flex gap-4">
+                <Link to="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Events</Link>
+                <Link to="/places" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Places</Link>
+              </nav>
+            </div>
+          </footer>
         </div>
         <Scripts />
       </body>

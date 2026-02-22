@@ -172,8 +172,8 @@ function CreateGroupPage() {
   );
 
   return (
-    <main className="max-w-xl">
-      <h2 className="text-xl font-semibold mb-4">Create Event Group</h2>
+    <main className="mx-auto max-w-xl">
+      <h2 className="text-2xl font-semibold tracking-tight mb-6">Create Event Group</h2>
 
       {phase === "basic" && (
         <form
@@ -366,7 +366,7 @@ function CreateGroupPage() {
             <AlertDescription>Group created successfully!</AlertDescription>
           </Alert>
           <Button
-            onClick={() => navigate({ to: "/@/$identifier", params: { identifier: createdHandle } })}
+            onClick={() => navigate({ to: "/@$identifier", params: { identifier: createdHandle } })}
           >
             View Group
           </Button>

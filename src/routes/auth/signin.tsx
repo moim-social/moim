@@ -78,8 +78,8 @@ function SignInPage() {
   }
 
   return (
-    <main className="max-w-md">
-      <h2 className="text-xl font-semibold mb-4">Sign in</h2>
+    <main className="mx-auto max-w-md">
+      <h2 className="text-2xl font-semibold tracking-tight mb-6">Sign in</h2>
 
       {error && phase === "handle" && (
         <Alert variant="destructive" className="mb-4">

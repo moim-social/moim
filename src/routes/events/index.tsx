@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Card, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 
 export const Route = createFileRoute("/events/")({
   component: EventsPage,
@@ -6,9 +7,21 @@ export const Route = createFileRoute("/events/")({
 
 function EventsPage() {
   return (
-    <main>
-      <h2 className="text-xl font-semibold mb-2">Events</h2>
-      <p className="text-muted-foreground">Event discovery coming soon.</p>
-    </main>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">Events</h2>
+        <p className="text-muted-foreground mt-1">
+          Discover upcoming events from groups across the fediverse.
+        </p>
+      </div>
+      <Card className="flex items-center justify-center py-16">
+        <CardHeader className="text-center">
+          <CardTitle className="text-base text-muted-foreground">No events yet</CardTitle>
+          <CardDescription>
+            Event discovery is coming soon. Create a group to start hosting events.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    </div>
   );
 }
