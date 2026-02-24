@@ -1,4 +1,4 @@
-import { Create, Note, Question } from "@fedify/fedify";
+import { Collection, Create, Mention, Note, Question } from "@fedify/fedify";
 import { Temporal } from "@js-temporal/polyfill";
 import { db } from "~/server/db/client";
 import { otpChallenges } from "~/server/db/schema";
@@ -57,20 +57,39 @@ export const POST = async ({ request }: { request: Request }) => {
     questionId: challenge.questionId,
   });
 
+  const now = Temporal.Now.instant();
+  const recipientUrl = new URL(actor.actorUrl);
+  const mentionTag = new Mention({
+    href: recipientUrl,
+    name: `@${handle}`,
+  });
+
   const question = new Question({
     id: questionUri,
     attribution: ctx.getActorUri(instanceId),
-    to: new URL(actor.actorUrl),
-    content: "Select the highlighted emojis to sign in to Moim:",
-    inclusiveOptions: EMOJI_SET.map((emoji) => new Note({ name: emoji })),
+    tos: [recipientUrl],
+    content: `<p><span class="h-card"><a href="${actor.actorUrl}" class="u-url mention">@${handle}</a></span> Select the highlighted emojis to sign in to Moim:</p>`,
+    mediaType: "text/html",
+    tags: [mentionTag],
+    inclusiveOptions: EMOJI_SET.map((emoji) =>
+      new Note({
+        name: emoji,
+        replies: new Collection({ totalItems: 0 }),
+      }),
+    ),
     closed: Temporal.Instant.from(expiresAt.toISOString()),
+    endTime: Temporal.Instant.from(expiresAt.toISOString()),
+    published: now,
+    voters: 0,
+    url: new URL(`/ap/questions/${challenge.questionId}`, env.federationOrigin),
   });
 
   const createActivity = new Create({
     id: new URL(`${questionUri.href}#activity`),
     actor: ctx.getActorUri(instanceId),
-    to: new URL(actor.actorUrl),
+    tos: [recipientUrl],
     object: question,
+    published: now,
   });
 
   try {
@@ -81,6 +100,7 @@ export const POST = async ({ request }: { request: Request }) => {
         inboxId: new URL(actor.inboxUrl),
       },
       createActivity,
+      { immediate: true },
     );
   } catch (err) {
     console.error("Failed to send OTP poll:", err);
