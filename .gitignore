@@ -6,3 +6,4 @@ node_modules
 routeTree.gen.ts
 .DS_Store
 .pnpm-store/
+dist/
