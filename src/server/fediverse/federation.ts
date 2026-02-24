@@ -16,6 +16,7 @@ import {
   parseSemVer,
   Person,
   PropertyValue,
+  Question,
   Reject,
   Undo,
 } from "@fedify/fedify";
@@ -23,8 +24,9 @@ import type { Context, RequestContext } from "@fedify/fedify";
 import { Temporal } from "@js-temporal/polyfill";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, follows, groupMembers, keypairs, posts, users } from "~/server/db/schema";
+import { actors, follows, groupMembers, keypairs, otpChallenges, otpVotes, posts, users } from "~/server/db/schema";
 import { env } from "~/server/env";
+import { EMOJI_SET } from "~/server/fediverse/otp";
 
 // --- Instance actor key (parsed once at startup) ---
 let instanceKeyPair: CryptoKeyPair | undefined;
@@ -54,6 +56,36 @@ function getInstanceHostname(): string {
   return new URL(env.federationOrigin).hostname;
 }
 
+// --- Instance actor auto-provisioning ---
+async function ensureInstanceActor(ctx: Context<void>): Promise<void> {
+  const hostname = getInstanceHostname();
+  const [existing] = await db
+    .select({ id: actors.id })
+    .from(actors)
+    .where(and(eq(actors.handle, hostname), eq(actors.isLocal, true)))
+    .limit(1);
+  if (existing) return;
+
+  await db
+    .insert(actors)
+    .values({
+      handle: hostname,
+      type: "Application",
+      actorUrl: ctx.getActorUri(hostname).href,
+      iri: ctx.getActorUri(hostname).href,
+      inboxUrl: ctx.getInboxUri(hostname).href,
+      outboxUrl: ctx.getOutboxUri(hostname).href,
+      sharedInboxUrl: ctx.getInboxUri().href,
+      followersUrl: ctx.getFollowersUri(hostname).href,
+      followingUrl: ctx.getFollowingUri(hostname).href,
+      domain: hostname,
+      isLocal: true,
+      name: "Moim",
+      summary: "An instance actor for Moim.",
+    })
+    .onConflictDoNothing();
+}
+
 // --- Federation instance ---
 export const federation = createFederation<void>({
   kv: new MemoryKvStore(),
@@ -79,8 +111,9 @@ federation
   .setActorDispatcher("/ap/actors/{identifier}", async (ctx, identifier) => {
     await instanceKeyPromise;
 
-    // Instance actor
-    if (instanceKeyPair && identifier === getInstanceHostname()) {
+    // Instance actor (auto-provisioned in DB)
+    if (identifier === getInstanceHostname()) {
+      await ensureInstanceActor(ctx);
       const keys = await ctx.getActorKeyPairs(identifier);
       return new Application({
         id: ctx.getActorUri(identifier),
@@ -228,11 +261,9 @@ federation
         : undefined,
     });
   })
-  .mapHandle(async (ctx, username) => {
-    await instanceKeyPromise;
-
+  .mapHandle(async (_ctx, username) => {
     // Instance actor
-    if (instanceKeyPair && username === getInstanceHostname()) {
+    if (username === getInstanceHostname()) {
       return username;
     }
 
@@ -257,15 +288,15 @@ federation
     if (m == null) return null;
     return { username: m[1] };
   })
-  .setKeyPairsDispatcher(async (ctx, identifier) => {
+  .setKeyPairsDispatcher(async (_ctx, identifier) => {
     await instanceKeyPromise;
 
-    // Instance actor key
+    // Instance actor key from env var (backwards compatibility)
     if (instanceKeyPair && identifier === getInstanceHostname()) {
       return [instanceKeyPair];
     }
 
-    // Find actor by handle
+    // For all local actors (including instance actor when env var not set)
     const [actor] = await db
       .select()
       .from(actors)
@@ -335,6 +366,30 @@ federation.setObjectDispatcher(
       published: Temporal.Instant.from(post.published.toISOString()),
       to: new URL("https://www.w3.org/ns/activitystreams#Public"),
       ccs: [ctx.getFollowersUri(actor.handle)],
+    });
+  },
+);
+
+// --- Question object dispatcher (for OTP polls) ---
+federation.setObjectDispatcher(
+  Question,
+  "/ap/questions/{questionId}",
+  async (ctx, { questionId }) => {
+    const [challenge] = await db
+      .select()
+      .from(otpChallenges)
+      .where(eq(otpChallenges.questionId, questionId))
+      .limit(1);
+    if (!challenge) return null;
+
+    const instanceId = getInstanceHostname();
+    return new Question({
+      id: ctx.getObjectUri(Question, { questionId }),
+      attribution: ctx.getActorUri(instanceId),
+      to: new URL(challenge.actorUrl),
+      inclusiveOptions: EMOJI_SET.map((emoji) => new Note({ name: emoji })),
+      closed: Temporal.Instant.from(challenge.expiresAt.toISOString()),
+      published: Temporal.Instant.from(challenge.createdAt.toISOString()),
     });
   },
 );
@@ -591,6 +646,59 @@ federation
           ),
         );
     }
+  })
+  .on(Create, async (ctx, create) => {
+    // Handle poll votes (Create(Note) with inReplyTo pointing to our Question)
+    const object = await create.getObject();
+    if (!(object instanceof Note)) return;
+
+    const replyTo = object.replyTargetId;
+    if (!replyTo) return;
+
+    const name = object.name?.toString();
+    if (!name || !(EMOJI_SET as readonly string[]).includes(name)) return;
+
+    // Extract questionId from the replyTo URI
+    let questionId: string | null = null;
+    const parsed = ctx.parseUri(replyTo);
+    if (parsed?.type === "object" && "questionId" in parsed.values) {
+      questionId = parsed.values.questionId as string;
+    } else {
+      // Regex fallback
+      const match = replyTo.pathname?.match(/\/ap\/questions\/(.+)$/);
+      if (match) questionId = match[1];
+    }
+    if (!questionId) return;
+
+    // Find the pending challenge
+    const [challenge] = await db
+      .select()
+      .from(otpChallenges)
+      .where(
+        and(
+          eq(otpChallenges.questionId, questionId),
+          eq(otpChallenges.status, "pending"),
+        ),
+      )
+      .limit(1);
+    if (!challenge) return;
+
+    // Check expiry
+    if (new Date(challenge.expiresAt).getTime() < Date.now()) return;
+
+    // Verify voter identity
+    const voterActorUrl = create.actorId?.href;
+    if (!voterActorUrl || voterActorUrl !== challenge.actorUrl) return;
+
+    // Record the vote
+    await db
+      .insert(otpVotes)
+      .values({
+        challengeId: challenge.id,
+        emoji: name,
+        voterActorUrl,
+      })
+      .onConflictDoNothing();
   });
 
 // --- Outbox dispatcher ---
