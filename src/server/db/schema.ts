@@ -6,6 +6,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -149,11 +150,23 @@ export const placeTags = pgTable("place_tags", {
 export const otpChallenges = pgTable("otp_challenges", {
   id: uuid("id").defaultRandom().primaryKey(),
   handle: varchar("handle", { length: 64 }).notNull(),
-  otp: varchar("otp", { length: 16 }).notNull(),
+  questionId: uuid("question_id").defaultRandom().notNull().unique(),
+  expectedEmojis: jsonb("expected_emojis").notNull(), // string[]
+  actorUrl: text("actor_url").notNull(),
   status: varchar("status", { length: 32 }).notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const otpVotes = pgTable("otp_votes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  challengeId: uuid("challenge_id").references(() => otpChallenges.id).notNull(),
+  emoji: varchar("emoji", { length: 8 }).notNull(),
+  voterActorUrl: text("voter_actor_url").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueVote: unique().on(table.challengeId, table.emoji),
+}));
 
 export const sessions = pgTable("sessions", {
   id: uuid("id").defaultRandom().primaryKey(),

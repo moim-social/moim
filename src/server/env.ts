@@ -16,14 +16,6 @@ export const env = {
     return this.federationOrigin;
   },
 
-  // Existing
+  // OTP
   otpTtlSeconds: Number.parseInt(process.env.OTP_TTL_SECONDS ?? "600", 10),
-  otpPollIntervalMs: Number.parseInt(
-    process.env.OTP_POLL_INTERVAL_MS ?? "3000",
-    10,
-  ),
-  otpPollTimeoutMs: Number.parseInt(
-    process.env.OTP_POLL_TIMEOUT_MS ?? "60000",
-    10,
-  ),
 };
