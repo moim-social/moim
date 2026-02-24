@@ -1,3 +1,5 @@
+-- Clear ephemeral OTP challenges before adding NOT NULL columns
+DELETE FROM "otp_challenges";--> statement-breakpoint
 CREATE TABLE "otp_votes" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"challenge_id" uuid NOT NULL,
