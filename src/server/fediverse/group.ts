@@ -1,4 +1,4 @@
-import { Create, Note } from "@fedify/fedify";
+import { Create, Note, PUBLIC_COLLECTION } from "@fedify/fedify";
 import { Temporal } from "@js-temporal/polyfill";
 import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
@@ -145,7 +145,7 @@ export async function createAndDeliverNote(
     attribution: ctx.getActorUri(actorHandle),
     content,
     published: Temporal.Instant.from(now.toISOString()),
-    to: new URL("https://www.w3.org/ns/activitystreams#Public"),
+    to: PUBLIC_COLLECTION,
     ccs: [ctx.getFollowersUri(actorHandle)],
   });
 
@@ -158,7 +158,7 @@ export async function createAndDeliverNote(
       actor: ctx.getActorUri(actorHandle),
       object: note,
       published: Temporal.Instant.from(now.toISOString()),
-      to: new URL("https://www.w3.org/ns/activitystreams#Public"),
+      to: PUBLIC_COLLECTION,
       ccs: [ctx.getFollowersUri(actorHandle)],
     }),
   );

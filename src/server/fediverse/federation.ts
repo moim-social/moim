@@ -16,6 +16,7 @@ import {
   parseSemVer,
   Person,
   PropertyValue,
+  PUBLIC_COLLECTION,
   Question,
   Reject,
   Undo,
@@ -364,7 +365,7 @@ federation.setObjectDispatcher(
       attribution: ctx.getActorUri(actor.handle),
       content: post.content,
       published: Temporal.Instant.from(post.published.toISOString()),
-      to: new URL("https://www.w3.org/ns/activitystreams#Public"),
+      to: PUBLIC_COLLECTION,
       ccs: [ctx.getFollowersUri(actor.handle)],
     });
   },
@@ -736,7 +737,7 @@ federation
             attribution: ctx.getActorUri(identifier),
             content: post.content,
             published: Temporal.Instant.from(post.published.toISOString()),
-            to: new URL("https://www.w3.org/ns/activitystreams#Public"),
+            to: PUBLIC_COLLECTION,
             ccs: [ctx.getFollowersUri(identifier)],
           }),
         });
