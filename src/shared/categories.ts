@@ -29,6 +29,7 @@ export const CATEGORIES = [
   { id: "sports", label: "Sports" },
   { id: "theatre", label: "Theatre" },
   { id: "meeting", label: "Meeting" },
+  { id: "programming", label: "Programming" },
 ] as const;
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];
