@@ -91,6 +91,7 @@ export const events = pgTable("events", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizerId: uuid("organizer_id").references(() => users.id).notNull(),
   groupActorId: uuid("group_actor_id").references(() => actors.id),
+  categoryId: varchar("category_id", { length: 64 }).notNull(),
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description"),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
@@ -99,6 +100,13 @@ export const events = pgTable("events", {
   placeId: uuid("place_id").references(() => places.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const eventOrganizers = pgTable("event_organizers", {
+  eventId: uuid("event_id").references(() => events.id).notNull(),
+  actorId: uuid("actor_id").references(() => actors.id).notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.eventId, table.actorId] }),
+}));
 
 export const places = pgTable("places", {
   id: uuid("id").defaultRandom().primaryKey(),

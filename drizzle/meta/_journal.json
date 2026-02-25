@@ -36,6 +36,20 @@
       "when": 1771939086616,
       "tag": "0004_familiar_thunderball",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772021217002,
+      "tag": "0005_cloudy_titanium_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772026141838,
+      "tag": "0006_luxuriant_shatterstar",
+      "breakpoints": true
     }
   ]
 }
