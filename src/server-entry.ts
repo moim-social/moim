@@ -14,7 +14,9 @@ import { POST as resolveModerator } from "./routes/groups/-resolve-moderator";
 import { POST as createGroup } from "./routes/groups/-create";
 import { GET as myGroups } from "./routes/groups/-my-groups";
 import { GET as groupDetail } from "./routes/groups/-detail";
+import { POST as createEvent } from "./routes/events/-create";
 import { GET as listEvents } from "./routes/events/-list";
+import { GET as eventDetail } from "./routes/events/-detail";
 import { GET as noteDetail } from "./routes/notes/-detail";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
 
@@ -70,9 +72,20 @@ app.use("/groups/detail", defineEventHandler(async (event) => {
   return groupDetail({ request });
 }));
 
+// Event API routes
+app.use("/events/create", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return createEvent({ request });
+}));
+
 app.use("/events/list", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return listEvents({ request });
+}));
+
+app.use("/events/detail", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return eventDetail({ request });
 }));
 
 // Note API routes

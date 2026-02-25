@@ -100,6 +100,9 @@ function RootLayout() {
                         <DropdownMenuItem onClick={() => navigate({ to: "/groups/create" })}>
                           Create Group
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate({ to: "/events/create" })}>
+                          Create Event
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleSignOut}>
                           Sign out
