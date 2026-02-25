@@ -19,6 +19,7 @@ import {
   PUBLIC_COLLECTION,
   Question,
   Reject,
+  Service,
   Undo,
 } from "@fedify/fedify";
 import type { Context, RequestContext } from "@fedify/fedify";
@@ -202,6 +203,25 @@ federation
       });
     }
 
+    // Service actor (category feeds)
+    if (actor?.type === "Service") {
+      const keys = await ctx.getActorKeyPairs(identifier);
+      return new Service({
+        id: ctx.getActorUri(identifier),
+        preferredUsername: identifier,
+        name: actor.name ?? identifier,
+        summary: actor.summary ?? "",
+        inbox: ctx.getInboxUri(identifier),
+        outbox: ctx.getOutboxUri(identifier),
+        endpoints: new Endpoints({ sharedInbox: ctx.getInboxUri() }),
+        following: ctx.getFollowingUri(identifier),
+        followers: ctx.getFollowersUri(identifier),
+        manuallyApprovesFollowers: false,
+        publicKey: keys[0]?.cryptographicKey,
+        assertionMethods: keys.map((k) => k.multikey),
+      });
+    }
+
     // Person actor: lazy-create from users table if no actor exists yet
     if (!actor) {
       const [user] = await db
@@ -364,6 +384,7 @@ federation.setObjectDispatcher(
       id: ctx.getObjectUri(Note, { noteId }),
       attribution: ctx.getActorUri(actor.handle),
       content: post.content,
+      url: new URL(`/notes/${noteId}`, ctx.canonicalOrigin),
       published: Temporal.Instant.from(post.published.toISOString()),
       to: PUBLIC_COLLECTION,
       ccs: [ctx.getFollowersUri(actor.handle)],
@@ -388,7 +409,7 @@ federation.setObjectDispatcher(
       id: ctx.getObjectUri(Question, { questionId }),
       attribution: ctx.getActorUri(instanceId),
       to: new URL(challenge.actorUrl),
-      inclusiveOptions: EMOJI_SET.map((emoji) => new Note({ name: emoji })),
+      inclusiveOptions: EMOJI_SET.map((emoji: string) => new Note({ name: emoji })),
       closed: Temporal.Instant.from(challenge.expiresAt.toISOString()),
       published: Temporal.Instant.from(challenge.createdAt.toISOString()),
     });
