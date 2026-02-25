@@ -17,6 +17,9 @@ import { GET as groupDetail } from "./routes/groups/-detail";
 import { POST as createEvent } from "./routes/events/-create";
 import { GET as listEvents } from "./routes/events/-list";
 import { GET as eventDetail } from "./routes/events/-detail";
+import { POST as submitRsvp } from "./routes/events/-rsvp";
+import { GET as rsvpStatus } from "./routes/events/-rsvp-status";
+import { GET as eventAttendees } from "./routes/events/-attendees";
 import { GET as noteDetail } from "./routes/notes/-detail";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
 
@@ -86,6 +89,21 @@ app.use("/events/list", defineEventHandler(async (event) => {
 app.use("/events/detail", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return eventDetail({ request });
+}));
+
+app.use("/events/rsvp-status", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return rsvpStatus({ request });
+}));
+
+app.use("/events/attendees", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return eventAttendees({ request });
+}));
+
+app.use("/events/rsvp", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return submitRsvp({ request });
 }));
 
 // Note API routes
