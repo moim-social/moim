@@ -93,6 +93,10 @@ function RootLayout() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => navigate({ to: "/groups/my" })}>
+                          My Groups
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => navigate({ to: "/groups/create" })}>
                           Create Group
                         </DropdownMenuItem>

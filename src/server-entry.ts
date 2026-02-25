@@ -12,6 +12,8 @@ import { POST as signout } from "./routes/auth/-signout";
 import { GET as searchUsers } from "./routes/groups/-search-users";
 import { POST as resolveModerator } from "./routes/groups/-resolve-moderator";
 import { POST as createGroup } from "./routes/groups/-create";
+import { GET as myGroups } from "./routes/groups/-my-groups";
+import { GET as groupDetail } from "./routes/groups/-detail";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
 
 const startFetch = createStartHandler(defaultStreamHandler);
@@ -54,6 +56,16 @@ app.use("/groups/resolve-moderator", defineEventHandler(async (event) => {
 app.use("/groups/create", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return createGroup({ request });
+}));
+
+app.use("/groups/my-groups", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return myGroups({ request });
+}));
+
+app.use("/groups/detail", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return groupDetail({ request });
 }));
 
 // API routes
