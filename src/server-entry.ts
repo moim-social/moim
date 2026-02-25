@@ -14,6 +14,7 @@ import { POST as resolveModerator } from "./routes/groups/-resolve-moderator";
 import { POST as createGroup } from "./routes/groups/-create";
 import { GET as myGroups } from "./routes/groups/-my-groups";
 import { GET as groupDetail } from "./routes/groups/-detail";
+import { POST as createGroupNote } from "./routes/groups/-create-note";
 import { POST as createEvent } from "./routes/events/-create";
 import { GET as listEvents } from "./routes/events/-list";
 import { GET as eventDetail } from "./routes/events/-detail";
@@ -58,6 +59,11 @@ app.use("/groups/search-users", defineEventHandler(async (event) => {
 app.use("/groups/resolve-moderator", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return resolveModerator({ request });
+}));
+
+app.use("/groups/create-note", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return createGroupNote({ request });
 }));
 
 app.use("/groups/create", defineEventHandler(async (event) => {

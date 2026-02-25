@@ -365,11 +365,19 @@ function CreateGroupPage() {
           <Alert className="border-green-300 bg-green-50 text-green-800">
             <AlertDescription>Group created successfully!</AlertDescription>
           </Alert>
-          <Button
-            onClick={() => navigate({ to: "/groups/$identifier", params: { identifier: `@${createdHandle}` } })}
-          >
-            View Group
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => navigate({ to: "/groups/$identifier/dashboard", params: { identifier: `@${createdHandle}` } })}
+            >
+              Go to Dashboard
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate({ to: "/groups/$identifier", params: { identifier: `@${createdHandle}` } })}
+            >
+              View Public Page
+            </Button>
+          </div>
         </div>
       )}
 

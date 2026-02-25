@@ -11,6 +11,16 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import { Textarea } from "~/components/ui/textarea";
+import { Alert, AlertDescription } from "~/components/ui/alert";
 
 export const Route = createFileRoute("/groups/$identifier/dashboard")({
   component: GroupDashboard,
@@ -65,6 +75,13 @@ function GroupDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Post Note dialog
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [noteContent, setNoteContent] = useState("");
+  const [noteSubmitting, setNoteSubmitting] = useState(false);
+  const [noteError, setNoteError] = useState("");
+  const [noteSuccess, setNoteSuccess] = useState(false);
+
   useEffect(() => {
     fetch(`/groups/detail?handle=${encodeURIComponent(handle)}`)
       .then((r) => {
@@ -84,6 +101,35 @@ function GroupDashboard() {
         setLoading(false);
       });
   }, [handle, identifier, navigate]);
+
+  async function submitNote() {
+    setNoteSubmitting(true);
+    setNoteError("");
+    setNoteSuccess(false);
+    try {
+      const res = await fetch("/groups/create-note", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupHandle: handle, content: noteContent }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        setNoteError(result.error ?? "Failed to post note");
+        setNoteSubmitting(false);
+        return;
+      }
+      setNoteContent("");
+      setNoteSuccess(true);
+      setNoteDialogOpen(false);
+      // Refresh data to show new post
+      const refreshRes = await fetch(`/groups/detail?handle=${encodeURIComponent(handle)}`);
+      const refreshData = await refreshRes.json();
+      setData(refreshData);
+    } catch {
+      setNoteError("Network error");
+    }
+    setNoteSubmitting(false);
+  }
 
   if (loading) {
     return <p className="text-muted-foreground">Loading...</p>;
@@ -132,6 +178,9 @@ function GroupDashboard() {
             >
               Public Page
             </Link>
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => { setNoteDialogOpen(true); setNoteSuccess(false); setNoteError(""); }}>
+            Post Note
           </Button>
           <Button size="sm" asChild>
             <Link to="/events/create">Create Event</Link>
@@ -288,6 +337,49 @@ function GroupDashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Post Note Dialog */}
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Post a Note</DialogTitle>
+            <DialogDescription>
+              Post an announcement from {group.name ?? `@${handle}`}. This will be delivered to all followers.
+            </DialogDescription>
+          </DialogHeader>
+
+          {noteError && (
+            <Alert variant="destructive">
+              <AlertDescription>{noteError}</AlertDescription>
+            </Alert>
+          )}
+
+          <Textarea
+            placeholder="What's happening?"
+            value={noteContent}
+            onChange={(e) => setNoteContent(e.target.value)}
+            rows={4}
+          />
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNoteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={submitNote}
+              disabled={noteSubmitting || !noteContent.trim()}
+            >
+              {noteSubmitting ? "Posting..." : "Post"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {noteSuccess && (
+        <Alert className="border-green-300 bg-green-50 text-green-800">
+          <AlertDescription>Note posted successfully!</AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 }
@@ -373,16 +465,22 @@ function EventRow({
   });
 
   return (
-    <li className="flex items-center justify-between px-3 py-2 rounded-md border">
-      <div>
-        <p className="text-sm font-medium">{event.title}</p>
-        <p className="text-xs text-muted-foreground">
-          {dateStr} at {timeStr}
-        </p>
-      </div>
-      <Badge variant="secondary">
-        {categoryMap.get(event.categoryId) ?? event.categoryId}
-      </Badge>
+    <li>
+      <Link
+        to="/events/$eventId"
+        params={{ eventId: event.id }}
+        className="flex items-center justify-between px-3 py-2 rounded-md border transition-colors hover:bg-accent/50"
+      >
+        <div>
+          <p className="text-sm font-medium">{event.title}</p>
+          <p className="text-xs text-muted-foreground">
+            {dateStr} at {timeStr}
+          </p>
+        </div>
+        <Badge variant="secondary">
+          {categoryMap.get(event.categoryId) ?? event.categoryId}
+        </Badge>
+      </Link>
     </li>
   );
 }
