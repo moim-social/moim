@@ -127,6 +127,26 @@ export const rsvps = pgTable("rsvps", {
   pk: primaryKey({ columns: [table.userId, table.eventId] }),
 }));
 
+export const eventQuestions = pgTable("event_questions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  eventId: uuid("event_id").references(() => events.id).notNull(),
+  question: text("question").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  required: boolean("required").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const rsvpAnswers = pgTable("rsvp_answers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  eventId: uuid("event_id").references(() => events.id).notNull(),
+  questionId: uuid("question_id").references(() => eventQuestions.id).notNull(),
+  answer: text("answer").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueAnswer: unique().on(table.userId, table.eventId, table.questionId),
+}));
+
 export const checkins = pgTable("checkins", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").references(() => users.id).notNull(),
