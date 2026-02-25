@@ -4,6 +4,7 @@ import { routeTree } from "./routeTree.gen";
 export function getRouter() {
   return createTanStackRouter({
     routeTree,
+    pathParamsAllowedCharacters: ["@"],
   });
 }
 
