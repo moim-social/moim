@@ -29,6 +29,9 @@ importers:
       '@tanstack/react-start':
         specifier: 1.157.16
         version: 1.157.16(crossws@0.4.4(srvx@0.11.7))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(vite@7.3.1(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0))
+      '@tanstack/zod-adapter':
+        specifier: ^1.163.2
+        version: 1.163.2(@tanstack/react-router@1.157.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.25.76)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1979,6 +1982,13 @@ packages:
   '@tanstack/virtual-file-routes@1.154.7':
     resolution: {integrity: sha512-cHHDnewHozgjpI+MIVp9tcib6lYEQK5MyUr0ChHpHFGBl8Xei55rohFK0I0ve/GKoHeioaK42Smd8OixPp6CTg==}
     engines: {node: '>=12'}
+
+  '@tanstack/zod-adapter@1.163.2':
+    resolution: {integrity: sha512-Flaka3AFp1wcoGyYvyG3U9xUSvcF86AeC9CSQkrZNkg87xCYKLXvvrMAEPv26k9SxiLZ/ykTuZP9qx6q8gWhCA==}
+    engines: {node: '>=20.19'}
+    peerDependencies:
+      '@tanstack/react-router': '>=1.43.2'
+      zod: ^3.23.8
 
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
@@ -5134,6 +5144,11 @@ snapshots:
   '@tanstack/store@0.8.1': {}
 
   '@tanstack/virtual-file-routes@1.154.7': {}
+
+  '@tanstack/zod-adapter@1.163.2(@tanstack/react-router@1.157.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.25.76)':
+    dependencies:
+      '@tanstack/react-router': 1.157.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      zod: 3.25.76
 
   '@tybys/wasm-util@0.10.1':
     dependencies:

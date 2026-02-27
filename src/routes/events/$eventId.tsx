@@ -1,5 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect, useState } from "react";
+import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { db } from "~/server/db/client";
+import { events, actors, users } from "~/server/db/schema";
 import { CATEGORIES } from "~/shared/categories";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -21,8 +27,63 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 
+const getEventMeta = createServerFn({ method: "GET" })
+  .inputValidator(zodValidator(z.object({ eventId: z.string() })))
+  .handler(async ({ data }) => {
+    const [row] = await db
+      .select({
+        title: events.title,
+        description: events.description,
+        startsAt: events.startsAt,
+        location: events.location,
+        organizerHandle: users.fediverseHandle,
+        groupHandle: actors.handle,
+        groupName: actors.name,
+        groupDomain: actors.domain,
+      })
+      .from(events)
+      .innerJoin(users, eq(events.organizerId, users.id))
+      .leftJoin(actors, eq(events.groupActorId, actors.id))
+      .where(eq(events.id, data.eventId))
+      .limit(1);
+    return row ?? null;
+  });
+
 export const Route = createFileRoute("/events/$eventId")({
   component: EventDetailPage,
+  loader: async ({ params }) => {
+    return getEventMeta({ data: { eventId: params.eventId } });
+  },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const groupFullHandle = loaderData.groupHandle
+      ? `@${loaderData.groupHandle}@${loaderData.groupDomain}`
+      : null;
+    const host = groupFullHandle
+      ? (loaderData.groupName ? `${loaderData.groupName} (${groupFullHandle})` : groupFullHandle)
+      : loaderData.organizerHandle
+        ? `@${loaderData.organizerHandle}`
+        : null;
+    const desc = loaderData.description
+      ?? `${new Date(loaderData.startsAt).toLocaleDateString()}${loaderData.location ? ` · ${loaderData.location}` : ""}`;
+    const title = host
+      ? `${loaderData.title} — ${host}`
+      : loaderData.title;
+    return {
+      meta: [
+        { title: `${title} — Moim` },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "website" },
+        ...(loaderData.groupHandle
+          ? [{ property: "fediverse:creator", content: `@${loaderData.groupHandle}@${loaderData.groupDomain}` }]
+          : loaderData.organizerHandle
+            ? [{ property: "fediverse:creator", content: `@${loaderData.organizerHandle}` }]
+            : []),
+      ],
+    };
+  },
 });
 
 const categoryMap = new Map<string, string>(
