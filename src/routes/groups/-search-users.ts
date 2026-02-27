@@ -17,9 +17,14 @@ export const GET = async ({ request }: { request: Request }) => {
 
   const pattern = `%${q}%`;
   const results = await db
-    .select({ handle: users.handle, displayName: users.displayName })
+    .select({ handle: users.fediverseHandle, displayName: users.displayName })
     .from(users)
-    .where(or(ilike(users.handle, pattern), ilike(users.displayName, pattern)))
+    .where(
+      or(
+        ilike(users.fediverseHandle, pattern),
+        ilike(users.displayName, pattern),
+      ),
+    )
     .limit(10);
 
   return Response.json({ users: results });

@@ -50,6 +50,20 @@
       "when": 1772026141838,
       "tag": "0006_luxuriant_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772167238775,
+      "tag": "0007_secret_lightspeed",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772170681911,
+      "tag": "0008_first_prowler",
+      "breakpoints": true
     }
   ]
 }

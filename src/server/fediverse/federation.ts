@@ -305,7 +305,7 @@ federation
     return user?.handle ?? null;
   })
   .mapAlias((_ctx, resource: URL) => {
-    const m = /^\/@(\w+)$/.exec(resource.pathname);
+    const m = /^\/@([a-z0-9_][a-z0-9_.]*[a-z0-9_])$/i.exec(resource.pathname);
     if (m == null) return null;
     return { username: m[1] };
   })

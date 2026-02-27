@@ -1,6 +1,6 @@
-import { eq, sql } from "drizzle-orm";
+import { aliasedTable, and, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { events, actors, eventOrganizers, rsvps, eventQuestions } from "~/server/db/schema";
+import { events, actors, eventOrganizers, rsvps, eventQuestions, users } from "~/server/db/schema";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -10,7 +10,8 @@ export const GET = async ({ request }: { request: Request }) => {
     return Response.json({ error: "id is required" }, { status: 400 });
   }
 
-  // Get event with group info
+  // Get event with group and organizer info
+  const organizerActors = aliasedTable(actors, "organizer_actors");
   const [event] = await db
     .select({
       id: events.id,
@@ -23,9 +24,17 @@ export const GET = async ({ request }: { request: Request }) => {
       createdAt: events.createdAt,
       groupHandle: actors.handle,
       groupName: actors.name,
+      organizerHandle: users.fediverseHandle,
+      organizerDisplayName: users.displayName,
+      organizerActorUrl: organizerActors.url,
     })
     .from(events)
     .leftJoin(actors, eq(events.groupActorId, actors.id))
+    .innerJoin(users, eq(events.organizerId, users.id))
+    .leftJoin(organizerActors, and(
+      eq(organizerActors.userId, users.id),
+      eq(organizerActors.isLocal, false),
+    ))
     .where(eq(events.id, eventId))
     .limit(1);
 

@@ -40,6 +40,9 @@ type EventData = {
     location: string | null;
     groupHandle: string | null;
     groupName: string | null;
+    organizerHandle: string | null;
+    organizerDisplayName: string | null;
+    organizerActorUrl: string | null;
     createdAt: string;
   };
   organizers: {
@@ -228,7 +231,7 @@ function EventDetailPage() {
             {categoryMap.get(event.categoryId) ?? event.categoryId}
           </Badge>
         </div>
-        {event.groupHandle && (
+        {event.groupHandle ? (
           <p className="text-sm text-muted-foreground mt-1">
             Hosted by{" "}
             <Link
@@ -239,7 +242,23 @@ function EventDetailPage() {
               {event.groupName ?? `@${event.groupHandle}`}
             </Link>
           </p>
-        )}
+        ) : event.organizerHandle ? (
+          <p className="text-sm text-muted-foreground mt-1">
+            Hosted by{" "}
+            {event.organizerActorUrl ? (
+              <a
+                href={event.organizerActorUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                @{event.organizerHandle}
+              </a>
+            ) : (
+              <span>@{event.organizerHandle}</span>
+            )}
+          </p>
+        ) : null}
       </div>
 
       {/* Date & Time */}

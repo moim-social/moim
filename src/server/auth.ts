@@ -14,6 +14,7 @@ export function parseCookie(
 export type SessionUser = {
   id: string;
   handle: string;
+  fediverseHandle: string | null;
   displayName: string;
 };
 
@@ -27,6 +28,7 @@ export async function getSessionUser(
     .select({
       id: users.id,
       handle: users.handle,
+      fediverseHandle: users.fediverseHandle,
       displayName: users.displayName,
     })
     .from(sessions)
