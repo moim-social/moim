@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import { useAuth } from "~/routes/__root";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
 function HomePage() {
+  const { user } = useAuth();
+
   return (
     <div className="space-y-12">
       {/* Hero */}
@@ -22,9 +25,11 @@ function HomePage() {
           <Button asChild>
             <Link to="/events">Browse Events</Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link to="/auth/signin">Sign in</Link>
-          </Button>
+          {!user && (
+            <Button variant="outline" asChild>
+              <Link to="/auth/signin">Sign in</Link>
+            </Button>
+          )}
         </div>
       </section>
 
