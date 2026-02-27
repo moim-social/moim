@@ -13,7 +13,8 @@ import {
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
-  handle: varchar("handle", { length: 64 }).notNull().unique(),
+  handle: varchar("handle", { length: 128 }).notNull().unique(), // proxy format: alice.mastodon.social
+  fediverseHandle: varchar("fediverse_handle", { length: 128 }).unique(), // original: alice@mastodon.social
   displayName: varchar("display_name", { length: 200 }).notNull(),
   summary: text("summary"),
   avatarUrl: text("avatar_url"),
@@ -23,7 +24,7 @@ export const users = pgTable("users", {
 
 export const actors = pgTable("actors", {
   id: uuid("id").defaultRandom().primaryKey(),
-  handle: varchar("handle", { length: 64 }).notNull().unique(),
+  handle: varchar("handle", { length: 128 }).notNull().unique(),
   type: varchar("type", { length: 32 }).notNull().default("Person"), // Person, Group, Application, Service
   actorUrl: text("actor_url").notNull(),
   iri: text("iri"),
@@ -177,7 +178,7 @@ export const placeTags = pgTable("place_tags", {
 
 export const otpChallenges = pgTable("otp_challenges", {
   id: uuid("id").defaultRandom().primaryKey(),
-  handle: varchar("handle", { length: 64 }).notNull(),
+  handle: varchar("handle", { length: 128 }).notNull(),
   questionId: uuid("question_id").defaultRandom().notNull().unique(),
   expectedEmojis: jsonb("expected_emojis").notNull(), // string[]
   actorUrl: text("actor_url").notNull(),
