@@ -90,6 +90,25 @@ const categoryMap = new Map<string, string>(
   CATEGORIES.map((c) => [c.id, c.label]),
 );
 
+const HERO_GRADIENTS: [string, string][] = [
+  ["#7c3aed", "#4f46e5"], // violet → indigo
+  ["#f43f5e", "#db2777"], // rose → pink
+  ["#10b981", "#0d9488"], // emerald → teal
+  ["#f59e0b", "#ea580c"], // amber → orange
+  ["#0ea5e9", "#2563eb"], // sky → blue
+  ["#d946ef", "#9333ea"], // fuchsia → purple
+  ["#84cc16", "#16a34a"], // lime → green
+  ["#06b6d4", "#0d9488"], // cyan → teal
+];
+
+function pickGradient(id: string): [string, string] {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+  }
+  return HERO_GRADIENTS[Math.abs(hash) % HERO_GRADIENTS.length];
+}
+
 type EventData = {
   event: {
     id: string;
@@ -280,223 +299,279 @@ function EventDetailPage() {
 
   const attendeeCount = rsvpData?.rsvpCounts?.accepted ?? data.rsvpCounts?.accepted ?? 0;
 
-  return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            {event.title}
-          </h2>
-          <Badge variant="secondary">
-            {categoryMap.get(event.categoryId) ?? event.categoryId}
-          </Badge>
-        </div>
-        {event.groupHandle ? (
-          <p className="text-sm text-muted-foreground mt-1">
-            Hosted by{" "}
-            <Link
-              to="/groups/$identifier"
-              params={{ identifier: `@${event.groupHandle}` }}
-              className="text-primary hover:underline"
-            >
-              {event.groupName ?? `@${event.groupHandle}`}
-            </Link>
-          </p>
-        ) : event.organizerHandle ? (
-          <p className="text-sm text-muted-foreground mt-1">
-            Hosted by{" "}
-            {event.organizerActorUrl ? (
-              <a
-                href={event.organizerActorUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                @{event.organizerHandle}
-              </a>
-            ) : (
-              <span>@{event.organizerHandle}</span>
-            )}
-          </p>
-        ) : null}
-      </div>
+  const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
 
-      {/* Date & Time */}
-      <Card>
-        <CardContent className="pt-6">
-          {end == null ? (
-            <div className="space-y-1">
-              <p className="text-sm font-medium">{startDateStr}</p>
-              <p className="text-sm text-muted-foreground">{startTimeStr}</p>
-            </div>
-          ) : sameDay ? (
-            <div className="space-y-1">
-              <p className="text-sm font-medium">{startDateStr}</p>
-              <p className="text-sm text-muted-foreground">
-                {startTimeStr} — {endTimeStr}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-              <div className="space-y-1">
+  const rsvpContent = rsvpData && (
+    <>
+      <Separator />
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">
+          {attendeeCount} attending
+        </span>
+        {rsvpData.userRsvp && (
+          <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"}>
+            {rsvpData.userRsvp.status === "accepted" ? "Attending" : "Not attending"}
+          </Badge>
+        )}
+      </div>
+      {!rsvpData.isAuthenticated ? (
+        <Button asChild className="w-full">
+          <Link to="/auth/signin">Sign in to RSVP</Link>
+        </Button>
+      ) : rsvpData.userRsvp ? (
+        <Button variant="outline" className="w-full" onClick={() => setRsvpDialogOpen(true)}>
+          Change RSVP
+        </Button>
+      ) : (
+        <Button className="w-full" onClick={() => setRsvpDialogOpen(true)}>
+          RSVP
+        </Button>
+      )}
+    </>
+  );
+
+  const dateLocationContent = (
+    <>
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 size-5 shrink-0 text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+              <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75Z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="min-w-0">
+            {end == null ? (
+              <>
                 <p className="text-sm font-medium">{startDateStr}</p>
                 <p className="text-sm text-muted-foreground">{startTimeStr}</p>
-              </div>
-              <span className="text-muted-foreground">—</span>
-              <div className="space-y-1">
-                <p className="text-sm font-medium">{endDateStr}</p>
-                <p className="text-sm text-muted-foreground">{endTimeStr}</p>
-              </div>
-            </div>
-          )}
-          {event.location && (
-            <>
-              <Separator className="my-4" />
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                  Location
+              </>
+            ) : sameDay ? (
+              <>
+                <p className="text-sm font-medium">{startDateStr}</p>
+                <p className="text-sm text-muted-foreground">
+                  {startTimeStr} — {endTimeStr}
                 </p>
-                <p className="text-sm">{event.location}</p>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Description */}
-      {event.description && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">About</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {event.description}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* RSVP Section */}
-      {rsvpData && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Attendance</CardTitle>
-              <Badge variant="secondary">
-                {attendeeCount} attending
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {!rsvpData.isAuthenticated ? (
-              <p className="text-sm text-muted-foreground">
-                <Link to="/auth/signin" className="text-primary hover:underline">Sign in</Link> to RSVP.
-              </p>
-            ) : rsvpData.userRsvp ? (
-              <div className="space-y-3">
-                <p className="text-sm">
-                  Your status:{" "}
-                  <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"}>
-                    {rsvpData.userRsvp.status === "accepted" ? "Attending" : "Not attending"}
-                  </Badge>
-                </p>
-                <Button variant="outline" size="sm" onClick={() => setRsvpDialogOpen(true)}>
-                  Change RSVP
-                </Button>
-              </div>
+              </>
             ) : (
-              <Button onClick={() => setRsvpDialogOpen(true)}>
+              <>
+                <p className="text-sm font-medium">{startDateStr} {startTimeStr}</p>
+                <p className="text-sm text-muted-foreground">
+                  to {endDateStr} {endTimeStr}
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {event.location && (
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 size-5 shrink-0 text-muted-foreground">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <p className="text-sm">{event.location}</p>
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="pb-24 md:pb-0">
+      {/* Hero */}
+      <div
+        className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen px-6 py-12 md:py-16 pb-20 md:pb-24"
+        style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
+      >
+        <div className="mx-auto max-w-5xl">
+          <Badge variant="secondary" className="mb-3 bg-white/20 text-white border-white/30 hover:bg-white/30">
+            {categoryMap.get(event.categoryId) ?? event.categoryId}
+          </Badge>
+          <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+            {event.title}
+          </h1>
+          {event.groupHandle ? (
+            <p className="mt-3 text-white/80">
+              Hosted by{" "}
+              <Link
+                to="/groups/$identifier"
+                params={{ identifier: `@${event.groupHandle}` }}
+                className="text-white underline underline-offset-2 hover:text-white/90"
+              >
+                {event.groupName ?? `@${event.groupHandle}`}
+              </Link>
+            </p>
+          ) : event.organizerHandle ? (
+            <p className="mt-3 text-white/80">
+              Hosted by{" "}
+              {event.organizerActorUrl ? (
+                <a
+                  href={event.organizerActorUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white underline underline-offset-2 hover:text-white/90"
+                >
+                  @{event.organizerHandle}
+                </a>
+              ) : (
+                <span className="text-white">@{event.organizerHandle}</span>
+              )}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Two-column layout — pulled up to overlap hero */}
+      <div className="relative -mt-14 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8">
+        {/* Main content */}
+        <div className="space-y-6 min-w-0">
+          {/* Date & Location — visible on mobile only (desktop shows in sidebar) */}
+          <Card className="rounded-lg md:hidden">
+            <CardContent className="pt-6">
+              {dateLocationContent}
+            </CardContent>
+          </Card>
+
+          {/* Description */}
+          {event.description && (
+            <Card className="rounded-lg">
+              <CardHeader>
+                <CardTitle className="text-base">About</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {event.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Organizers */}
+          {organizers.length > 0 && (
+            <Card className="rounded-lg">
+              <CardHeader>
+                <CardTitle className="text-base">Organizers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {organizers.map((o) => {
+                    const displayHandle = o.handle.includes("@")
+                      ? `@${o.handle}`
+                      : `@${o.handle}@${o.domain}`;
+                    return (
+                      <li key={o.handle} className="flex items-center gap-2">
+                        <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                          {(o.name ?? o.handle).charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium">
+                            {o.name ?? o.handle}
+                          </span>
+                          <span className="text-sm text-muted-foreground ml-1.5">
+                            {o.isLocal ? `@${o.handle}` : displayHandle}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Attendees (organizer-only) */}
+          {attendeesData && (
+            <Card className="rounded-lg">
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Attendees ({attendeesData.attendees.filter((a) => a.status === "accepted").length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {attendeesData.attendees.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No RSVPs yet.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {attendeesData.attendees.map((a) => (
+                      <li key={a.userId} className="border rounded-md p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                              {a.displayName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium">{a.displayName}</span>
+                              <span className="text-sm text-muted-foreground ml-1.5">@{a.handle}</span>
+                            </div>
+                          </div>
+                          <Badge variant={a.status === "accepted" ? "default" : "secondary"}>
+                            {a.status === "accepted" ? "Attending" : "Not attending"}
+                          </Badge>
+                        </div>
+                        {a.answers.length > 0 && attendeesData.questions.length > 0 && (
+                          <div className="pl-10 space-y-1">
+                            {attendeesData.questions.map((q) => {
+                              const ans = a.answers.find((x) => x.questionId === q.id);
+                              if (!ans) return null;
+                              return (
+                                <div key={q.id}>
+                                  <p className="text-xs text-muted-foreground">{q.question}</p>
+                                  <p className="text-sm">{ans.answer}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Sidebar — desktop only */}
+        <div className="hidden md:block">
+          <div className="sticky top-20">
+            <Card className="rounded-lg">
+              <CardContent className="pt-6 space-y-4">
+                {dateLocationContent}
+                {rsvpContent}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile sticky bottom bar */}
+      {rsvpData && (
+        <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{attendeeCount} attending</span>
+              {rsvpData.userRsvp && (
+                <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"} className="text-xs">
+                  {rsvpData.userRsvp.status === "accepted" ? "Going" : "Not going"}
+                </Badge>
+              )}
+            </div>
+            {!rsvpData.isAuthenticated ? (
+              <Button size="sm" asChild>
+                <Link to="/auth/signin">Sign in to RSVP</Link>
+              </Button>
+            ) : rsvpData.userRsvp ? (
+              <Button size="sm" variant="outline" onClick={() => setRsvpDialogOpen(true)}>
+                Change RSVP
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => setRsvpDialogOpen(true)}>
                 RSVP
               </Button>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Organizers */}
-      {organizers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Organizers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {organizers.map((o) => {
-                const displayHandle = o.handle.includes("@")
-                  ? `@${o.handle}`
-                  : `@${o.handle}@${o.domain}`;
-                return (
-                  <li key={o.handle} className="flex items-center gap-2">
-                    <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
-                      {(o.name ?? o.handle).charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium">
-                        {o.name ?? o.handle}
-                      </span>
-                      <span className="text-sm text-muted-foreground ml-1.5">
-                        {o.isLocal ? `@${o.handle}` : displayHandle}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Attendees (organizer-only) */}
-      {attendeesData && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              Attendees ({attendeesData.attendees.filter((a) => a.status === "accepted").length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {attendeesData.attendees.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No RSVPs yet.</p>
-            ) : (
-              <ul className="space-y-3">
-                {attendeesData.attendees.map((a) => (
-                  <li key={a.userId} className="border rounded-md p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
-                          {a.displayName.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <span className="text-sm font-medium">{a.displayName}</span>
-                          <span className="text-sm text-muted-foreground ml-1.5">@{a.handle}</span>
-                        </div>
-                      </div>
-                      <Badge variant={a.status === "accepted" ? "default" : "secondary"}>
-                        {a.status === "accepted" ? "Attending" : "Not attending"}
-                      </Badge>
-                    </div>
-                    {a.answers.length > 0 && attendeesData.questions.length > 0 && (
-                      <div className="pl-10 space-y-1">
-                        {attendeesData.questions.map((q) => {
-                          const ans = a.answers.find((x) => x.questionId === q.id);
-                          if (!ans) return null;
-                          return (
-                            <div key={q.id}>
-                              <p className="text-xs text-muted-foreground">{q.question}</p>
-                              <p className="text-sm">{ans.answer}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* RSVP Dialog */}
