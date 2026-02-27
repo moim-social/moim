@@ -7,6 +7,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors } from "~/server/db/schema";
 import { CATEGORIES } from "~/shared/categories";
+import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
@@ -131,39 +132,41 @@ function ProfilePage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {/* Header */}
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-4">
-          <div className="size-14 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-semibold shrink-0">
-            {(group.name ?? handle).charAt(0).toUpperCase()}
-          </div>
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-xl">
-                {group.name ?? `@${handle}`}
-              </CardTitle>
-              <Badge variant="secondary">Group</Badge>
+      <Card className="rounded-lg">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <div className="size-14 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-semibold shrink-0">
+              {(group.name ?? handle).charAt(0).toUpperCase()}
             </div>
-            <p className="text-sm text-muted-foreground">@{handle}</p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold tracking-tight truncate">
+                  {group.name ?? `@${handle}`}
+                </h2>
+                <Badge variant="secondary" className="shrink-0">Group</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">@{handle}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {currentUserRole && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link
+                    to="/groups/$identifier/dashboard"
+                    params={{ identifier }}
+                  >
+                    Dashboard
+                  </Link>
+                </Button>
+              )}
+              <RemoteFollowDialog actorHandle={handle} />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {currentUserRole && (
-              <Button variant="outline" size="sm" asChild>
-                <Link
-                  to="/groups/$identifier/dashboard"
-                  params={{ identifier }}
-                >
-                  Dashboard
-                </Link>
-              </Button>
-            )}
-            <RemoteFollowDialog actorHandle={handle} />
-          </div>
-        </CardHeader>
+        </CardContent>
       </Card>
 
       {/* About */}
       {(group.summary || group.website || (group.categories && (group.categories as string[]).length > 0)) && (
-        <Card>
+        <Card className="rounded-lg">
           <CardHeader>
             <CardTitle className="text-base">About</CardTitle>
           </CardHeader>
@@ -174,16 +177,17 @@ function ProfilePage() {
               </p>
             )}
             {group.website && (
-              <p className="text-sm">
-                <a
-                  href={group.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  {group.website}
-                </a>
-              </p>
+              <a
+                href={group.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                  <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Zm4.943.25a.75.75 0 0 1 0-1.5h5.057a.75.75 0 0 1 .75.75v5.057a.75.75 0 0 1-1.5 0V6.56l-5.22 5.22a.75.75 0 0 1-1.06-1.06l5.22-5.22H9.193Z" clipRule="evenodd" />
+                </svg>
+                {group.website}
+              </a>
             )}
             {group.categories && (group.categories as string[]).length > 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -194,27 +198,36 @@ function ProfilePage() {
                 ))}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">
-              {group.followersCount} follower{group.followersCount !== 1 ? "s" : ""}
-            </p>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+              <span>{group.followersCount} follower{group.followersCount !== 1 ? "s" : ""}</span>
+              <span>{events.length} event{events.length !== 1 ? "s" : ""}</span>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Feed */}
-      {feedItems.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No activity yet.</p>
-      ) : (
-        <div className="space-y-4">
-          {feedItems.map((item) =>
-            item.type === "event" ? (
-              <EventFeedItem key={`event-${item.event.id}`} event={item.event} groupName={group.name ?? handle} />
-            ) : (
-              <NoteFeedItem key={`note-${item.note.id}`} note={item.note} groupName={group.name ?? handle} />
-            ),
-          )}
-        </div>
-      )}
+      {/* Timeline */}
+      <div>
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">Activity</h3>
+        {feedItems.length === 0 ? (
+          <p className="text-sm text-muted-foreground pl-8">No activity yet.</p>
+        ) : (
+          <div className="relative">
+            {/* Vertical line */}
+            <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
+
+            <div className="space-y-6">
+              {feedItems.map((item) =>
+                item.type === "event" ? (
+                  <TimelineEvent key={`event-${item.event.id}`} event={item.event} />
+                ) : (
+                  <TimelineNote key={`note-${item.note.id}`} note={item.note} />
+                ),
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -233,17 +246,14 @@ function formatRelativeDate(date: Date): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function EventFeedItem({
+function TimelineEvent({
   event,
-  groupName,
 }: {
   event: GroupData["events"][number];
-  groupName: string;
 }) {
   const start = new Date(event.startsAt);
   const dateStr = start.toLocaleDateString(undefined, {
     weekday: "short",
-    year: "numeric",
     month: "short",
     day: "numeric",
   });
@@ -252,84 +262,96 @@ function EventFeedItem({
     minute: "2-digit",
   });
   const postedAt = formatRelativeDate(new Date(event.createdAt));
+  const [gradFrom] = pickGradient(event.categoryId || event.id);
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      {/* Meta bar */}
-      <div className="px-4 py-2.5 bg-muted/40 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">{groupName}</span>
-          <span>&middot;</span>
-          <span>{postedAt}</span>
-        </div>
-        <Badge variant="outline" className="text-[11px] px-1.5 py-0">Event</Badge>
-      </div>
+    <div className="relative flex gap-4 pl-0">
+      {/* Dot */}
+      <div
+        className="relative z-10 mt-1.5 size-[15px] rounded-full border-2 border-background shrink-0"
+        style={{ backgroundColor: gradFrom }}
+      />
 
       {/* Content */}
-      <div className="px-4 py-4 space-y-3">
-        <Link
-          to="/events/$eventId"
-          params={{ eventId: event.id }}
-          className="block group"
-        >
-          <h4 className="font-semibold group-hover:underline">{event.title}</h4>
-        </Link>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <span>{dateStr} at {timeStr}</span>
-          {event.location && (
-            <span>{event.location}</span>
+      <div className="flex-1 min-w-0 pb-1">
+        <div className="flex items-center gap-2 mb-1">
+          <Badge variant="outline" className="text-xs px-1.5 py-0">Event</Badge>
+          {event.categoryId && (
+            <Badge variant="secondary" className="text-xs">
+              {categoryMap.get(event.categoryId) ?? event.categoryId}
+            </Badge>
           )}
+          <span className="text-xs text-muted-foreground">{postedAt}</span>
         </div>
 
-        {event.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {event.description}
-          </p>
-        )}
+        <div className="rounded-lg border p-4 space-y-2">
+          <Link
+            to="/events/$eventId"
+            params={{ eventId: event.id }}
+            className="group"
+          >
+            <h4 className="font-semibold group-hover:text-primary transition-colors">
+              {event.title}
+            </h4>
+          </Link>
 
-        <div className="flex items-center gap-2 pt-1">
-          <Badge variant="secondary">
-            {categoryMap.get(event.categoryId) ?? event.categoryId}
-          </Badge>
+          <div className="space-y-0.5 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-3.5 shrink-0">
+                <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75Z" clipRule="evenodd" />
+              </svg>
+              <span>{dateStr} · {timeStr}</span>
+            </div>
+            {event.location && (
+              <div className="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-3.5 shrink-0">
+                  <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
+                </svg>
+                <span>{event.location}</span>
+              </div>
+            )}
+          </div>
+
+          {event.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {event.description}
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function NoteFeedItem({
+function TimelineNote({
   note,
-  groupName,
 }: {
   note: { id: string; content: string; published: string };
-  groupName: string;
 }) {
   const postedAt = formatRelativeDate(new Date(note.published));
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      {/* Meta bar */}
-      <div className="px-4 py-2.5 bg-muted/40 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">{groupName}</span>
-          <span>&middot;</span>
-          <span>{postedAt}</span>
-        </div>
-        <Badge variant="outline" className="text-[11px] px-1.5 py-0">Note</Badge>
-      </div>
+    <div className="relative flex gap-4 pl-0">
+      {/* Dot */}
+      <div className="relative z-10 mt-1.5 size-[15px] rounded-full border-2 border-background bg-muted-foreground/40 shrink-0" />
 
       {/* Content */}
-      <div className="px-4 py-4">
-        <div
-          className="text-sm leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0"
-          dangerouslySetInnerHTML={{ __html: note.content }}
-        />
-        <div className="mt-3">
+      <div className="flex-1 min-w-0 pb-1">
+        <div className="flex items-center gap-2 mb-1">
+          <Badge variant="outline" className="text-xs px-1.5 py-0">Note</Badge>
+          <span className="text-xs text-muted-foreground">{postedAt}</span>
+        </div>
+
+        <div className="rounded-lg border p-4 space-y-2">
+          <div
+            className="text-sm leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0"
+            dangerouslySetInnerHTML={{ __html: note.content }}
+          />
+
           <Link
             to="/notes/$noteId"
             params={{ noteId: note.id }}
-            className="text-xs text-primary hover:underline"
+            className="text-xs text-primary hover:underline inline-block"
           >
             Permalink
           </Link>
