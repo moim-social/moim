@@ -20,6 +20,7 @@ import { POST as createEvent } from "./routes/events/-create";
 import { GET as listEvents } from "./routes/events/-list";
 import { GET as eventDetail } from "./routes/events/-detail";
 import { POST as submitRsvp } from "./routes/events/-rsvp";
+import { POST as updateEvent } from "./routes/events/-update";
 import { GET as rsvpStatus } from "./routes/events/-rsvp-status";
 import { GET as eventAttendees } from "./routes/events/-attendees";
 import { GET as noteDetail } from "./routes/notes/-detail";
@@ -111,6 +112,11 @@ app.use("/events/attendees", defineEventHandler(async (event) => {
 app.use("/events/rsvp", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return submitRsvp({ request });
+}));
+
+app.use("/events/update", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return updateEvent({ request });
 }));
 
 // Note API routes

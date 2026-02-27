@@ -50,7 +50,7 @@ const getEventMeta = createServerFn({ method: "GET" })
     return row ?? null;
   });
 
-export const Route = createFileRoute("/events/$eventId")({
+export const Route = createFileRoute("/events/$eventId/")({
   component: EventDetailPage,
   loader: async ({ params }) => {
     return getEventMeta({ data: { eventId: params.eventId } });
@@ -115,6 +115,7 @@ type EventData = {
   }[];
   rsvpCounts: { accepted: number; declined: number };
   questionCount: number;
+  canEdit: boolean;
 };
 
 type AttendeesData = {
@@ -403,6 +404,20 @@ function EventDetailPage() {
               )}
             </p>
           ) : null}
+          {data.canEdit && (
+            <div className="mt-4">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+                asChild
+              >
+                <Link to="/events/$eventId/edit" params={{ eventId }}>
+                  Edit Event
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
