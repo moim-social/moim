@@ -17,10 +17,6 @@ pnpm build         # build for production
 pnpm start         # run production server
 pnpm typecheck     # run tsc
 pnpm lint          # lint src/
-
-pnpm db:generate   # generate migrations from schema
-pnpm db:push       # apply schema to migration DB
-pnpm db:migrate    # apply migrations to app DB
 ```
 
 ## Directory Map
@@ -60,14 +56,41 @@ Environment controls:
 ## Database Migration Workflow (Dual DB)
 
 We use two PostgreSQL containers in `docker-compose.yml`:
-- App DB (5432): used by the running app
-- Migration DB (5433): clean DB for schema diff and migration generation
+- **App DB** (`postgres`, port 5432 internal): used by the running app
+- **Migration DB** (`postgres-migration`, port 5432 internal / 5434 host): clean DB for schema diff and migration generation
 
-Workflow:
-1. Edit `src/server/db/schema.ts`
-2. `pnpm db:generate` (migration created in `drizzle/`)
-3. `pnpm db:push` (apply schema to migration DB)
-4. `pnpm db:migrate` (apply migrations to app DB)
+The `app` container has both `DATABASE_URL` and `MIGRATION_DATABASE_URL` pre-configured
+to point to the correct internal Docker hostnames. Always run migration commands
+via `docker compose exec` to ensure correct environment variables:
+
+### Schema change workflow
+
+```bash
+# 1. Edit src/server/db/schema.ts
+
+# 2. Generate migration SQL from schema diff
+docker compose exec app pnpm db:generate
+
+# 3. Apply schema to migration DB (keeps it in sync for future diffs)
+docker compose exec app pnpm db:push
+
+# 4. Apply migrations to app DB
+docker compose exec app pnpm db:migrate
+```
+
+### Running raw SQL against the app DB
+
+For data-only migrations or ad-hoc queries:
+
+```bash
+docker compose exec postgres psql -U ${DB_USER:-postgres} -d ${DB_NAME:-moim}
+```
+
+### Running raw SQL against the migration DB
+
+```bash
+docker compose exec postgres-migration psql -U ${DB_USER:-postgres} -d ${DB_NAME:-moim}_migration
+```
 
 ## Environment Variables
 
