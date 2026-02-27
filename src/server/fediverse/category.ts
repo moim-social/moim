@@ -67,12 +67,13 @@ export async function ensureCategoryActor(
 }
 
 /**
- * Post a Note about a new event from the Group actor,
- * then have the category Service actor Announce (boost) it.
+ * Post a Note about a new event from the host actor (Group or Person),
+ * then optionally have the category Service actor Announce (boost) it.
+ * For personal events, pass { skipAnnounce: true } to skip the Announce step.
  */
 export async function announceEvent(
   categoryId: string,
-  groupActorId: string,
+  hostActorId: string,
   event: {
     id: string;
     title: string;
@@ -81,19 +82,19 @@ export async function announceEvent(
     endsAt?: Date | null;
   },
   organizers: Array<{ handle: string; actorUrl: string }>,
+  options?: { skipAnnounce?: boolean },
 ): Promise<typeof posts.$inferSelect> {
-  const categoryActor = await ensureCategoryActor(categoryId);
   const ctx = getFederationContext();
 
-  // Look up group actor
-  const [groupActor] = await db
+  // Look up host actor (Group or Person)
+  const [hostActor] = await db
     .select()
     .from(actors)
-    .where(and(eq(actors.id, groupActorId), eq(actors.isLocal, true)))
+    .where(and(eq(actors.id, hostActorId), eq(actors.isLocal, true)))
     .limit(1);
-  if (!groupActor) throw new Error(`Group actor not found: ${groupActorId}`);
+  if (!hostActor) throw new Error(`Host actor not found: ${hostActorId}`);
 
-  const groupHandle = groupActor.handle;
+  const hostHandle = hostActor.handle;
 
   // Build HTML content
   const startStr = event.startsAt.toISOString();
@@ -131,12 +132,12 @@ export async function announceEvent(
       }),
   );
 
-  // Create post record attributed to the Group actor
+  // Create post record attributed to the host actor
   const now = new Date();
   const [post] = await db
     .insert(posts)
     .values({
-      actorId: groupActor.id,
+      actorId: hostActor.id,
       content,
       published: now,
     })
@@ -145,46 +146,50 @@ export async function announceEvent(
   const noteUri = ctx.getObjectUri(Note, { noteId: post.id });
   const published = Temporal.Instant.from(now.toISOString());
 
-  // Build Note attributed to Group actor
+  // Build Note attributed to host actor
   const note = new Note({
     id: noteUri,
-    attribution: ctx.getActorUri(groupHandle),
+    attribution: ctx.getActorUri(hostHandle),
     content,
     url: new URL(`/notes/${post.id}`, ctx.canonicalOrigin),
     tags,
     published,
     to: PUBLIC_COLLECTION,
-    ccs: [ctx.getFollowersUri(groupHandle)],
+    ccs: [ctx.getFollowersUri(hostHandle)],
   });
 
-  // 1. Group actor sends Create(Note) to its own followers
+  // 1. Host actor sends Create(Note) to its own followers
   await ctx.sendActivity(
-    { identifier: groupHandle },
+    { identifier: hostHandle },
     "followers",
     new Create({
       id: new URL(`${noteUri.href}#activity`),
-      actor: ctx.getActorUri(groupHandle),
+      actor: ctx.getActorUri(hostHandle),
       object: note,
       published,
       to: PUBLIC_COLLECTION,
-      ccs: [ctx.getFollowersUri(groupHandle)],
+      ccs: [ctx.getFollowersUri(hostHandle)],
     }),
   );
 
   // 2. Category Service actor Announces (boosts) the Note to its followers
-  const categoryHandle = categoryActor.handle;
-  await ctx.sendActivity(
-    { identifier: categoryHandle },
-    "followers",
-    new Announce({
-      id: new URL(`${noteUri.href}#announce`),
-      actor: ctx.getActorUri(categoryHandle),
-      object: noteUri,
-      published,
-      to: PUBLIC_COLLECTION,
-      ccs: [ctx.getFollowersUri(categoryHandle)],
-    }),
-  );
+  //    Skipped for personal events (no group)
+  if (!options?.skipAnnounce) {
+    const categoryActor = await ensureCategoryActor(categoryId);
+    const catHandle = categoryActor.handle;
+    await ctx.sendActivity(
+      { identifier: catHandle },
+      "followers",
+      new Announce({
+        id: new URL(`${noteUri.href}#announce`),
+        actor: ctx.getActorUri(catHandle),
+        object: noteUri,
+        published,
+        to: PUBLIC_COLLECTION,
+        ccs: [ctx.getFollowersUri(catHandle)],
+      }),
+    );
+  }
 
   return post;
 }
