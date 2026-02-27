@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import {
   createRootRoute,
   Outlet,
@@ -18,6 +18,16 @@ import {
 import appCss from "~/styles/globals.css?url";
 
 type SessionUser = { handle: string; displayName: string } | null;
+
+const AuthContext = createContext<{
+  user: SessionUser;
+  setUser: (u: SessionUser) => void;
+  loaded: boolean;
+}>({ user: null, setUser: () => {}, loaded: false });
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
 
 export const Route = createRootRoute({
   head: () => ({
@@ -69,77 +79,79 @@ function RootLayout() {
         <HeadContent />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <div className="relative flex min-h-screen flex-col">
-          {/* Header */}
-          <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="mx-auto flex h-14 w-full max-w-5xl items-center px-6">
-              <Link to="/" className="mr-8 flex items-center gap-2">
-                <span className="text-lg font-bold tracking-tight">Moim</span>
-              </Link>
-              <nav className="flex items-center gap-6">
-                <NavLink to="/events">Events</NavLink>
-                <NavLink to="/places">Places</NavLink>
-              </nav>
-              <div className="ml-auto flex items-center gap-3">
-                {loaded && (
-                  user ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="gap-1.5">
-                          <span className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
-                            {(user.displayName || user.handle).charAt(0).toUpperCase()}
-                          </span>
-                          <span className="text-sm">@{user.handle}</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => navigate({ to: "/groups/my" })}>
-                          My Groups
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate({ to: "/groups/create" })}>
-                          Create Group
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate({ to: "/events/create" })}>
-                          Create Event
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleSignOut}>
-                          Sign out
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to="/auth/signin">Sign in</Link>
-                    </Button>
-                  )
-                )}
+        <AuthContext.Provider value={{ user, setUser, loaded }}>
+          <div className="relative flex min-h-screen flex-col">
+            {/* Header */}
+            <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <div className="mx-auto flex h-14 w-full max-w-5xl items-center px-6">
+                <Link to="/" className="mr-8 flex items-center gap-2">
+                  <span className="text-lg font-bold tracking-tight">Moim</span>
+                </Link>
+                <nav className="flex items-center gap-6">
+                  <NavLink to="/events">Events</NavLink>
+                  <NavLink to="/places">Places</NavLink>
+                </nav>
+                <div className="ml-auto flex items-center gap-3">
+                  {loaded && (
+                    user ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="gap-1.5">
+                            <span className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                              {(user.displayName || user.handle).charAt(0).toUpperCase()}
+                            </span>
+                            <span className="text-sm">@{user.handle}</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => navigate({ to: "/groups/my" })}>
+                            My Groups
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => navigate({ to: "/groups/create" })}>
+                            Create Group
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate({ to: "/events/create" })}>
+                            Create Event
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={handleSignOut}>
+                            Sign out
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/auth/signin">Sign in</Link>
+                      </Button>
+                    )
+                  )}
+                </div>
               </div>
-            </div>
-          </header>
+            </header>
 
-          {/* Main content */}
-          <main className="flex-1">
-            <div className="mx-auto w-full max-w-5xl px-6 py-8">
-              <Outlet />
-            </div>
-          </main>
+            {/* Main content */}
+            <main className="flex-1">
+              <div className="mx-auto w-full max-w-5xl px-6 py-8">
+                <Outlet />
+              </div>
+            </main>
 
-          {/* Footer */}
-          <footer className="border-t">
-            <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
-              <p className="text-sm text-muted-foreground">
-                Moim &mdash; Federated events & places
-              </p>
-              <nav className="flex gap-4">
-                <Link to="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Events</Link>
-                <Link to="/places" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Places</Link>
-              </nav>
-            </div>
-          </footer>
-        </div>
-        <Scripts />
+            {/* Footer */}
+            <footer className="border-t">
+              <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
+                <p className="text-sm text-muted-foreground">
+                  Moim &mdash; Federated events & places
+                </p>
+                <nav className="flex gap-4">
+                  <Link to="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Events</Link>
+                  <Link to="/places" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Places</Link>
+                </nav>
+              </div>
+            </footer>
+          </div>
+          <Scripts />
+        </AuthContext.Provider>
       </body>
     </html>
   );

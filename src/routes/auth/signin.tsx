@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
+import { useAuth } from "~/routes/__root";
 
 export const Route = createFileRoute("/auth/signin")({
   component: SignInPage,
@@ -13,6 +14,7 @@ type Phase = "handle" | "challenge" | "waiting" | "success" | "error";
 
 function SignInPage() {
   const navigate = useNavigate();
+  const { user, setUser, loaded } = useAuth();
   const [phase, setPhase] = useState<Phase>("handle");
   const [handle, setHandle] = useState("");
   const [challengeId, setChallengeId] = useState("");
@@ -21,6 +23,15 @@ function SignInPage() {
   const [error, setError] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Redirect authenticated users away from sign-in
+  useEffect(() => {
+    if (loaded && user) {
+      navigate({ to: "/" });
+    }
+  }, [loaded, user, navigate]);
+
+  if (loaded && user) return null;
 
   function normalizeHandle(h: string): string {
     return h.startsWith("@") ? h.slice(1) : h;
@@ -70,6 +81,10 @@ function SignInPage() {
         });
         const data = await res.json();
         if (data.ok) {
+          setUser({
+            handle: data.user?.handle ?? normalized,
+            displayName: data.user?.handle ?? normalized,
+          });
           setPhase("success");
           setTimeout(() => navigate({ to: "/" }), 2000);
         } else if (data.error === "challenge expired") {
