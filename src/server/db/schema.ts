@@ -92,7 +92,7 @@ export const events = pgTable("events", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizerId: uuid("organizer_id").references(() => users.id).notNull(),
   groupActorId: uuid("group_actor_id").references(() => actors.id),
-  categoryId: varchar("category_id", { length: 64 }).notNull(),
+  categoryId: varchar("category_id", { length: 64 }),
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description"),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),

@@ -30,9 +30,9 @@ export const POST = async ({ request }: { request: Request }) => {
     }>;
   } | null;
 
-  if (!body?.title || !body?.categoryId || !body?.startsAt) {
+  if (!body?.title || !body?.startsAt) {
     return Response.json(
-      { error: "title, categoryId, and startsAt are required" },
+      { error: "title and startsAt are required" },
       { status: 400 },
     );
   }
@@ -76,7 +76,11 @@ export const POST = async ({ request }: { request: Request }) => {
     hostActorId = personActor.id;
   }
 
-  if (!validCategoryIds.has(body.categoryId as any)) {
+  // Category is required for group events, optional for personal
+  if (body.groupActorId && !body.categoryId) {
+    return Response.json({ error: "categoryId is required for group events" }, { status: 400 });
+  }
+  if (body.categoryId && !validCategoryIds.has(body.categoryId as any)) {
     return Response.json({ error: "Invalid categoryId" }, { status: 400 });
   }
 
@@ -97,7 +101,7 @@ export const POST = async ({ request }: { request: Request }) => {
       .values({
         organizerId: user.id,
         groupActorId: body.groupActorId ?? null,
-        categoryId: body.categoryId,
+        categoryId: body.categoryId ?? null,
         title: body.title,
         description: body.description ?? null,
         location: body.location ?? null,
@@ -134,10 +138,12 @@ export const POST = async ({ request }: { request: Request }) => {
       }
     }
 
-    // Host actor posts Note; category Service announces only for group events
-    await announceEvent(body.categoryId, hostActorId, event, organizers, {
-      skipAnnounce: isPersonalEvent,
-    });
+    // Host actor posts Note; category Service announces only for group events with a category
+    if (body.categoryId) {
+      await announceEvent(body.categoryId, hostActorId, event, organizers, {
+        skipAnnounce: isPersonalEvent,
+      });
+    }
 
     return Response.json({
       event: { id: event.id, title: event.title, categoryId: event.categoryId },
