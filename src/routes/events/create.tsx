@@ -230,6 +230,7 @@ function CreateEventPage() {
               <p className="text-sm text-muted-foreground">Loading...</p>
             ) : (
               <Tabs
+                defaultValue="personal"
                 value={groupActorId ? "group" : "personal"}
                 onValueChange={(v) => {
                   if (v === "personal") {
