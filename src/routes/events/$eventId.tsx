@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, users } from "~/server/db/schema";
 import { CATEGORIES } from "~/shared/categories";
+import { pickGradient } from "~/shared/gradients";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -89,25 +90,6 @@ export const Route = createFileRoute("/events/$eventId")({
 const categoryMap = new Map<string, string>(
   CATEGORIES.map((c) => [c.id, c.label]),
 );
-
-const HERO_GRADIENTS: [string, string][] = [
-  ["#7c3aed", "#4f46e5"], // violet → indigo
-  ["#f43f5e", "#db2777"], // rose → pink
-  ["#10b981", "#0d9488"], // emerald → teal
-  ["#f59e0b", "#ea580c"], // amber → orange
-  ["#0ea5e9", "#2563eb"], // sky → blue
-  ["#d946ef", "#9333ea"], // fuchsia → purple
-  ["#84cc16", "#16a34a"], // lime → green
-  ["#06b6d4", "#0d9488"], // cyan → teal
-];
-
-function pickGradient(id: string): [string, string] {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
-  }
-  return HERO_GRADIENTS[Math.abs(hash) % HERO_GRADIENTS.length];
-}
 
 type EventData = {
   event: {
@@ -385,9 +367,11 @@ function EventDetailPage() {
         style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
       >
         <div className="mx-auto max-w-5xl">
-          <Badge variant="secondary" className="mb-3 bg-white/20 text-white border-white/30 hover:bg-white/30">
-            {categoryMap.get(event.categoryId) ?? event.categoryId}
-          </Badge>
+          {event.categoryId && (
+            <Badge variant="secondary" className="mb-3 bg-white/20 text-white border-white/30 hover:bg-white/30">
+              {categoryMap.get(event.categoryId) ?? event.categoryId}
+            </Badge>
+          )}
           <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
             {event.title}
           </h1>
