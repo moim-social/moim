@@ -29,6 +29,8 @@ type EventItem = {
   location: string | null;
   groupHandle: string | null;
   groupName: string | null;
+  organizerHandle: string | null;
+  organizerDisplayName: string | null;
 };
 
 function EventsPage() {
@@ -115,11 +117,15 @@ function EventCard({ event }: { event: EventItem }) {
             <CardDescription>
               {dateStr} at {timeStr}
             </CardDescription>
-            {event.groupHandle && (
+            {event.groupHandle ? (
               <p className="text-sm text-muted-foreground">
                 Hosted by {event.groupName ?? `@${event.groupHandle}`}
               </p>
-            )}
+            ) : event.organizerDisplayName ? (
+              <p className="text-sm text-muted-foreground">
+                Hosted by {event.organizerDisplayName}
+              </p>
+            ) : null}
           </div>
           <Badge variant="secondary">
             {categoryMap.get(event.categoryId) ?? event.categoryId}

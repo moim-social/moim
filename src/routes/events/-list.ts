@@ -1,6 +1,6 @@
 import { eq, gte } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { events, actors } from "~/server/db/schema";
+import { events, actors, users } from "~/server/db/schema";
 
 export const GET = async ({ request }: { request: Request }) => {
   const rows = await db
@@ -15,9 +15,12 @@ export const GET = async ({ request }: { request: Request }) => {
       createdAt: events.createdAt,
       groupHandle: actors.handle,
       groupName: actors.name,
+      organizerHandle: users.handle,
+      organizerDisplayName: users.displayName,
     })
     .from(events)
     .leftJoin(actors, eq(events.groupActorId, actors.id))
+    .innerJoin(users, eq(events.organizerId, users.id))
     .where(gte(events.startsAt, new Date()))
     .orderBy(events.startsAt);
 
