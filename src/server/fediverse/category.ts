@@ -84,7 +84,7 @@ export async function announceEvent(
   organizers: Array<{ handle: string; actorUrl: string }>,
   options?: {
     skipAnnounce?: boolean;
-    creatorMention?: { handle: string; actorUrl: string };
+    creatorMention?: { handle: string; actorUrl: string; inboxUrl: string };
   },
 ): Promise<typeof posts.$inferSelect> {
   const ctx = getFederationContext();
@@ -184,22 +184,36 @@ export async function announceEvent(
     tags,
     published,
     to: PUBLIC_COLLECTION,
-    ccs: [ctx.getFollowersUri(hostHandle)],
+    ccs: [PUBLIC_COLLECTION, ctx.getFollowersUri(hostHandle)],
+  });
+
+  const createActivity = new Create({
+    id: new URL(`${noteUri.href}#activity`),
+    actor: ctx.getActorUri(hostHandle),
+    object: note,
+    published,
+    to: PUBLIC_COLLECTION,
+    ccs: [PUBLIC_COLLECTION, ctx.getFollowersUri(hostHandle)],
   });
 
   // 1. Host actor sends Create(Note) to its own followers
   await ctx.sendActivity(
     { identifier: hostHandle },
     "followers",
-    new Create({
-      id: new URL(`${noteUri.href}#activity`),
-      actor: ctx.getActorUri(hostHandle),
-      object: note,
-      published,
-      to: PUBLIC_COLLECTION,
-      ccs: [ctx.getFollowersUri(hostHandle)],
-    }),
+    createActivity,
   );
+
+  // 2. Deliver directly to mentioned creator (so they get a notification)
+  if (options?.creatorMention) {
+    await ctx.sendActivity(
+      { identifier: hostHandle },
+      {
+        id: new URL(options.creatorMention.actorUrl),
+        inboxId: new URL(options.creatorMention.inboxUrl),
+      },
+      createActivity,
+    );
+  }
 
   // 2. Category Service actor Announces (boosts) the Note to its followers
   //    Skipped for personal events or when no category is set

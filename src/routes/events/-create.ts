@@ -139,15 +139,15 @@ export const POST = async ({ request }: { request: Request }) => {
     }
 
     // Look up creator's remote actor for personal event mention
-    let creatorMention: { handle: string; actorUrl: string } | undefined;
+    let creatorMention: { handle: string; actorUrl: string; inboxUrl: string } | undefined;
     if (isPersonalEvent) {
       const [remoteActor] = await db
-        .select({ handle: actors.handle, actorUrl: actors.actorUrl })
+        .select({ handle: actors.handle, actorUrl: actors.actorUrl, inboxUrl: actors.inboxUrl })
         .from(actors)
         .where(and(eq(actors.userId, user.id), eq(actors.isLocal, false)))
         .limit(1);
-      if (remoteActor) {
-        creatorMention = { handle: remoteActor.handle, actorUrl: remoteActor.actorUrl };
+      if (remoteActor?.inboxUrl) {
+        creatorMention = { handle: remoteActor.handle, actorUrl: remoteActor.actorUrl, inboxUrl: remoteActor.inboxUrl };
       }
     }
 
