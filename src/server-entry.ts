@@ -16,6 +16,7 @@ import { POST as createGroup } from "./routes/groups/-create";
 import { GET as myGroups } from "./routes/groups/-my-groups";
 import { GET as groupDetail } from "./routes/groups/-detail";
 import { POST as createGroupNote } from "./routes/groups/-create-note";
+import { POST as updateGroup } from "./routes/groups/-update";
 import { POST as createEvent } from "./routes/events/-create";
 import { GET as listEvents } from "./routes/events/-list";
 import { GET as eventDetail } from "./routes/events/-detail";
@@ -81,6 +82,11 @@ app.use("/groups/my-groups", defineEventHandler(async (event) => {
 app.use("/groups/detail", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return groupDetail({ request });
+}));
+
+app.use("/groups/update", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return updateGroup({ request });
 }));
 
 // Event API routes
