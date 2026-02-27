@@ -4,6 +4,7 @@ import {
   defaultStreamHandler,
 } from "@tanstack/react-start/server";
 import { integrateFederation, onError } from "@fedify/h3";
+import { Note, respondWithObjectIfAcceptable } from "@fedify/fedify";
 import { federation } from "./server/fediverse/federation";
 import { POST as requestOtp } from "./routes/auth/-request-otp";
 import { POST as verifyOtp } from "./routes/auth/-verify-otp";
@@ -126,6 +127,17 @@ app.use("/api/webfinger", defineEventHandler(async (event) => {
 
 app.use(
   fromWebHandler(async (request) => {
+    // Content negotiation: serve AP object directly for /notes/{uuid}
+    const url = new URL(request.url);
+    const noteMatch = url.pathname.match(/^\/notes\/([0-9a-f-]{36})$/);
+    if (noteMatch) {
+      const ctx = federation.createContext(request, undefined);
+      const note = await ctx.getObject(Note, { noteId: noteMatch[1] });
+      if (note) {
+        const response = await respondWithObjectIfAcceptable(note, request);
+        if (response) return response;
+      }
+    }
     return startFetch(request);
   }),
 );
