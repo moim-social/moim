@@ -50,7 +50,7 @@ const getEventMeta = createServerFn({ method: "GET" })
     return row ?? null;
   });
 
-export const Route = createFileRoute("/events/$eventId")({
+export const Route = createFileRoute("/events/$eventId/")({
   component: EventDetailPage,
   loader: async ({ params }) => {
     return getEventMeta({ data: { eventId: params.eventId } });
@@ -100,6 +100,7 @@ type EventData = {
     startsAt: string;
     endsAt: string | null;
     location: string | null;
+    externalUrl: string | null;
     groupHandle: string | null;
     groupName: string | null;
     organizerHandle: string | null;
@@ -115,6 +116,7 @@ type EventData = {
   }[];
   rsvpCounts: { accepted: number; declined: number };
   questionCount: number;
+  canEdit: boolean;
 };
 
 type AttendeesData = {
@@ -283,7 +285,19 @@ function EventDetailPage() {
 
   const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
 
-  const rsvpContent = rsvpData && (
+  const rsvpContent = event.externalUrl ? (
+    <>
+      <Separator />
+      <Button asChild className="w-full">
+        <a href={event.externalUrl} target="_blank" rel="noopener noreferrer">
+          Register externally
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 ml-1">
+            <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Zm7.5-2.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0V5.56l-5.22 5.22a.75.75 0 1 1-1.06-1.06l5.22-5.22H12.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+          </svg>
+        </a>
+      </Button>
+    </>
+  ) : rsvpData ? (
     <>
       <Separator />
       <div className="flex items-center justify-between">
@@ -310,7 +324,7 @@ function EventDetailPage() {
         </Button>
       )}
     </>
-  );
+  ) : null;
 
   const dateLocationContent = (
     <>
@@ -403,6 +417,20 @@ function EventDetailPage() {
               )}
             </p>
           ) : null}
+          {data.canEdit && (
+            <div className="mt-4">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+                asChild
+              >
+                <Link to="/events/$eventId/edit" params={{ eventId }}>
+                  Edit Event
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -530,7 +558,20 @@ function EventDetailPage() {
       </div>
 
       {/* Mobile sticky bottom bar */}
-      {rsvpData && (
+      {event.externalUrl ? (
+        <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="mx-auto flex max-w-5xl items-center justify-center gap-4 px-6 py-3">
+            <Button size="sm" asChild>
+              <a href={event.externalUrl} target="_blank" rel="noopener noreferrer">
+                Register externally
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 ml-1">
+                  <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Zm7.5-2.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0V5.56l-5.22 5.22a.75.75 0 1 1-1.06-1.06l5.22-5.22H12.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                </svg>
+              </a>
+            </Button>
+          </div>
+        </div>
+      ) : rsvpData ? (
         <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
             <div className="flex items-center gap-2">
@@ -556,10 +597,10 @@ function EventDetailPage() {
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* RSVP Dialog */}
-      <Dialog open={rsvpDialogOpen} onOpenChange={setRsvpDialogOpen}>
+      {/* RSVP Dialog — only for events without external URL */}
+      {!event.externalUrl && <Dialog open={rsvpDialogOpen} onOpenChange={setRsvpDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>RSVP to {event.title}</DialogTitle>
@@ -615,7 +656,7 @@ function EventDetailPage() {
             )}
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { aliasedTable, and, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { events, actors, eventOrganizers, rsvps, eventQuestions, users } from "~/server/db/schema";
+import { events, actors, eventOrganizers, groupMembers, rsvps, eventQuestions, rsvpAnswers, users } from "~/server/db/schema";
+import { getSessionUser } from "~/server/auth";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -21,6 +22,7 @@ export const GET = async ({ request }: { request: Request }) => {
       startsAt: events.startsAt,
       endsAt: events.endsAt,
       location: events.location,
+      externalUrl: events.externalUrl,
       createdAt: events.createdAt,
       groupHandle: actors.handle,
       groupName: actors.name,
@@ -70,16 +72,63 @@ export const GET = async ({ request }: { request: Request }) => {
     declined: rsvpCountRows.find((c) => c.status === "declined")?.count ?? 0,
   };
 
-  // Get question count
-  const [questionCountRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
+  // Get questions with answer counts
+  const questions = await db
+    .select({
+      id: eventQuestions.id,
+      question: eventQuestions.question,
+      sortOrder: eventQuestions.sortOrder,
+      required: eventQuestions.required,
+      answerCount: sql<number>`count(${rsvpAnswers.id})::int`,
+    })
     .from(eventQuestions)
-    .where(eq(eventQuestions.eventId, eventId));
+    .leftJoin(rsvpAnswers, eq(rsvpAnswers.questionId, eventQuestions.id))
+    .where(eq(eventQuestions.eventId, eventId))
+    .groupBy(eventQuestions.id)
+    .orderBy(eventQuestions.sortOrder);
+
+  const questionCount = questions.length;
+
+  // Determine canEdit for the current user
+  let canEdit = false;
+  const sessionUser = await getSessionUser(request);
+  if (sessionUser) {
+    // Check if user is the event organizer
+    const [eventRow] = await db
+      .select({ organizerId: events.organizerId, groupActorId: events.groupActorId })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
+
+    if (eventRow) {
+      if (eventRow.organizerId === sessionUser.id) {
+        canEdit = true;
+      } else if (eventRow.groupActorId) {
+        // Check group membership (join through actors to match any actor for this user)
+        const [membership] = await db
+          .select({ role: groupMembers.role })
+          .from(groupMembers)
+          .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+          .where(
+            and(
+              eq(groupMembers.groupActorId, eventRow.groupActorId),
+              eq(actors.userId, sessionUser.id),
+              eq(actors.type, "Person"),
+            ),
+          )
+          .limit(1);
+
+        if (membership) canEdit = true;
+      }
+    }
+  }
 
   return Response.json({
     event,
     organizers,
     rsvpCounts,
-    questionCount: questionCountRow.count,
+    questionCount,
+    questions,
+    canEdit,
   });
 };

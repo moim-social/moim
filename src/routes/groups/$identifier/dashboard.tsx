@@ -183,6 +183,11 @@ function GroupDashboard() {
               Public Page
             </Link>
           </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/groups/$identifier/edit" params={{ identifier }}>
+              Edit Group
+            </Link>
+          </Button>
           <Button variant="outline" size="sm" onClick={() => { setNoteDialogOpen(true); setNoteSuccess(false); setNoteError(""); }}>
             Post Note
           </Button>

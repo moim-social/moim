@@ -22,6 +22,7 @@ export const POST = async ({ request }: { request: Request }) => {
     startsAt?: string;
     endsAt?: string;
     location?: string;
+    externalUrl?: string;
     organizerHandles?: string[];
     questions?: Array<{
       question: string;
@@ -52,14 +53,16 @@ export const POST = async ({ request }: { request: Request }) => {
   const isPersonalEvent = !body.groupActorId;
 
   if (body.groupActorId) {
-    // Group event: verify membership
+    // Group event: verify membership (join through actors to match any actor for this user)
     const [membership] = await db
       .select({ role: groupMembers.role })
       .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
       .where(
         and(
           eq(groupMembers.groupActorId, body.groupActorId),
-          eq(groupMembers.memberActorId, personActor.id),
+          eq(actors.userId, user.id),
+          eq(actors.type, "Person"),
         ),
       )
       .limit(1);
@@ -105,6 +108,7 @@ export const POST = async ({ request }: { request: Request }) => {
         title: body.title,
         description: body.description ?? null,
         location: body.location ?? null,
+        externalUrl: body.externalUrl ?? "",
         startsAt,
         endsAt: endsAt ?? null,
       })

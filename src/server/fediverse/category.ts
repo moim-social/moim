@@ -80,6 +80,7 @@ export async function announceEvent(
     description?: string | null;
     startsAt: Date;
     endsAt?: Date | null;
+    externalUrl?: string | null;
   },
   organizers: Array<{ handle: string; actorUrl: string }>,
   options?: {
@@ -118,7 +119,9 @@ export async function announceEvent(
       `<p><strong><a href="${eventUrl}">${event.title}</a></strong></p>`,
       descHtml,
       `<p>📅 ${startStr}${endStr}</p>`,
-      `<p><a href="${eventUrl}">RSVP here</a></p>`,
+      event.externalUrl
+        ? `<p><a href="${event.externalUrl}">Register here</a> · <a href="${eventUrl}">Details</a></p>`
+        : `<p><a href="${eventUrl}">RSVP here</a></p>`,
     ]
       .filter(Boolean)
       .join("\n");
@@ -145,7 +148,9 @@ export async function announceEvent(
       organizers.length > 0
         ? `<p>Organized by: ${orgMentions}</p>`
         : "",
-      `<p><a href="${eventUrl}">View event details</a></p>`,
+      event.externalUrl
+        ? `<p><a href="${event.externalUrl}">Register here</a> · <a href="${eventUrl}">Details</a></p>`
+        : `<p><a href="${eventUrl}">View event details</a></p>`,
     ]
       .filter(Boolean)
       .join("\n");

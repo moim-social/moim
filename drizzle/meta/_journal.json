@@ -64,6 +64,13 @@
       "when": 1772170681911,
       "tag": "0008_first_prowler",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772213588760,
+      "tag": "0009_lean_leo",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,9 @@ import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, groupMembers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
-import { createAndDeliverNote } from "~/server/fediverse/group";
+import { CATEGORIES } from "~/shared/categories";
+
+const validCategoryIds = new Set(CATEGORIES.map((c) => c.id));
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -11,13 +13,16 @@ export const POST = async ({ request }: { request: Request }) => {
   }
 
   const body = (await request.json().catch(() => null)) as {
-    groupHandle?: string;
-    content?: string;
+    handle?: string;
+    name?: string;
+    summary?: string;
+    website?: string;
+    categories?: string[];
   } | null;
 
-  if (!body?.groupHandle || !body?.content?.trim()) {
+  if (!body?.handle || !body?.name?.trim() || !body?.summary?.trim()) {
     return Response.json(
-      { error: "groupHandle and content are required" },
+      { error: "handle, name, and summary are required" },
       { status: 400 },
     );
   }
@@ -26,7 +31,7 @@ export const POST = async ({ request }: { request: Request }) => {
   const [group] = await db
     .select({ id: actors.id, handle: actors.handle })
     .from(actors)
-    .where(and(eq(actors.handle, body.groupHandle), eq(actors.type, "Group")))
+    .where(and(eq(actors.handle, body.handle), eq(actors.type, "Group")))
     .limit(1);
 
   if (!group) {
@@ -51,21 +56,25 @@ export const POST = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const categories = (body.categories ?? []).filter((c) =>
+    validCategoryIds.has(c as any),
+  );
+
   try {
-    // Wrap plain text in <p> tags
-    const htmlContent = body.content
-      .trim()
-      .split(/\n\n+/)
-      .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-      .join("");
+    await db
+      .update(actors)
+      .set({
+        name: body.name.trim(),
+        summary: body.summary.trim(),
+        website: body.website?.trim() || null,
+        categories: categories.length > 0 ? categories : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(actors.id, group.id));
 
-    const post = await createAndDeliverNote(group.handle, htmlContent);
-
-    return Response.json({
-      note: { id: post.id, content: post.content, published: post.published },
-    });
+    return Response.json({ group: { handle: group.handle, name: body.name.trim() } });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create note";
+    const message = err instanceof Error ? err.message : "Failed to update group";
     return Response.json({ error: message }, { status: 500 });
   }
 };

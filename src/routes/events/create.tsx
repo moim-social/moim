@@ -117,6 +117,7 @@ function CreateEventPage() {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [location, setLocation] = useState("");
+  const [externalUrl, setExternalUrl] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
 
@@ -217,6 +218,7 @@ function CreateEventPage() {
           title,
           description: description || undefined,
           location: location || undefined,
+          externalUrl: externalUrl || undefined,
           categoryId: categoryId || undefined,
           groupActorId: groupActorId || undefined,
           startsAt: new Date(startsAt).toISOString(),
@@ -435,6 +437,21 @@ function CreateEventPage() {
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
+              </div>
+
+              {/* External registration URL */}
+              <div className="space-y-1.5">
+                <Label htmlFor="externalUrl">External registration URL (optional)</Label>
+                <Input
+                  id="externalUrl"
+                  type="url"
+                  placeholder="https://eventbrite.com/e/..."
+                  value={externalUrl}
+                  onChange={(e) => setExternalUrl(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Attendees will be directed to this URL instead of the built-in RSVP.
+                </p>
               </div>
 
               {/* Organizers section */}

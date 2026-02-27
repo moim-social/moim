@@ -1,4 +1,4 @@
-import { eq, and, sql, gte, lt } from "drizzle-orm";
+import { aliasedTable, eq, and, sql, gte, lt } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, groupMembers, events, follows } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
@@ -9,18 +9,8 @@ export const GET = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Find the user's Person actor
-  const [personActor] = await db
-    .select({ id: actors.id })
-    .from(actors)
-    .where(eq(actors.userId, user.id))
-    .limit(1);
-
-  if (!personActor) {
-    return Response.json({ groups: [] });
-  }
-
-  // Find all groups where the user is host or moderator
+  // Find all groups where the user is host or moderator (join through actors to match any actor for this user)
+  const memberActors = aliasedTable(actors, "member_actors");
   const rows = await db
     .select({
       id: actors.id,
@@ -32,7 +22,8 @@ export const GET = async ({ request }: { request: Request }) => {
     })
     .from(groupMembers)
     .innerJoin(actors, eq(groupMembers.groupActorId, actors.id))
-    .where(eq(groupMembers.memberActorId, personActor.id));
+    .innerJoin(memberActors, eq(groupMembers.memberActorId, memberActors.id))
+    .where(and(eq(memberActors.userId, user.id), eq(memberActors.type, "Person")));
 
   const now = new Date();
 

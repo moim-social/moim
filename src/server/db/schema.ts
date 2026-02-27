@@ -98,6 +98,7 @@ export const events = pgTable("events", {
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
   endsAt: timestamp("ends_at", { withTimezone: true }),
   location: text("location"),
+  externalUrl: text("external_url").default("").notNull(),
   placeId: uuid("place_id").references(() => places.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
