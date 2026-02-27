@@ -23,7 +23,7 @@ export const GET = async ({ request }: { request: Request }) => {
       createdAt: events.createdAt,
       groupHandle: actors.handle,
       groupName: actors.name,
-      organizerHandle: users.handle,
+      organizerHandle: users.fediverseHandle,
       organizerDisplayName: users.displayName,
     })
     .from(events)

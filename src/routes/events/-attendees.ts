@@ -80,7 +80,7 @@ export const GET = async ({ request }: { request: Request }) => {
       userId: rsvps.userId,
       status: rsvps.status,
       createdAt: rsvps.createdAt,
-      handle: users.handle,
+      handle: users.fediverseHandle,
       displayName: users.displayName,
     })
     .from(rsvps)

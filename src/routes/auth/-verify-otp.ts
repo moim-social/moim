@@ -178,7 +178,7 @@ export const POST = async ({ request }: { request: Request }) => {
   );
 
   return new Response(
-    JSON.stringify({ ok: true, user: { id: user.id, handle: user.handle } }),
+    JSON.stringify({ ok: true, user: { id: user.id, handle: user.fediverseHandle ?? user.handle } }),
     { headers, status: 200 },
   );
 };

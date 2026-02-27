@@ -5,8 +5,7 @@ export const GET = async ({ request }: { request: Request }) => {
   return Response.json({
     user: user
       ? {
-          handle: user.handle,
-          fediverseHandle: user.fediverseHandle,
+          handle: user.fediverseHandle ?? user.handle,
           displayName: user.displayName,
         }
       : null,
