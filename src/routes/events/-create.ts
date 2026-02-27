@@ -138,12 +138,24 @@ export const POST = async ({ request }: { request: Request }) => {
       }
     }
 
-    // Host actor posts Note; category Service announces only for group events with a category
-    if (body.categoryId) {
-      await announceEvent(body.categoryId, hostActorId, event, organizers, {
-        skipAnnounce: isPersonalEvent,
-      });
+    // Look up creator's remote actor for personal event mention
+    let creatorMention: { handle: string; actorUrl: string } | undefined;
+    if (isPersonalEvent) {
+      const [remoteActor] = await db
+        .select({ handle: actors.handle, actorUrl: actors.actorUrl })
+        .from(actors)
+        .where(and(eq(actors.userId, user.id), eq(actors.isLocal, false)))
+        .limit(1);
+      if (remoteActor) {
+        creatorMention = { handle: remoteActor.handle, actorUrl: remoteActor.actorUrl };
+      }
     }
+
+    // Host actor posts Note; category Service announces only for group events
+    await announceEvent(body.categoryId ?? null, hostActorId, event, organizers, {
+      skipAnnounce: isPersonalEvent,
+      creatorMention,
+    });
 
     return Response.json({
       event: { id: event.id, title: event.title, categoryId: event.categoryId },

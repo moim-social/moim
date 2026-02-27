@@ -72,7 +72,7 @@ export async function ensureCategoryActor(
  * For personal events, pass { skipAnnounce: true } to skip the Announce step.
  */
 export async function announceEvent(
-  categoryId: string,
+  categoryId: string | null | undefined,
   hostActorId: string,
   event: {
     id: string;
@@ -82,7 +82,10 @@ export async function announceEvent(
     endsAt?: Date | null;
   },
   organizers: Array<{ handle: string; actorUrl: string }>,
-  options?: { skipAnnounce?: boolean },
+  options?: {
+    skipAnnounce?: boolean;
+    creatorMention?: { handle: string; actorUrl: string };
+  },
 ): Promise<typeof posts.$inferSelect> {
   const ctx = getFederationContext();
 
@@ -100,37 +103,63 @@ export async function announceEvent(
   const startStr = event.startsAt.toISOString();
   const endStr = event.endsAt ? ` — ${event.endsAt.toISOString()}` : "";
   const eventUrl = new URL(`/events/${event.id}`, ctx.canonicalOrigin).href;
-  const orgMentions = organizers
-    .map(
-      (o) =>
-        `<a href="${o.actorUrl}" class="u-url mention">@${o.handle}</a>`,
-    )
-    .join(", ");
-
   const descHtml = event.description
     ? `<p>${event.description}</p>`
     : "";
 
-  const content = [
-    `<p><strong><a href="${eventUrl}">${event.title}</a></strong></p>`,
-    descHtml,
-    `<p>📅 ${startStr}${endStr}</p>`,
-    organizers.length > 0
-      ? `<p>Organized by: ${orgMentions}</p>`
-      : "",
-    `<p><a href="${eventUrl}">View event details</a></p>`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  let content: string;
+  const tags: Mention[] = [];
 
-  // Build Mention tags for organizers
-  const tags = organizers.map(
-    (o) =>
+  if (options?.creatorMention) {
+    // Personal event: casual format with visible creator mention
+    const cm = options.creatorMention;
+    content = [
+      `<p><a href="${cm.actorUrl}" class="u-url mention">@${cm.handle}</a> is hosting an event!</p>`,
+      `<p><strong><a href="${eventUrl}">${event.title}</a></strong></p>`,
+      descHtml,
+      `<p>📅 ${startStr}${endStr}</p>`,
+      `<p><a href="${eventUrl}">RSVP here</a></p>`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    tags.push(
+      new Mention({
+        href: new URL(cm.actorUrl),
+        name: `@${cm.handle}`,
+      }),
+    );
+  } else {
+    // Group event: structured format with organizer list
+    const orgMentions = organizers
+      .map(
+        (o) =>
+          `<a href="${o.actorUrl}" class="u-url mention">@${o.handle}</a>`,
+      )
+      .join(", ");
+
+    content = [
+      `<p><strong><a href="${eventUrl}">${event.title}</a></strong></p>`,
+      descHtml,
+      `<p>📅 ${startStr}${endStr}</p>`,
+      organizers.length > 0
+        ? `<p>Organized by: ${orgMentions}</p>`
+        : "",
+      `<p><a href="${eventUrl}">View event details</a></p>`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  // Add Mention tags for organizers
+  for (const o of organizers) {
+    tags.push(
       new Mention({
         href: new URL(o.actorUrl),
         name: `@${o.handle}`,
       }),
-  );
+    );
+  }
 
   // Create post record attributed to the host actor
   const now = new Date();
@@ -173,9 +202,9 @@ export async function announceEvent(
   );
 
   // 2. Category Service actor Announces (boosts) the Note to its followers
-  //    Skipped for personal events (no group)
-  if (!options?.skipAnnounce) {
-    const categoryActor = await ensureCategoryActor(categoryId);
+  //    Skipped for personal events or when no category is set
+  if (!options?.skipAnnounce && categoryId) {
+    const categoryActor = await ensureCategoryActor(categoryId!);
     const catHandle = categoryActor.handle;
     await ctx.sendActivity(
       { identifier: catHandle },
