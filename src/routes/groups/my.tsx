@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -16,6 +18,13 @@ type GroupSummary = {
   id: string;
   handle: string;
   name: string | null;
+  summary: string | null;
+  categories: string[] | null;
+  role: string;
+  followersCount: number;
+  membersCount: number;
+  upcomingEventsCount: number;
+  pastEventsCount: number;
 };
 
 function MyGroupsPage() {
@@ -62,7 +71,7 @@ function MyGroupsPage() {
       </div>
 
       {groups.length === 0 ? (
-        <Card className="flex items-center justify-center py-16">
+        <Card className="flex items-center justify-center py-16 rounded-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-base text-muted-foreground">
               No groups yet
@@ -75,23 +84,42 @@ function MyGroupsPage() {
       ) : (
         <div className="grid gap-3">
           {groups.map((group) => (
-            <Card key={group.id} className="transition-colors hover:bg-accent/50">
+            <Card key={group.id} className="rounded-lg py-2 gap-0 transition-colors hover:bg-accent/50">
               <Link
                 to="/groups/$identifier/dashboard"
                 params={{ identifier: `@${group.handle}` }}
                 className="block"
               >
-                <CardHeader className="flex flex-row items-center gap-4">
-                  <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
-                    {(group.name ?? group.handle).charAt(0).toUpperCase()}
+                <CardContent className="py-2">
+                  <div className="flex items-center gap-4">
+                    <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
+                      {(group.name ?? group.handle).charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold truncate">
+                          {group.name ?? group.handle}
+                        </span>
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {group.role}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">@{group.handle}</p>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+                      <span>{group.followersCount} follower{group.followersCount !== 1 ? "s" : ""}</span>
+                      <span>{group.membersCount} member{group.membersCount !== 1 ? "s" : ""}</span>
+                      <span>
+                        {group.upcomingEventsCount + group.pastEventsCount} event{group.upcomingEventsCount + group.pastEventsCount !== 1 ? "s" : ""}
+                        {group.upcomingEventsCount > 0 && (
+                          <span className="text-primary font-medium ml-1">
+                            ({group.upcomingEventsCount} upcoming)
+                          </span>
+                        )}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-base">
-                      {group.name ?? group.handle}
-                    </CardTitle>
-                    <CardDescription>@{group.handle}</CardDescription>
-                  </div>
-                </CardHeader>
+                </CardContent>
               </Link>
             </Card>
           ))}
