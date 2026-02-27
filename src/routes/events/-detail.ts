@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { aliasedTable, and, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, eventOrganizers, rsvps, eventQuestions, users } from "~/server/db/schema";
 
@@ -11,6 +11,7 @@ export const GET = async ({ request }: { request: Request }) => {
   }
 
   // Get event with group and organizer info
+  const organizerActors = aliasedTable(actors, "organizer_actors");
   const [event] = await db
     .select({
       id: events.id,
@@ -25,10 +26,15 @@ export const GET = async ({ request }: { request: Request }) => {
       groupName: actors.name,
       organizerHandle: users.fediverseHandle,
       organizerDisplayName: users.displayName,
+      organizerActorUrl: organizerActors.url,
     })
     .from(events)
     .leftJoin(actors, eq(events.groupActorId, actors.id))
     .innerJoin(users, eq(events.organizerId, users.id))
+    .leftJoin(organizerActors, and(
+      eq(organizerActors.userId, users.id),
+      eq(organizerActors.isLocal, false),
+    ))
     .where(eq(events.id, eventId))
     .limit(1);
 

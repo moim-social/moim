@@ -42,6 +42,7 @@ type EventData = {
     groupName: string | null;
     organizerHandle: string | null;
     organizerDisplayName: string | null;
+    organizerActorUrl: string | null;
     createdAt: string;
   };
   organizers: {
@@ -241,9 +242,21 @@ function EventDetailPage() {
               {event.groupName ?? `@${event.groupHandle}`}
             </Link>
           </p>
-        ) : event.organizerDisplayName ? (
+        ) : event.organizerHandle ? (
           <p className="text-sm text-muted-foreground mt-1">
-            Hosted by {event.organizerDisplayName}
+            Hosted by{" "}
+            {event.organizerActorUrl ? (
+              <a
+                href={event.organizerActorUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                @{event.organizerHandle}
+              </a>
+            ) : (
+              <span>@{event.organizerHandle}</span>
+            )}
           </p>
         ) : null}
       </div>

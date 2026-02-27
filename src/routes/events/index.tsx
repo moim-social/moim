@@ -31,6 +31,7 @@ type EventItem = {
   groupName: string | null;
   organizerHandle: string | null;
   organizerDisplayName: string | null;
+  organizerActorUrl: string | null;
 };
 
 function EventsPage() {
@@ -121,9 +122,22 @@ function EventCard({ event }: { event: EventItem }) {
               <p className="text-sm text-muted-foreground">
                 Hosted by {event.groupName ?? `@${event.groupHandle}`}
               </p>
-            ) : event.organizerDisplayName ? (
+            ) : event.organizerHandle ? (
               <p className="text-sm text-muted-foreground">
-                Hosted by {event.organizerDisplayName}
+                Hosted by{" "}
+                {event.organizerActorUrl ? (
+                  <a
+                    href={event.organizerActorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    @{event.organizerHandle}
+                  </a>
+                ) : (
+                  <span>@{event.organizerHandle}</span>
+                )}
               </p>
             ) : null}
           </div>
