@@ -22,6 +22,7 @@ export const POST = async ({ request }: { request: Request }) => {
     startsAt?: string;
     endsAt?: string;
     location?: string;
+    externalUrl?: string;
     organizerHandles?: string[];
     questions?: Array<{
       question: string;
@@ -105,6 +106,7 @@ export const POST = async ({ request }: { request: Request }) => {
         title: body.title,
         description: body.description ?? null,
         location: body.location ?? null,
+        externalUrl: body.externalUrl ?? "",
         startsAt,
         endsAt: endsAt ?? null,
       })

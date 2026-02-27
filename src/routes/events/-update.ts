@@ -20,6 +20,7 @@ export const POST = async ({ request }: { request: Request }) => {
     startsAt?: string;
     endsAt?: string;
     location?: string;
+    externalUrl?: string;
     questions?: Array<{
       id?: string;
       question: string;
@@ -113,6 +114,7 @@ export const POST = async ({ request }: { request: Request }) => {
         startsAt,
         endsAt: endsAt ?? null,
         location: body.location?.trim() || null,
+        externalUrl: body.externalUrl?.trim() || "",
       })
       .where(eq(events.id, event.id));
 

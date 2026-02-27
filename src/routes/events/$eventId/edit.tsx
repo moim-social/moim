@@ -41,6 +41,7 @@ function EditEventPage() {
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [location, setLocation] = useState("");
+  const [externalUrl, setExternalUrl] = useState("");
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
 
   useEffect(() => {
@@ -62,6 +63,7 @@ function EditEventPage() {
         setStartsAt(e.startsAt ? toLocalDatetime(e.startsAt) : "");
         setEndsAt(e.endsAt ? toLocalDatetime(e.endsAt) : "");
         setLocation(e.location ?? "");
+        setExternalUrl(e.externalUrl ?? "");
         setQuestions(
           (data.questions ?? []).map((q: any, idx: number) => ({
             id: q.id,
@@ -98,6 +100,7 @@ function EditEventPage() {
           startsAt: new Date(startsAt).toISOString(),
           endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
           location: location.trim() || undefined,
+          externalUrl: externalUrl.trim() || undefined,
           questions: questions
             .filter((q) => q.question.trim())
             .map((q, idx) => ({
@@ -238,6 +241,21 @@ function EditEventPage() {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
+        </div>
+
+        {/* External registration URL */}
+        <div className="space-y-1.5">
+          <Label htmlFor="externalUrl">External registration URL (optional)</Label>
+          <Input
+            id="externalUrl"
+            type="url"
+            placeholder="https://eventbrite.com/e/..."
+            value={externalUrl}
+            onChange={(e) => setExternalUrl(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Attendees will be directed to this URL instead of the built-in RSVP.
+          </p>
         </div>
 
         {/* Questions */}
