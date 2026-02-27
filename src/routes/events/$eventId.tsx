@@ -40,6 +40,8 @@ type EventData = {
     location: string | null;
     groupHandle: string | null;
     groupName: string | null;
+    organizerHandle: string | null;
+    organizerDisplayName: string | null;
     createdAt: string;
   };
   organizers: {
@@ -228,7 +230,7 @@ function EventDetailPage() {
             {categoryMap.get(event.categoryId) ?? event.categoryId}
           </Badge>
         </div>
-        {event.groupHandle && (
+        {event.groupHandle ? (
           <p className="text-sm text-muted-foreground mt-1">
             Hosted by{" "}
             <Link
@@ -239,7 +241,11 @@ function EventDetailPage() {
               {event.groupName ?? `@${event.groupHandle}`}
             </Link>
           </p>
-        )}
+        ) : event.organizerDisplayName ? (
+          <p className="text-sm text-muted-foreground mt-1">
+            Hosted by {event.organizerDisplayName}
+          </p>
+        ) : null}
       </div>
 
       {/* Date & Time */}
