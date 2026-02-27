@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect, useState } from "react";
-import { Badge } from "~/components/ui/badge";
+import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { db } from "~/server/db/client";
+import { posts, actors } from "~/server/db/schema";
 import {
   Card,
   CardContent,
@@ -8,8 +13,45 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 
+const getNoteMeta = createServerFn({ method: "GET" })
+  .inputValidator(zodValidator(z.object({ noteId: z.string() })))
+  .handler(async ({ data }) => {
+    const [note] = await db
+      .select({
+        content: posts.content,
+        actorHandle: actors.handle,
+        actorName: actors.name,
+        actorDomain: actors.domain,
+      })
+      .from(posts)
+      .innerJoin(actors, eq(posts.actorId, actors.id))
+      .where(eq(posts.id, data.noteId))
+      .limit(1);
+    return note ?? null;
+  });
+
 export const Route = createFileRoute("/notes/$noteId")({
   component: NoteDetailPage,
+  loader: async ({ params }) => {
+    return getNoteMeta({ data: { noteId: params.noteId } });
+  },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const plainText = loaderData.content.replace(/<[^>]*>/g, "").slice(0, 200);
+    const author = loaderData.actorName
+      ? `${loaderData.actorName} (@${loaderData.actorHandle}@${loaderData.actorDomain})`
+      : `@${loaderData.actorHandle}@${loaderData.actorDomain}`;
+    return {
+      meta: [
+        { title: `${author}: ${plainText.slice(0, 60)} — Moim` },
+        { name: "description", content: plainText },
+        { property: "og:title", content: author },
+        { property: "og:description", content: plainText },
+        { property: "og:type", content: "article" },
+        { property: "fediverse:creator", content: `@${loaderData.actorHandle}@${loaderData.actorDomain}` },
+      ],
+    };
+  },
 });
 
 type NoteData = {

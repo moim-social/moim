@@ -1,13 +1,53 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { z } from "zod";
+import { and, eq } from "drizzle-orm";
+import { db } from "~/server/db/client";
+import { actors } from "~/server/db/schema";
 import { CATEGORIES } from "~/shared/categories";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
 
+const getGroupMeta = createServerFn({ method: "GET" })
+  .inputValidator(zodValidator(z.object({ handle: z.string() })))
+  .handler(async ({ data }) => {
+    const [group] = await db
+      .select({ name: actors.name, summary: actors.summary, handle: actors.handle, domain: actors.domain })
+      .from(actors)
+      .where(and(eq(actors.handle, data.handle), eq(actors.type, "Group"), eq(actors.isLocal, true)))
+      .limit(1);
+    return group ?? null;
+  });
+
 export const Route = createFileRoute("/groups/$identifier/")({
   component: ProfilePage,
+  loader: async ({ params }) => {
+    const handle = params.identifier.startsWith("@")
+      ? params.identifier.slice(1)
+      : params.identifier;
+    return getGroupMeta({ data: { handle } });
+  },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const fullHandle = `@${loaderData.handle}@${loaderData.domain}`;
+    const displayName = loaderData.name
+      ? `${loaderData.name} (${fullHandle})`
+      : fullHandle;
+    return {
+      meta: [
+        { title: `${displayName} — Moim` },
+        { name: "description", content: loaderData.summary ?? "" },
+        { property: "og:title", content: displayName },
+        { property: "og:description", content: loaderData.summary ?? "" },
+        { property: "og:type", content: "profile" },
+        { property: "fediverse:creator", content: fullHandle },
+      ],
+    };
+  },
 });
 
 const categoryMap = new Map<string, string>(

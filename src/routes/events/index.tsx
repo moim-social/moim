@@ -13,6 +13,15 @@ import {
 
 export const Route = createFileRoute("/events/")({
   component: EventsPage,
+  head: () => ({
+    meta: [
+      { title: "Events — Moim" },
+      { name: "description", content: "Discover upcoming events from groups across the fediverse." },
+      { property: "og:title", content: "Events — Moim" },
+      { property: "og:description", content: "Discover upcoming events from groups across the fediverse." },
+      { property: "og:type", content: "website" },
+    ],
+  }),
 });
 
 const categoryMap = new Map<string, string>(
