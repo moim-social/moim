@@ -107,7 +107,7 @@ export const GET = async ({ request }: { request: Request }) => {
         const [personActor] = await db
           .select({ id: actors.id })
           .from(actors)
-          .where(and(eq(actors.userId, sessionUser.id), eq(actors.type, "Person"), eq(actors.isLocal, true)))
+          .where(eq(actors.userId, sessionUser.id))
           .limit(1);
 
         if (personActor) {
