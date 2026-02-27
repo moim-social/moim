@@ -75,29 +75,23 @@ export const GET = async ({ request }: { request: Request }) => {
     .where(eq(posts.actorId, group.id))
     .orderBy(posts.published);
 
-  // Check if the current user is a member
+  // Check if the current user is a member (join through actors to match any actor for this user)
   let currentUserRole: string | null = null;
   const user = await getSessionUser(request);
   if (user) {
-    const [personActor] = await db
-      .select({ id: actors.id })
-      .from(actors)
-      .where(eq(actors.userId, user.id))
+    const [membership] = await db
+      .select({ role: groupMembers.role })
+      .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+      .where(
+        and(
+          eq(groupMembers.groupActorId, group.id),
+          eq(actors.userId, user.id),
+          eq(actors.type, "Person"),
+        ),
+      )
       .limit(1);
-
-    if (personActor) {
-      const [membership] = await db
-        .select({ role: groupMembers.role })
-        .from(groupMembers)
-        .where(
-          and(
-            eq(groupMembers.groupActorId, group.id),
-            eq(groupMembers.memberActorId, personActor.id),
-          ),
-        )
-        .limit(1);
-      currentUserRole = membership?.role ?? null;
-    }
+    currentUserRole = membership?.role ?? null;
   }
 
   return Response.json({

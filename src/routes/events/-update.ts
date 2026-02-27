@@ -53,24 +53,16 @@ export const POST = async ({ request }: { request: Request }) => {
 
   // Authorization
   if (event.groupActorId) {
-    // Group event: verify user is host or moderator
-    const [personActor] = await db
-      .select({ id: actors.id })
-      .from(actors)
-      .where(and(eq(actors.userId, user.id), eq(actors.type, "Person"), eq(actors.isLocal, true)))
-      .limit(1);
-
-    if (!personActor) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-
+    // Group event: verify user is host or moderator (join through actors to match any actor for this user)
     const [membership] = await db
       .select({ role: groupMembers.role })
       .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
       .where(
         and(
           eq(groupMembers.groupActorId, event.groupActorId),
-          eq(groupMembers.memberActorId, personActor.id),
+          eq(actors.userId, user.id),
+          eq(actors.type, "Person"),
         ),
       )
       .limit(1);

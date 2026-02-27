@@ -35,25 +35,17 @@ export const GET = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Event not found" }, { status: 404 });
   }
 
-  // Check if user is organizer/moderator of the group
+  // Check if user is organizer/moderator of the group (join through actors to match any actor for this user)
   if (event.groupActorId) {
-    const [personActor] = await db
-      .select({ id: actors.id })
-      .from(actors)
-      .where(eq(actors.userId, user.id))
-      .limit(1);
-
-    if (!personActor) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     const [membership] = await db
       .select({ role: groupMembers.role })
       .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
       .where(
         and(
           eq(groupMembers.groupActorId, event.groupActorId),
-          eq(groupMembers.memberActorId, personActor.id),
+          eq(actors.userId, user.id),
+          eq(actors.type, "Person"),
         ),
       )
       .limit(1);

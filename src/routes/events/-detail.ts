@@ -104,27 +104,21 @@ export const GET = async ({ request }: { request: Request }) => {
       if (eventRow.organizerId === sessionUser.id) {
         canEdit = true;
       } else if (eventRow.groupActorId) {
-        // Check group membership
-        const [personActor] = await db
-          .select({ id: actors.id })
-          .from(actors)
-          .where(eq(actors.userId, sessionUser.id))
+        // Check group membership (join through actors to match any actor for this user)
+        const [membership] = await db
+          .select({ role: groupMembers.role })
+          .from(groupMembers)
+          .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+          .where(
+            and(
+              eq(groupMembers.groupActorId, eventRow.groupActorId),
+              eq(actors.userId, sessionUser.id),
+              eq(actors.type, "Person"),
+            ),
+          )
           .limit(1);
 
-        if (personActor) {
-          const [membership] = await db
-            .select({ role: groupMembers.role })
-            .from(groupMembers)
-            .where(
-              and(
-                eq(groupMembers.groupActorId, eventRow.groupActorId),
-                eq(groupMembers.memberActorId, personActor.id),
-              ),
-            )
-            .limit(1);
-
-          if (membership) canEdit = true;
-        }
+        if (membership) canEdit = true;
       }
     }
   }

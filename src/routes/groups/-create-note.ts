@@ -33,24 +33,16 @@ export const POST = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Group not found" }, { status: 404 });
   }
 
-  // Verify user is host or moderator
-  const [personActor] = await db
-    .select({ id: actors.id })
-    .from(actors)
-    .where(eq(actors.userId, user.id))
-    .limit(1);
-
-  if (!personActor) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+  // Verify user is host or moderator (join through actors to match any actor for this user)
   const [membership] = await db
     .select({ role: groupMembers.role })
     .from(groupMembers)
+    .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
     .where(
       and(
         eq(groupMembers.groupActorId, group.id),
-        eq(groupMembers.memberActorId, personActor.id),
+        eq(actors.userId, user.id),
+        eq(actors.type, "Person"),
       ),
     )
     .limit(1);

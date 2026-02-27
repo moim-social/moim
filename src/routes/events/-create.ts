@@ -53,14 +53,16 @@ export const POST = async ({ request }: { request: Request }) => {
   const isPersonalEvent = !body.groupActorId;
 
   if (body.groupActorId) {
-    // Group event: verify membership
+    // Group event: verify membership (join through actors to match any actor for this user)
     const [membership] = await db
       .select({ role: groupMembers.role })
       .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
       .where(
         and(
           eq(groupMembers.groupActorId, body.groupActorId),
-          eq(groupMembers.memberActorId, personActor.id),
+          eq(actors.userId, user.id),
+          eq(actors.type, "Person"),
         ),
       )
       .limit(1);
