@@ -8,6 +8,7 @@ import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Checkbox } from "~/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 
 export const Route = createFileRoute("/events/create")({
   component: CreateEventPage,
@@ -169,7 +170,7 @@ function CreateEventPage() {
           description: description || undefined,
           location: location || undefined,
           categoryId,
-          groupActorId,
+          groupActorId: groupActorId || undefined,
           startsAt: new Date(startsAt).toISOString(),
           endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
           organizerHandles: organizers.map((o) => o.handle),
@@ -216,7 +217,7 @@ function CreateEventPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!groupActorId || !title || !categoryId || !startsAt) return;
+            if (!title || !categoryId || !startsAt) return;
             setPhase("questions");
           }}
           className="space-y-5"
@@ -224,28 +225,52 @@ function CreateEventPage() {
           {errorBox}
 
           <div className="space-y-1.5">
-            <Label htmlFor="groupActorId">Group</Label>
+            <Label>Host</Label>
             {!groupsLoaded ? (
-              <p className="text-sm text-muted-foreground">Loading groups...</p>
-            ) : groups.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                You don't belong to any groups yet. Create a group first.
-              </p>
+              <p className="text-sm text-muted-foreground">Loading...</p>
             ) : (
-              <select
-                id="groupActorId"
-                value={groupActorId}
-                onChange={(e) => setGroupActorId(e.target.value)}
-                required
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              <Tabs
+                value={groupActorId ? "group" : "personal"}
+                onValueChange={(v) => {
+                  if (v === "personal") {
+                    setGroupActorId("");
+                  } else if (v === "group" && groups.length > 0 && !groupActorId) {
+                    setGroupActorId(groups[0].id);
+                  }
+                }}
               >
-                <option value="">Select a group</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name ?? g.handle}
-                  </option>
-                ))}
-              </select>
+                <TabsList>
+                  <TabsTrigger value="personal">Personal</TabsTrigger>
+                  <TabsTrigger value="group" disabled={groups.length === 0}>
+                    Group{groups.length === 0 ? "" : ` (${groups.length})`}
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="personal">
+                  <p className="text-sm text-muted-foreground mt-1">
+                    This event will be hosted under your personal account.
+                  </p>
+                </TabsContent>
+                <TabsContent value="group">
+                  {groups.length === 0 ? (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      You don't belong to any groups yet.
+                    </p>
+                  ) : (
+                    <select
+                      value={groupActorId}
+                      onChange={(e) => setGroupActorId(e.target.value)}
+                      className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Select a group</option>
+                      {groups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name ?? g.handle}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </TabsContent>
+              </Tabs>
             )}
           </div>
 

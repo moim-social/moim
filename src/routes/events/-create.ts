@@ -30,40 +30,50 @@ export const POST = async ({ request }: { request: Request }) => {
     }>;
   } | null;
 
-  if (!body?.title || !body?.categoryId || !body?.startsAt || !body?.groupActorId) {
+  if (!body?.title || !body?.categoryId || !body?.startsAt) {
     return Response.json(
-      { error: "title, categoryId, groupActorId, and startsAt are required" },
+      { error: "title, categoryId, and startsAt are required" },
       { status: 400 },
     );
   }
 
-  // Verify the group exists and the user is a host or moderator
+  // Look up user's Person actor
   const [personActor] = await db
-    .select({ id: actors.id })
+    .select({ id: actors.id, handle: actors.handle })
     .from(actors)
-    .where(eq(actors.userId, user.id))
+    .where(and(eq(actors.userId, user.id), eq(actors.type, "Person"), eq(actors.isLocal, true)))
     .limit(1);
 
   if (!personActor) {
     return Response.json({ error: "You have no actor" }, { status: 403 });
   }
 
-  const [membership] = await db
-    .select({ role: groupMembers.role })
-    .from(groupMembers)
-    .where(
-      and(
-        eq(groupMembers.groupActorId, body.groupActorId),
-        eq(groupMembers.memberActorId, personActor.id),
-      ),
-    )
-    .limit(1);
+  let hostActorId: string;
+  const isPersonalEvent = !body.groupActorId;
 
-  if (!membership) {
-    return Response.json(
-      { error: "You are not a member of this group" },
-      { status: 403 },
-    );
+  if (body.groupActorId) {
+    // Group event: verify membership
+    const [membership] = await db
+      .select({ role: groupMembers.role })
+      .from(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.groupActorId, body.groupActorId),
+          eq(groupMembers.memberActorId, personActor.id),
+        ),
+      )
+      .limit(1);
+
+    if (!membership) {
+      return Response.json(
+        { error: "You are not a member of this group" },
+        { status: 403 },
+      );
+    }
+    hostActorId = body.groupActorId;
+  } else {
+    // Personal event: use user's proxy Person actor
+    hostActorId = personActor.id;
   }
 
   if (!validCategoryIds.has(body.categoryId as any)) {
@@ -86,7 +96,7 @@ export const POST = async ({ request }: { request: Request }) => {
       .insert(events)
       .values({
         organizerId: user.id,
-        groupActorId: body.groupActorId,
+        groupActorId: body.groupActorId ?? null,
         categoryId: body.categoryId,
         title: body.title,
         description: body.description ?? null,
@@ -124,8 +134,10 @@ export const POST = async ({ request }: { request: Request }) => {
       }
     }
 
-    // Group actor posts Note, category Service actor announces it
-    await announceEvent(body.categoryId, body.groupActorId, event, organizers);
+    // Host actor posts Note; category Service announces only for group events
+    await announceEvent(body.categoryId, hostActorId, event, organizers, {
+      skipAnnounce: isPersonalEvent,
+    });
 
     return Response.json({
       event: { id: event.id, title: event.title, categoryId: event.categoryId },
