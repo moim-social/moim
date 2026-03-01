@@ -5,6 +5,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { useAuth } from "~/routes/__root";
+import { usePostHog } from "posthog-js/react";
 
 export const Route = createFileRoute("/auth/signin")({
   component: SignInPage,
@@ -15,6 +16,7 @@ type Phase = "handle" | "challenge" | "waiting" | "success" | "error";
 function SignInPage() {
   const navigate = useNavigate();
   const { user, setUser, loaded } = useAuth();
+  const posthog = usePostHog();
   const [phase, setPhase] = useState<Phase>("handle");
   const [handle, setHandle] = useState("");
   const [challengeId, setChallengeId] = useState("");
@@ -86,6 +88,7 @@ function SignInPage() {
             displayName: data.user?.handle ?? normalized,
           });
           setPhase("success");
+          posthog?.capture("sign_in", { handle: normalized });
           setTimeout(() => navigate({ to: "/" }), 2000);
         } else if (data.error === "challenge expired") {
           setError("Challenge expired. Please try again.");

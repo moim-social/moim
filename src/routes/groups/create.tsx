@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
+import { usePostHog } from "posthog-js/react";
 import { CATEGORIES } from "~/shared/categories";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
@@ -73,6 +74,7 @@ function Stepper({ currentStep }: { currentStep: number }) {
 
 function CreateGroupPage() {
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const [phase, setPhase] = useState<Phase>("basic");
   const [error, setError] = useState("");
 
@@ -203,6 +205,7 @@ function CreateGroupPage() {
         return;
       }
       setCreatedHandle(data.group.handle);
+      posthog?.capture("group_created", { handle: data.group.handle });
       setPhase("success");
     } catch {
       setError("Network error");

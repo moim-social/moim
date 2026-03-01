@@ -3,6 +3,7 @@ node_modules
 .output
 .env
 .env.*
+!.env.example
 routeTree.gen.ts
 .DS_Store
 .pnpm-store/

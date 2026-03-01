@@ -26,6 +26,7 @@ import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { usePostHog } from "posthog-js/react";
 import { LeafletMap } from "~/components/LeafletMap";
 
 const getPlaceMeta = createServerFn({ method: "GET" })
@@ -107,6 +108,7 @@ type PlaceDetail = {
 };
 
 function PlaceDetailPage() {
+  const posthog = usePostHog();
   const { placeId } = Route.useParams();
   const [data, setData] = useState<PlaceDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -146,6 +148,7 @@ function PlaceDetailPage() {
         }),
       });
       if (res.ok) {
+        posthog?.capture("checkin_created", { placeId });
         setCheckinOpen(false);
         setCheckinNote("");
         // Refresh data
