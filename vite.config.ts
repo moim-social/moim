@@ -11,7 +11,11 @@ export default defineConfig({
         entry: "./server-entry.ts",
       },
     }),
-    nitro(),
+    nitro({
+      rollupConfig: {
+        external: ["sharp"],
+      },
+    }),
     tsconfigPaths(),
     tailwindcss(),
   ],
