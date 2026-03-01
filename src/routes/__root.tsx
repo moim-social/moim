@@ -7,6 +7,9 @@ import {
   Scripts,
   useNavigate,
 } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { env } from "~/server/env";
+import { PostHogProvider } from "posthog-js/react";
 import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
@@ -30,7 +33,15 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+const getPublicConfig = createServerFn({ method: "GET" }).handler(async () => ({
+  posthogKey: env.posthogKey ?? null,
+  posthogHost: env.posthogHost ?? null,
+}));
+
+export type PublicConfig = Awaited<ReturnType<typeof getPublicConfig>>;
+
 export const Route = createRootRoute({
+  loader: () => getPublicConfig(),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -49,6 +60,17 @@ export const Route = createRootRoute({
   component: RootLayout,
 });
 
+function PostHogWrapper({ config, children }: { config: PublicConfig; children: React.ReactNode }) {
+  if (config.posthogKey) {
+    return (
+      <PostHogProvider apiKey={config.posthogKey} options={{ api_host: config.posthogHost ?? undefined }}>
+        {children}
+      </PostHogProvider>
+    );
+  }
+  return <>{children}</>;
+}
+
 function NavLink(props: { to: string; children: React.ReactNode }) {
   return (
     <Link
@@ -61,6 +83,7 @@ function NavLink(props: { to: string; children: React.ReactNode }) {
 }
 
 function RootLayout() {
+  const config = Route.useLoaderData();
   const [user, setUser] = useState<SessionUser>(null);
   const [loaded, setLoaded] = useState(false);
   const navigate = useNavigate();
@@ -87,6 +110,7 @@ function RootLayout() {
         <HeadContent />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
+        <PostHogWrapper config={config}>
         <AuthContext.Provider value={{ user, setUser, loaded }}>
           <div className="relative flex min-h-screen flex-col">
             {/* Header */}
@@ -164,6 +188,8 @@ function RootLayout() {
           </div>
           <Scripts />
         </AuthContext.Provider>
+        </PostHogWrapper>
+
       </body>
     </html>
   );

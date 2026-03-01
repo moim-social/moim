@@ -28,4 +28,8 @@ export const env = {
 
   // Map link providers (comma-separated: kakao,naver,google)
   mapLinkProviders: (process.env.MAP_LINK_PROVIDERS ?? "").split(",").map(s => s.trim()).filter(Boolean),
+
+  // PostHog (optional)
+  posthogKey: process.env.POSTHOG_KEY || undefined,
+  posthogHost: process.env.POSTHOG_HOST || undefined,
 };
