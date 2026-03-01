@@ -1,15 +1,15 @@
 import sharp from "sharp";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { uploadBuffer } from "~/server/storage/s3";
 import { env } from "~/server/env";
 
 let logoPngBuffer: Buffer | undefined;
 
-function getLogoBuffer(): Buffer {
+async function getLogoBuffer(): Promise<Buffer> {
   if (logoPngBuffer) return logoPngBuffer;
-  logoPngBuffer = readFileSync(join(process.cwd(), "public", "logo.png"));
+  const res = await fetch(new URL("/logo.png", env.baseUrl));
+  if (!res.ok) throw new Error(`Failed to fetch logo: ${res.status}`);
+  logoPngBuffer = Buffer.from(await res.arrayBuffer());
   return logoPngBuffer;
 }
 
@@ -60,7 +60,7 @@ async function createCompositeAvatar(
   outputSize = 256,
   badgeSize = 72,
 ): Promise<Buffer> {
-  const logo = getLogoBuffer();
+  const logo = await getLogoBuffer();
 
   const resizedAvatar = await sharp(avatarBuffer)
     .resize(outputSize, outputSize, { fit: "cover", position: "centre" })
