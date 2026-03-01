@@ -16,6 +16,7 @@ export type SessionUser = {
   handle: string;
   fediverseHandle: string | null;
   displayName: string;
+  avatarUrl: string | null;
 };
 
 export async function getSessionUser(
@@ -30,6 +31,7 @@ export async function getSessionUser(
       handle: users.handle,
       fediverseHandle: users.fediverseHandle,
       displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
