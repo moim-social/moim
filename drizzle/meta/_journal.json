@@ -71,6 +71,13 @@
       "when": 1772213588760,
       "tag": "0009_lean_leo",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772336662062,
+      "tag": "0010_happy_mad_thinker",
+      "breakpoints": true
     }
   ]
 }
