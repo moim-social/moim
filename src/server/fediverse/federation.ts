@@ -13,6 +13,7 @@ import {
   InProcessMessageQueue,
   MemoryKvStore,
   Note,
+  Place,
   parseSemVer,
   Person,
   PropertyValue,
@@ -26,7 +27,7 @@ import type { Context, RequestContext } from "@fedify/fedify";
 import { Temporal } from "@js-temporal/polyfill";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, follows, groupMembers, keypairs, otpChallenges, otpVotes, posts, users } from "~/server/db/schema";
+import { actors, follows, groupMembers, keypairs, otpChallenges, otpVotes, places, posts, users } from "~/server/db/schema";
 import { env } from "~/server/env";
 import { EMOJI_SET } from "~/server/fediverse/otp";
 
@@ -412,6 +413,29 @@ federation.setObjectDispatcher(
       inclusiveOptions: EMOJI_SET.map((emoji: string) => new Note({ name: emoji })),
       closed: Temporal.Instant.from(challenge.expiresAt.toISOString()),
       published: Temporal.Instant.from(challenge.createdAt.toISOString()),
+    });
+  },
+);
+
+// --- Place object dispatcher ---
+federation.setObjectDispatcher(
+  Place,
+  "/ap/places/{placeId}",
+  async (ctx, { placeId }) => {
+    const [place] = await db
+      .select()
+      .from(places)
+      .where(eq(places.id, placeId))
+      .limit(1);
+    if (!place) return null;
+
+    return new Place({
+      id: ctx.getObjectUri(Place, { placeId }),
+      name: place.name,
+      content: place.description ?? undefined,
+      latitude: place.latitude ? parseFloat(place.latitude) : undefined,
+      longitude: place.longitude ? parseFloat(place.longitude) : undefined,
+      url: new URL(`/places/${placeId}`, ctx.canonicalOrigin),
     });
   },
 );
