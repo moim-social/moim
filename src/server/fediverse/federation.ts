@@ -123,6 +123,10 @@ federation
         preferredUsername: identifier,
         name: "Moim",
         summary: "An instance actor for Moim.",
+        icon: new Image({
+          url: new URL("/logo.png", ctx.canonicalOrigin),
+          mediaType: "image/png",
+        }),
         manuallyApprovesFollowers: true,
         inbox: ctx.getInboxUri(identifier),
         outbox: ctx.getOutboxUri(identifier),

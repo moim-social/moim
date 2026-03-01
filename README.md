@@ -1,6 +1,12 @@
+<p align="center">
+  <img src="moim-logo.png" alt="Moim" width="512" />
+</p>
+
 # Moim
 
-Federated events and places (connpass + foursquare) built on TanStack Start, Drizzle, and ActivityPub.
+Moim is a federated events & places service. In Korean, it is written as '모임', pronounced /mo-im/, like "mo-eem". It means "gathering" or "meetup".
+
+Built on TanStack Start, Drizzle, and ActivityPub.
 
 ## Quickstart
 
@@ -26,3 +32,4 @@ pnpm dev
 1. `POST /auth/request-otp` with `{ "handle": "alice@example.com" }`
 2. Post the OTP on the fediverse.
 3. `POST /auth/verify-otp` with `{ "handle": "alice@example.com" }`
+

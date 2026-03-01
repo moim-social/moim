@@ -35,8 +35,15 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Moim" },
+      { property: "og:title", content: "Moim" },
+      { property: "og:description", content: "Federated events & places" },
+      { property: "og:image", content: "/logo.png" },
+      { property: "og:type", content: "website" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", href: "/favicon.ico" },
+    ],
   }),
   component: RootLayout,
 });
@@ -85,6 +92,7 @@ function RootLayout() {
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="mx-auto flex h-14 w-full max-w-5xl items-center px-6">
                 <Link to="/" className="mr-8 flex items-center gap-2">
+                  <img src="/logo.png" alt="Moim" style={{ height: 28, width: "auto" }} />
                   <span className="text-lg font-bold tracking-tight">Moim</span>
                 </Link>
                 <nav className="flex items-center gap-6">
