@@ -25,6 +25,12 @@ import { POST as updateEvent } from "./routes/events/-update";
 import { GET as rsvpStatus } from "./routes/events/-rsvp-status";
 import { GET as eventAttendees } from "./routes/events/-attendees";
 import { GET as noteDetail } from "./routes/notes/-detail";
+import { GET as listPlaces } from "./routes/places/-list";
+import { GET as placeDetail } from "./routes/places/-detail";
+import { POST as checkinPlace } from "./routes/places/-checkin";
+import { GET as placeCheckins } from "./routes/places/-checkins";
+import { GET as nearbyPlaces } from "./routes/places/-nearby";
+import { POST as findOrCreatePlace } from "./routes/places/-find-or-create";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
 
 const startFetch = createStartHandler(defaultStreamHandler);
@@ -129,6 +135,37 @@ app.use("/events/update", defineEventHandler(async (event) => {
 app.use("/notes/detail", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return noteDetail({ request });
+}));
+
+// Place API routes
+app.use("/places/list", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return listPlaces({ request });
+}));
+
+app.use("/places/detail", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return placeDetail({ request });
+}));
+
+app.use("/places/checkin", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return checkinPlace({ request });
+}));
+
+app.use("/places/checkins", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return placeCheckins({ request });
+}));
+
+app.use("/places/nearby", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return nearbyPlaces({ request });
+}));
+
+app.use("/places/find-or-create", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return findOrCreatePlace({ request });
 }));
 
 // API routes
