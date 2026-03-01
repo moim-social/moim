@@ -63,6 +63,21 @@ export const Route = createFileRoute("/places/$placeId/")({
   },
 });
 
+const MAP_LINK_BUILDERS: Record<string, (name: string, lat: number, lng: number) => { label: string; url: string }> = {
+  google: (name, lat, lng) => ({
+    label: "Google",
+    url: `https://www.google.com/maps/search/${encodeURIComponent(name)}/@${lat},${lng},15z`,
+  }),
+  kakao: (name, lat, lng) => ({
+    label: "Kakao",
+    url: `https://map.kakao.com/link/map/${encodeURIComponent(name)},${lat},${lng}`,
+  }),
+  naver: (name, lat, lng) => ({
+    label: "Naver",
+    url: `https://map.naver.com/p/search/${encodeURIComponent(name)}?c=${lng},${lat},15,0,0,0,dh`,
+  }),
+};
+
 type PlaceDetail = {
   place: {
     id: string;
@@ -88,6 +103,7 @@ type PlaceDetail = {
     title: string;
     startsAt: string;
   }>;
+  mapLinkProviders: string[];
 };
 
 function PlaceDetailPage() {
@@ -156,8 +172,14 @@ function PlaceDetailPage() {
     );
   }
 
-  const { place, tags, recentCheckins, checkinCount, upcomingEvents } = data;
+  const { place, tags, recentCheckins, checkinCount, upcomingEvents, mapLinkProviders } = data;
   const hasCoords = place.latitude && place.longitude;
+
+  const mapLinks = hasCoords
+    ? mapLinkProviders
+        .map((p) => MAP_LINK_BUILDERS[p]?.(place.name, parseFloat(place.latitude!), parseFloat(place.longitude!)))
+        .filter((v): v is { label: string; url: string } => v != null)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -167,6 +189,21 @@ function PlaceDetailPage() {
           <h2 className="text-2xl font-semibold tracking-tight">{place.name}</h2>
           {place.address && (
             <p className="text-muted-foreground mt-1">{place.address}</p>
+          )}
+          {mapLinks.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-1 text-sm">
+              {mapLinks.map(({ label, url }) => (
+                <a
+                  key={label}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline"
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
           )}
         </div>
         {user && (
