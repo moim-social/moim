@@ -381,10 +381,21 @@ federation.setObjectDispatcher(
       .limit(1);
     if (!actor) return null;
 
+    const attachments: Image[] = [];
+    if (post.imageUrl) {
+      attachments.push(
+        new Image({
+          url: new URL(post.imageUrl),
+          mediaType: "image/png",
+        }),
+      );
+    }
+
     return new Note({
       id: ctx.getObjectUri(Note, { noteId }),
       attribution: ctx.getActorUri(actor.handle),
       content: post.content,
+      attachments,
       url: new URL(`/notes/${noteId}`, ctx.canonicalOrigin),
       published: Temporal.Instant.from(post.published.toISOString()),
       to: PUBLIC_COLLECTION,
@@ -774,6 +785,15 @@ federation
         const noteUri = ctx.getObjectUri(Note, {
           noteId: post.id,
         });
+        const noteAttachments: Image[] = [];
+        if (post.imageUrl) {
+          noteAttachments.push(
+            new Image({
+              url: new URL(post.imageUrl),
+              mediaType: "image/png",
+            }),
+          );
+        }
         return new Create({
           id: new URL(`${noteUri.href}#activity`),
           actor: ctx.getActorUri(identifier),
@@ -781,6 +801,7 @@ federation
             id: noteUri,
             attribution: ctx.getActorUri(identifier),
             content: post.content,
+            attachments: noteAttachments,
             published: Temporal.Instant.from(post.published.toISOString()),
             to: PUBLIC_COLLECTION,
             ccs: [ctx.getFollowersUri(identifier)],
