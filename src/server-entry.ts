@@ -4,7 +4,7 @@ import {
   defaultStreamHandler,
 } from "@tanstack/react-start/server";
 import { integrateFederation, onError } from "@fedify/h3";
-import { Note, respondWithObjectIfAcceptable } from "@fedify/fedify";
+import { Note, Place, respondWithObjectIfAcceptable } from "@fedify/fedify";
 import { federation } from "./server/fediverse/federation";
 import { POST as requestOtp } from "./routes/auth/-request-otp";
 import { POST as verifyOtp } from "./routes/auth/-verify-otp";
@@ -25,6 +25,12 @@ import { POST as updateEvent } from "./routes/events/-update";
 import { GET as rsvpStatus } from "./routes/events/-rsvp-status";
 import { GET as eventAttendees } from "./routes/events/-attendees";
 import { GET as noteDetail } from "./routes/notes/-detail";
+import { GET as listPlaces } from "./routes/places/-list";
+import { GET as placeDetail } from "./routes/places/-detail";
+import { POST as checkinPlace } from "./routes/places/-checkin";
+import { GET as placeCheckins } from "./routes/places/-checkins";
+import { GET as nearbyPlaces } from "./routes/places/-nearby";
+import { POST as findOrCreatePlace } from "./routes/places/-find-or-create";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
 
 const startFetch = createStartHandler(defaultStreamHandler);
@@ -131,6 +137,37 @@ app.use("/notes/detail", defineEventHandler(async (event) => {
   return noteDetail({ request });
 }));
 
+// Place API routes
+app.use("/places/list", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return listPlaces({ request });
+}));
+
+app.use("/places/detail", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return placeDetail({ request });
+}));
+
+app.use("/places/checkin", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return checkinPlace({ request });
+}));
+
+app.use("/places/checkins", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return placeCheckins({ request });
+}));
+
+app.use("/places/nearby", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return nearbyPlaces({ request });
+}));
+
+app.use("/places/find-or-create", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return findOrCreatePlace({ request });
+}));
+
 // API routes
 app.use("/api/webfinger", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
@@ -139,7 +176,7 @@ app.use("/api/webfinger", defineEventHandler(async (event) => {
 
 app.use(
   fromWebHandler(async (request) => {
-    // Content negotiation: serve AP object directly for /notes/{uuid}
+    // Content negotiation: serve AP object directly for /notes/{uuid} and /places/{uuid}
     const url = new URL(request.url);
     const noteMatch = url.pathname.match(/^\/notes\/([0-9a-f-]{36})$/);
     if (noteMatch) {
@@ -147,6 +184,15 @@ app.use(
       const note = await ctx.getObject(Note, { noteId: noteMatch[1] });
       if (note) {
         const response = await respondWithObjectIfAcceptable(note, request);
+        if (response) return response;
+      }
+    }
+    const placeMatch = url.pathname.match(/^\/places\/([0-9a-f-]{36})$/);
+    if (placeMatch) {
+      const ctx = federation.createContext(request, undefined);
+      const place = await ctx.getObject(Place, { placeId: placeMatch[1] });
+      if (place) {
+        const response = await respondWithObjectIfAcceptable(place, request);
         if (response) return response;
       }
     }

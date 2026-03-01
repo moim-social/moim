@@ -10,6 +10,7 @@ import { Badge } from "~/components/ui/badge";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Card, CardContent } from "~/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
+import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 
 export const Route = createFileRoute("/events/create")({
   component: CreateEventPage,
@@ -116,7 +117,7 @@ function CreateEventPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [location, setLocation] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [externalUrl, setExternalUrl] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -217,7 +218,8 @@ function CreateEventPage() {
         body: JSON.stringify({
           title,
           description: description || undefined,
-          location: location || undefined,
+          placeId: selectedPlace?.id || undefined,
+          location: selectedPlace?.name || undefined,
           externalUrl: externalUrl || undefined,
           categoryId: categoryId || undefined,
           groupActorId: groupActorId || undefined,
@@ -429,13 +431,10 @@ function CreateEventPage() {
 
               {/* Location */}
               <div className="space-y-1.5">
-                <Label htmlFor="location">Location (optional)</Label>
-                <Input
-                  id="location"
-                  type="text"
-                  placeholder="e.g. Shibuya Stream, Tokyo"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+                <Label>Location (optional)</Label>
+                <PlacePicker
+                  value={selectedPlace}
+                  onChange={setSelectedPlace}
                 />
               </div>
 

@@ -7,6 +7,7 @@ import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Checkbox } from "~/components/ui/checkbox";
+import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 
 export const Route = createFileRoute("/events/$eventId/edit")({
   component: EditEventPage,
@@ -40,7 +41,7 @@ function EditEventPage() {
   const [categoryId, setCategoryId] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
-  const [location, setLocation] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [externalUrl, setExternalUrl] = useState("");
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
 
@@ -62,7 +63,15 @@ function EditEventPage() {
         setCategoryId(e.categoryId ?? "");
         setStartsAt(e.startsAt ? toLocalDatetime(e.startsAt) : "");
         setEndsAt(e.endsAt ? toLocalDatetime(e.endsAt) : "");
-        setLocation(e.location ?? "");
+        if (e.placeId) {
+          setSelectedPlace({
+            id: e.placeId,
+            name: e.placeName ?? e.location ?? "",
+            address: e.placeAddress ?? null,
+            latitude: e.placeLatitude ?? null,
+            longitude: e.placeLongitude ?? null,
+          });
+        }
         setExternalUrl(e.externalUrl ?? "");
         setQuestions(
           (data.questions ?? []).map((q: any, idx: number) => ({
@@ -99,7 +108,8 @@ function EditEventPage() {
           categoryId: categoryId || undefined,
           startsAt: new Date(startsAt).toISOString(),
           endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
-          location: location.trim() || undefined,
+          placeId: selectedPlace?.id || undefined,
+          location: selectedPlace?.name || undefined,
           externalUrl: externalUrl.trim() || undefined,
           questions: questions
             .filter((q) => q.question.trim())
@@ -233,13 +243,10 @@ function EditEventPage() {
 
         {/* Location */}
         <div className="space-y-1.5">
-          <Label htmlFor="location">Location (optional)</Label>
-          <Input
-            id="location"
-            type="text"
-            placeholder="e.g. Shibuya Stream, Tokyo"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
+          <Label>Location (optional)</Label>
+          <PlacePicker
+            value={selectedPlace}
+            onChange={setSelectedPlace}
           />
         </div>
 

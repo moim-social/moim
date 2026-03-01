@@ -117,7 +117,10 @@ export const places = pgTable("places", {
   latitude: varchar("latitude", { length: 32 }),
   longitude: varchar("longitude", { length: 32 }),
   address: text("address"),
+  website: text("website"),
+  createdById: uuid("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const rsvps = pgTable("rsvps", {

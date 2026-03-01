@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import { LeafletMap } from "~/components/LeafletMap";
 import { eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, users } from "~/server/db/schema";
@@ -100,6 +101,11 @@ type EventData = {
     startsAt: string;
     endsAt: string | null;
     location: string | null;
+    placeId: string | null;
+    placeName: string | null;
+    placeAddress: string | null;
+    placeLatitude: string | null;
+    placeLongitude: string | null;
     externalUrl: string | null;
     groupHandle: string | null;
     groupName: string | null;
@@ -151,6 +157,9 @@ function EventDetailPage() {
   const [data, setData] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Map dialog
+  const [mapOpen, setMapOpen] = useState(false);
 
   // Attendees (organizer-only)
   const [attendeesData, setAttendeesData] = useState<AttendeesData | null>(null);
@@ -359,14 +368,53 @@ function EventDetailPage() {
           </div>
         </div>
 
-        {event.location && (
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 size-5 shrink-0 text-muted-foreground">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
-              </svg>
+        {(event.location || event.placeName) && (
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 size-5 shrink-0 text-muted-foreground">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                  <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                {event.placeId ? (
+                  <Link
+                    to="/places/$placeId"
+                    params={{ placeId: event.placeId }}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    {event.placeName ?? event.location}
+                  </Link>
+                ) : (
+                  <p className="text-sm">{event.location}</p>
+                )}
+                {event.placeAddress && event.placeAddress !== event.placeName && (
+                  <p className="text-xs text-muted-foreground">{event.placeAddress}</p>
+                )}
+              </div>
             </div>
-            <p className="text-sm">{event.location}</p>
+
+            {event.placeLatitude && event.placeLongitude && (
+              <button
+                type="button"
+                onClick={() => setMapOpen(true)}
+                className="w-full rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-shadow"
+              >
+                <LeafletMap
+                  center={[parseFloat(event.placeLatitude), parseFloat(event.placeLongitude)]}
+                  zoom={15}
+                  markers={[{
+                    lat: parseFloat(event.placeLatitude),
+                    lng: parseFloat(event.placeLongitude),
+                    label: event.placeName ?? event.location ?? "Location",
+                    id: event.placeId ?? "place",
+                    color: "red",
+                  }]}
+                  height="150px"
+                  className="pointer-events-none"
+                />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -598,6 +646,32 @@ function EventDetailPage() {
           </div>
         </div>
       ) : null}
+
+      {/* Map Dialog */}
+      {event.placeLatitude && event.placeLongitude && (
+        <Dialog open={mapOpen} onOpenChange={setMapOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{event.placeName ?? event.location}</DialogTitle>
+              {event.placeAddress && (
+                <DialogDescription>{event.placeAddress}</DialogDescription>
+              )}
+            </DialogHeader>
+            <LeafletMap
+              center={[parseFloat(event.placeLatitude), parseFloat(event.placeLongitude)]}
+              zoom={15}
+              markers={[{
+                lat: parseFloat(event.placeLatitude),
+                lng: parseFloat(event.placeLongitude),
+                label: event.placeName ?? event.location ?? "Location",
+                id: event.placeId ?? "place",
+                color: "red",
+              }]}
+              height="400px"
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* RSVP Dialog — only for events without external URL */}
       {!event.externalUrl && <Dialog open={rsvpDialogOpen} onOpenChange={setRsvpDialogOpen}>
