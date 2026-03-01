@@ -21,6 +21,7 @@ export const POST = async ({ request }: { request: Request }) => {
     endsAt?: string;
     location?: string;
     externalUrl?: string;
+    placeId?: string | null;
     questions?: Array<{
       id?: string;
       question: string;
@@ -107,6 +108,7 @@ export const POST = async ({ request }: { request: Request }) => {
         endsAt: endsAt ?? null,
         location: body.location?.trim() || null,
         externalUrl: body.externalUrl?.trim() || "",
+        placeId: body.placeId !== undefined ? (body.placeId || null) : undefined,
       })
       .where(eq(events.id, event.id));
 
