@@ -148,14 +148,14 @@ app.use("/places/detail", defineEventHandler(async (event) => {
   return placeDetail({ request });
 }));
 
-app.use("/places/checkin", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return checkinPlace({ request });
-}));
-
 app.use("/places/checkins", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return placeCheckins({ request });
+}));
+
+app.use("/places/checkin", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return checkinPlace({ request });
 }));
 
 app.use("/places/nearby", defineEventHandler(async (event) => {
