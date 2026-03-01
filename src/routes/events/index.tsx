@@ -48,6 +48,7 @@ function EventsPage() {
   const [user, setUser] = useState<{ handle: string } | null>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
 
   useEffect(() => {
     fetch("/auth/me")
@@ -57,14 +58,16 @@ function EventsPage() {
   }, []);
 
   useEffect(() => {
-    fetch("/events/list")
+    setLoading(true);
+    const url = tab === "past" ? "/events/list?past=1" : "/events/list";
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         setEvents(data.events ?? []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [tab]);
 
   return (
     <div className="space-y-6">
@@ -82,16 +85,36 @@ function EventsPage() {
         )}
       </div>
 
+      {/* Upcoming / Past toggle */}
+      <div className="flex gap-1">
+        <Button
+          variant={tab === "upcoming" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setTab("upcoming")}
+        >
+          Upcoming
+        </Button>
+        <Button
+          variant={tab === "past" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setTab("past")}
+        >
+          Past
+        </Button>
+      </div>
+
       {loading ? (
         <p className="text-muted-foreground">Loading...</p>
       ) : events.length === 0 ? (
         <Card className="flex items-center justify-center py-16">
           <CardHeader className="text-center">
             <CardTitle className="text-base text-muted-foreground">
-              No upcoming events
+              {tab === "past" ? "No past events" : "No upcoming events"}
             </CardTitle>
             <CardDescription>
-              Create a group to start hosting events.
+              {tab === "past"
+                ? "Past events will appear here."
+                : "Create a group to start hosting events."}
             </CardDescription>
           </CardHeader>
         </Card>

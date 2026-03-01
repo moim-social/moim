@@ -1,8 +1,12 @@
-import { aliasedTable, and, eq, gte } from "drizzle-orm";
+import { aliasedTable, and, desc, eq, gte, lt } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, users } from "~/server/db/schema";
 
 export const GET = async ({ request }: { request: Request }) => {
+  const url = new URL(request.url);
+  const past = url.searchParams.get("past") === "1";
+  const now = new Date();
+
   const organizerActors = aliasedTable(actors, "organizer_actors");
   const rows = await db
     .select({
@@ -27,8 +31,8 @@ export const GET = async ({ request }: { request: Request }) => {
       eq(organizerActors.userId, users.id),
       eq(organizerActors.isLocal, false),
     ))
-    .where(gte(events.startsAt, new Date()))
-    .orderBy(events.startsAt);
+    .where(past ? lt(events.startsAt, now) : gte(events.startsAt, now))
+    .orderBy(past ? desc(events.startsAt) : events.startsAt);
 
   return Response.json({ events: rows });
 };
