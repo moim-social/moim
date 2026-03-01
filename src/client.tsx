@@ -3,6 +3,8 @@ import { hydrateRoot } from "react-dom/client";
 import { StartClient } from "@tanstack/react-start/client";
 import { PostHogProvider } from "posthog-js/react";
 
+const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
+
 const posthogOptions = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
   loaded: (posthog: { register: (props: Record<string, string>) => void }) => {
@@ -10,16 +12,17 @@ const posthogOptions = {
   },
 };
 
+const app = posthogKey ? (
+  <PostHogProvider apiKey={posthogKey} options={posthogOptions}>
+    <StartClient />
+  </PostHogProvider>
+) : (
+  <StartClient />
+);
+
 startTransition(() => {
   hydrateRoot(
     document,
-    <StrictMode>
-      <PostHogProvider
-        apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
-        options={posthogOptions}
-      >
-        <StartClient />
-      </PostHogProvider>
-    </StrictMode>,
+    <StrictMode>{app}</StrictMode>,
   );
 });
