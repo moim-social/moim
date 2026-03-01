@@ -1,6 +1,7 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { places, placeTags, tags, checkins, users, events } from "~/server/db/schema";
+import { env } from "~/server/env";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -67,5 +68,6 @@ export const GET = async ({ request }: { request: Request }) => {
     recentCheckins,
     checkinCount: checkinCountRow?.count ?? 0,
     upcomingEvents,
+    mapLinkProviders: env.mapLinkProviders,
   });
 };
