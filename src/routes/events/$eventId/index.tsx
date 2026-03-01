@@ -28,6 +28,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 
 const getEventMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ eventId: z.string() })))
@@ -131,6 +132,7 @@ type AttendeesData = {
     userId: string;
     handle: string;
     displayName: string;
+    avatarUrl: string | null;
     status: string;
     createdAt: string;
     answers: Array<{ questionId: string; answer: string }>;
@@ -557,9 +559,12 @@ function EventDetailPage() {
                       <li key={a.userId} className="border rounded-md p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
-                              {a.displayName.charAt(0).toUpperCase()}
-                            </div>
+                            <Avatar className="size-8 shrink-0">
+                              {a.avatarUrl && <AvatarImage src={a.avatarUrl} alt={a.displayName} />}
+                              <AvatarFallback className="text-xs">
+                                {a.displayName.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
                             <div>
                               <span className="text-sm font-medium">{a.displayName}</span>
                               <span className="text-sm text-muted-foreground ml-1.5">@{a.handle}</span>

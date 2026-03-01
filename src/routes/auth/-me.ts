@@ -7,6 +7,7 @@ export const GET = async ({ request }: { request: Request }) => {
       ? {
           handle: user.fediverseHandle ?? user.handle,
           displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
         }
       : null,
   });

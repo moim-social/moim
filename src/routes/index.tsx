@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Avatar, AvatarFallback } from "~/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { useAuth } from "~/routes/__root";
 
 export const Route = createFileRoute("/")({
@@ -133,6 +133,7 @@ function HomePage() {
               {checkins.map((checkin) => (
                 <div key={checkin.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                   <Avatar className="size-8 shrink-0">
+                    {checkin.userAvatarUrl && <AvatarImage src={checkin.userAvatarUrl} alt={checkin.userDisplayName} />}
                     <AvatarFallback className="text-xs">
                       {checkin.userDisplayName.charAt(0).toUpperCase()}
                     </AvatarFallback>

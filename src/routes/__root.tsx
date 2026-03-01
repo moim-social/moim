@@ -15,9 +15,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import appCss from "~/styles/globals.css?url";
 
-type SessionUser = { handle: string; displayName: string } | null;
+type SessionUser = { handle: string; displayName: string; avatarUrl?: string | null } | null;
 
 const AuthContext = createContext<{
   user: SessionUser;
@@ -105,9 +106,12 @@ function RootLayout() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="gap-1.5">
-                            <span className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
-                              {(user.displayName || user.handle).charAt(0).toUpperCase()}
-                            </span>
+                            <Avatar size="sm">
+                              {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.displayName} />}
+                              <AvatarFallback>
+                                {(user.displayName || user.handle).charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
                             <span className="text-sm">@{user.handle}</span>
                           </Button>
                         </DropdownMenuTrigger>

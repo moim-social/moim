@@ -32,6 +32,7 @@ import { GET as placeCheckins } from "./routes/places/-checkins";
 import { GET as nearbyPlaces } from "./routes/places/-nearby";
 import { POST as findOrCreatePlace } from "./routes/places/-find-or-create";
 import { GET as serveMap } from "./routes/maps/-serve";
+import { GET as serveAvatar } from "./routes/avatars/-serve";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
 
 const startFetch = createStartHandler(defaultStreamHandler);
@@ -173,6 +174,12 @@ app.use("/places/find-or-create", defineEventHandler(async (event) => {
 app.use("/maps", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return serveMap({ request });
+}));
+
+// Avatar image routes
+app.use("/avatars", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return serveAvatar({ request });
 }));
 
 // API routes
