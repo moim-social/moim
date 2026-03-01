@@ -283,7 +283,10 @@ federation
       publicKey: keys[0]?.cryptographicKey,
       assertionMethods: keys.map((k) => k.multikey),
       icon: user.avatarUrl
-        ? new Image({ url: new URL(user.avatarUrl), mediaType: "image/png" })
+        ? new Image({
+            url: new URL(`/avatars/${user.id}-composite.png`, env.baseUrl),
+            mediaType: "image/png",
+          })
         : undefined,
     });
   })

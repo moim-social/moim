@@ -4,6 +4,11 @@ import { db } from "~/server/db/client";
 import { actors, otpChallenges, otpVotes, sessions, users } from "~/server/db/schema";
 import { toProxyHandle } from "~/server/fediverse/handles";
 import { getFederationContext } from "~/server/fediverse/federation";
+import {
+  extractIconUrl,
+  hashIconUrl,
+  processAndStoreAvatar,
+} from "~/server/avatars/process";
 
 export const POST = async ({ request }: { request: Request }) => {
   const body = (await request.json().catch(() => null)) as {
@@ -129,6 +134,33 @@ export const POST = async ({ request }: { request: Request }) => {
       .update(actors)
       .set({ userId: user.id, updatedAt: new Date() })
       .where(eq(actors.id, remoteActor.id));
+  }
+
+  // Fetch and cache avatar if remote actor has an icon
+  if (remoteActor?.raw) {
+    try {
+      const raw = remoteActor.raw as Record<string, unknown>;
+      const iconUrl = extractIconUrl(raw);
+      if (iconUrl) {
+        const currentHash = hashIconUrl(iconUrl);
+        if (currentHash !== user.avatarSourceHash) {
+          const result = await processAndStoreAvatar(user.id, iconUrl);
+          if (result) {
+            await db
+              .update(users)
+              .set({
+                avatarUrl: result.thumbnailUrl,
+                avatarSourceHash: result.sourceHash,
+                updatedAt: new Date(),
+              })
+              .where(eq(users.id, user.id));
+            user = { ...user, avatarUrl: result.thumbnailUrl };
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Avatar processing failed:", err);
+    }
   }
 
   // Ensure proxy Person actor exists for federation
