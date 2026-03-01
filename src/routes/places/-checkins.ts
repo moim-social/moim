@@ -9,10 +9,6 @@ export const GET = async ({ request }: { request: Request }) => {
   const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "20", 10), 100);
   const offset = parseInt(url.searchParams.get("offset") ?? "0", 10);
 
-  if (!placeId && !userId) {
-    return Response.json({ error: "placeId or userId is required" }, { status: 400 });
-  }
-
   let query = db
     .select({
       id: checkins.id,
