@@ -25,7 +25,7 @@ import {
 import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
-import { Avatar, AvatarFallback } from "~/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { LeafletMap } from "~/components/LeafletMap";
 
 const getPlaceMeta = createServerFn({ method: "GET" })
@@ -265,6 +265,7 @@ function PlaceDetailPage() {
                   {recentCheckins.map((checkin) => (
                     <div key={checkin.id} className="flex items-start gap-3">
                       <Avatar className="size-8">
+                        {checkin.userAvatarUrl && <AvatarImage src={checkin.userAvatarUrl} alt={checkin.userDisplayName} />}
                         <AvatarFallback className="text-xs">
                           {checkin.userDisplayName.charAt(0).toUpperCase()}
                         </AvatarFallback>

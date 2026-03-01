@@ -74,6 +74,7 @@ export const GET = async ({ request }: { request: Request }) => {
       createdAt: rsvps.createdAt,
       handle: users.fediverseHandle,
       displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
     })
     .from(rsvps)
     .innerJoin(users, eq(rsvps.userId, users.id))
@@ -105,6 +106,7 @@ export const GET = async ({ request }: { request: Request }) => {
     userId: r.userId,
     handle: r.handle,
     displayName: r.displayName,
+    avatarUrl: r.avatarUrl,
     status: r.status,
     createdAt: r.createdAt,
     answers: answersByUser.get(r.userId) ?? [],
