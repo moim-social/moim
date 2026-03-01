@@ -25,4 +25,7 @@ export const env = {
   s3AccessKeyId: process.env.AWS_ACCESS_KEY_ID || undefined,
   s3SecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,
   s3Region: process.env.AWS_REGION ?? "auto",
+
+  // Map link providers (comma-separated: kakao,naver,google)
+  mapLinkProviders: (process.env.MAP_LINK_PROVIDERS ?? "").split(",").map(s => s.trim()).filter(Boolean),
 };
