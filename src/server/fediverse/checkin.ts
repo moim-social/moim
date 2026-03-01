@@ -1,8 +1,8 @@
-import { Create, Mention, Note, Place, PUBLIC_COLLECTION } from "@fedify/fedify";
+import { Create, Image, Mention, Note, Place, PUBLIC_COLLECTION } from "@fedify/fedify";
 import { Temporal } from "@js-temporal/polyfill";
 import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, posts, users } from "~/server/db/schema";
+import { actors, places as placesTable, posts, users } from "~/server/db/schema";
 import { getFederationContext } from "./federation";
 
 /**
@@ -64,6 +64,14 @@ export async function postCheckin(
     );
   }
 
+  // Look up the place's map image URL (may have been generated on place creation)
+  const [placeRow] = await db
+    .select({ mapImageUrl: placesTable.mapImageUrl })
+    .from(placesTable)
+    .where(eq(placesTable.id, place.id))
+    .limit(1);
+  const mapImageUrl = placeRow?.mapImageUrl ?? null;
+
   // Persist as post (for outbox inclusion)
   const now = new Date();
   const [post] = await db
@@ -71,6 +79,7 @@ export async function postCheckin(
     .values({
       actorId: personActor.id,
       content,
+      imageUrl: mapImageUrl,
       published: now,
     })
     .returning();
@@ -90,11 +99,24 @@ export async function postCheckin(
   const to = PUBLIC_COLLECTION;
   const ccs = [PUBLIC_COLLECTION, ctx.getFollowersUri(proxyHandle)];
 
+  // Build image attachment if map snapshot is available
+  const attachments: Image[] = [];
+  if (mapImageUrl) {
+    attachments.push(
+      new Image({
+        url: new URL(mapImageUrl),
+        mediaType: "image/png",
+        name: `Map of ${place.name}`,
+      }),
+    );
+  }
+
   const note = new Note({
     id: noteUri,
     attribution: ctx.getActorUri(proxyHandle),
     content,
     location: apPlace,
+    attachments,
     tags,
     url: new URL(`/notes/${post.id}`, ctx.canonicalOrigin),
     published,

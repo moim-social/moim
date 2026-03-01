@@ -1,8 +1,10 @@
+import { eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { checkins } from "~/server/db/schema";
+import { checkins, places } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { postCheckin } from "~/server/fediverse/checkin";
 import { findOrCreatePlace } from "~/server/places/find-or-create";
+import { generateAndUploadMapSnapshot } from "~/server/places/map-snapshot";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -34,6 +36,29 @@ export const POST = async ({ request }: { request: Request }) => {
       name: body.name,
       createdById: user.id,
     });
+
+    // Ensure the place has a map image before federating
+    if (!place.latitude || !place.longitude) {
+      // No coordinates — skip map generation
+    } else {
+      const [placeRow] = await db
+        .select({ mapImageUrl: places.mapImageUrl })
+        .from(places)
+        .where(eq(places.id, place.id))
+        .limit(1);
+
+      if (!placeRow?.mapImageUrl) {
+        try {
+          await generateAndUploadMapSnapshot(
+            place.id,
+            parseFloat(place.latitude),
+            parseFloat(place.longitude),
+          );
+        } catch (err) {
+          console.error("Failed to generate map snapshot:", err);
+        }
+      }
+    }
 
     const [checkin] = await db
       .insert(checkins)
