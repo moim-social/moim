@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.38.0",
     "h3": "^1.12.0",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.575.0",
     "nitro": "npm:nitro-nightly@3.0.1-20260223-102354-c0b46421",
     "pg": "^8.12.0",
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "@tanstack/router-devtools": "1.157.16",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
