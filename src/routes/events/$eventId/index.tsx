@@ -29,6 +29,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { usePostHog } from "posthog-js/react";
 
 const getEventMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ eventId: z.string() })))
@@ -155,6 +156,7 @@ type RsvpData = {
 };
 
 function EventDetailPage() {
+  const posthog = usePostHog();
   const { eventId } = Route.useParams();
   const [data, setData] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -241,6 +243,7 @@ function EventDetailPage() {
         return;
       }
       setRsvpDialogOpen(false);
+      posthog?.capture("rsvp_submitted", { eventId, status });
       // Refresh RSVP data
       const refreshRes = await fetch(`/events/rsvp-status?eventId=${eventId}`);
       const refreshData = await refreshRes.json();
