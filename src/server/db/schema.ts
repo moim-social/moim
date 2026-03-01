@@ -76,6 +76,7 @@ export const posts = pgTable("posts", {
   id: uuid("id").defaultRandom().primaryKey(),
   actorId: uuid("actor_id").references(() => actors.id).notNull(),
   content: text("content").notNull(), // HTML
+  imageUrl: text("image_url"), // attached image (e.g. map snapshot)
   published: timestamp("published", { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -118,6 +119,7 @@ export const places = pgTable("places", {
   longitude: varchar("longitude", { length: 32 }),
   address: text("address"),
   website: text("website"),
+  mapImageUrl: text("map_image_url"), // cached static map snapshot URL
   createdById: uuid("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
