@@ -13,7 +13,7 @@ export default defineConfig({
     }),
     nitro({
       rollupConfig: {
-        external: ["sharp"],
+        external: ["sharp", "staticmaps"],
       },
     }),
     tsconfigPaths(),
