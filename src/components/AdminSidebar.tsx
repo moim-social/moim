@@ -7,6 +7,8 @@ import {
   BarChart3,
   ArrowLeft,
   Image,
+  MapPinned,
+  Tags,
 } from "lucide-react";
 
 type NavItem = { to: string; icon: LucideIcon; label: string; exact?: boolean };
@@ -24,6 +26,8 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: "/admin/users", icon: Users, label: "Users" },
       { to: "/admin/banners", icon: Image, label: "Banners" },
+      { to: "/admin/places", icon: MapPinned, label: "Places" },
+      { to: "/admin/place-categories", icon: Tags, label: "Place Categories" },
     ],
   },
   {

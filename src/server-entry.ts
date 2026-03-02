@@ -40,6 +40,8 @@ import { GET as serveAvatar } from "./routes/avatars/-serve";
 import { GET as serveBanner } from "./routes/banners/-serve";
 import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
 import { GET as listBanners, POST as createBanner, PUT as updateBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
+import { GET as listAdminPlaceCategories, POST as createAdminPlaceCategory, PATCH as updateAdminPlaceCategory } from "./routes/admin/-place-categories";
+import { GET as listAdminPlaces, PATCH as updateAdminPlace } from "./routes/admin/-places";
 import { GET as listUsers } from "./routes/admin/users/-list";
 import { GET as userDetail } from "./routes/admin/users/-detail";
 import { GET as getCarouselSlides } from "./routes/-carousel";
@@ -344,6 +346,44 @@ apiRouter.delete("/admin/banners/:bannerId", defineEventHandler(async (event) =>
 
 apiRouter.get("/admin/users", defineEventHandler(async (event) => {
   return listUsers({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/admin/place-categories", defineEventHandler(async (event) => {
+  return listAdminPlaceCategories({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/admin/place-categories", defineEventHandler(async (event) => {
+  return createAdminPlaceCategory({ request: toWebRequest(event) });
+}));
+
+apiRouter.patch("/admin/place-categories/:categoryId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const categoryId = event.context.params?.categoryId;
+  if (!categoryId) return Response.json({ error: "categoryId is required" }, { status: 400 });
+
+  return updateAdminPlaceCategory({
+    request: await forwardJson(request, `/api/admin/place-categories/${categoryId}`, "PATCH", (body) => ({
+      ...(body ?? {}),
+      id: categoryId,
+    })),
+  });
+}));
+
+apiRouter.get("/admin/places", defineEventHandler(async (event) => {
+  return listAdminPlaces({ request: toWebRequest(event) });
+}));
+
+apiRouter.patch("/admin/places/:placeId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const placeId = event.context.params?.placeId;
+  if (!placeId) return Response.json({ error: "placeId is required" }, { status: 400 });
+
+  return updateAdminPlace({
+    request: await forwardJson(request, `/api/admin/places/${placeId}`, "PATCH", (body) => ({
+      ...(body ?? {}),
+      id: placeId,
+    })),
+  });
 }));
 
 apiRouter.get("/admin/users/:userId", defineEventHandler(async (event) => {
