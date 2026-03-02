@@ -3,6 +3,7 @@ import { db } from "~/server/db/client";
 import { checkins, places } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { postCheckin } from "~/server/fediverse/checkin";
+import { assertEnabledPlaceCategory, getPlaceCategorySummary } from "~/server/places/categories";
 import { findOrCreatePlace } from "~/server/places/find-or-create";
 import { generateAndUploadMapSnapshot } from "~/server/places/map-snapshot";
 
@@ -17,6 +18,7 @@ export const POST = async ({ request }: { request: Request }) => {
     longitude?: string;
     name?: string;
     note?: string;
+    categoryId?: string;
   } | null;
 
   const lat = parseFloat(body?.latitude ?? "");
@@ -30,11 +32,17 @@ export const POST = async ({ request }: { request: Request }) => {
   }
 
   try {
+    const categoryId = body.categoryId?.trim() || null;
+    if (categoryId) {
+      await assertEnabledPlaceCategory(categoryId);
+    }
+
     const place = await findOrCreatePlace({
       latitude: lat,
       longitude: lng,
       name: body.name,
       createdById: user.id,
+      categoryId,
     });
 
     // Ensure the place has a map image before federating
@@ -78,10 +86,19 @@ export const POST = async ({ request }: { request: Request }) => {
 
     return Response.json({
       checkin: { id: checkin.id, placeId: checkin.placeId, note: checkin.note },
-      place: { id: place.id, name: place.name, created: place.created },
+      place: {
+        id: place.id,
+        name: place.name,
+        created: place.created,
+        category: await getPlaceCategorySummary(place.categoryId),
+      },
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to check in";
-    return Response.json({ error: message }, { status: 500 });
+    const status =
+      message.includes("categoryId") || message.includes("Selected category")
+        ? 400
+        : 500;
+    return Response.json({ error: message }, { status });
   }
 };

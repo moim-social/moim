@@ -2,7 +2,15 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { LeafletMap, type MapMarker } from "~/components/LeafletMap";
-import { formatDistance, type NearbyPlace } from "~/lib/place";
+import {
+  formatDistance,
+  type NearbyPlace,
+  type PlaceCategoryOption,
+  type PlaceCategorySummary,
+} from "~/lib/place";
+import { Label } from "~/components/ui/label";
+import { Badge } from "~/components/ui/badge";
+import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
 
 export type SelectedPlace = {
   id: string;
@@ -10,6 +18,7 @@ export type SelectedPlace = {
   address: string | null;
   latitude: string | null;
   longitude: string | null;
+  category?: PlaceCategorySummary | null;
 };
 
 type PlacePickerProps = {
@@ -18,6 +27,14 @@ type PlacePickerProps = {
 };
 
 export function PlacePicker({ value, onChange }: PlacePickerProps) {
+  const [placeCategories, setPlaceCategories] = useState<PlaceCategoryOption[]>([]);
+  useEffect(() => {
+    fetch("/api/place-categories")
+      .then((r) => r.json())
+      .then((data) => setPlaceCategories(data.options ?? []))
+      .catch(() => {});
+  }, []);
+
   // GPS
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(true);
@@ -80,6 +97,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
             longitude: p.longitude,
             distance: p.distance ?? null,
             checkinCount: p.checkinCount ?? 0,
+            category: p.category ?? null,
           })),
         );
       } catch {
@@ -96,34 +114,46 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
   const [mapLat, setMapLat] = useState("");
   const [mapLng, setMapLng] = useState("");
   const [mapName, setMapName] = useState("");
+  const [mapCategoryId, setMapCategoryId] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
   // Name-only mode: null = disabled, string = active with value
   const [nameOnlyValue, setNameOnlyValue] = useState<string | null>(null);
 
-  function selectPlace(place: { id: string; name: string; address: string | null; latitude: string; longitude: string }) {
+  function selectPlace(place: {
+    id: string;
+    name: string;
+    address: string | null;
+    latitude: string;
+    longitude: string;
+    category?: PlaceCategorySummary | null;
+  }) {
     onChange({
       id: place.id,
       name: place.name,
       address: place.address,
       latitude: place.latitude,
       longitude: place.longitude,
+      category: place.category ?? null,
     });
     setQuery("");
     setSearchResults([]);
     setMapLat("");
     setMapLng("");
     setMapName("");
+    setMapCategoryId("");
   }
 
   function handleMapClick(lat: number, lng: number) {
     setMapLat(lat.toFixed(6));
     setMapLng(lng.toFixed(6));
+    setMapCategoryId("");
+    setCreateError("");
   }
 
   async function handleCreatePlace() {
-    if (!mapName.trim() || !mapLat || !mapLng) return;
+    if (!mapName.trim() || !mapLat || !mapLng || !mapCategoryId) return;
     setCreating(true);
     setCreateError("");
 
@@ -135,6 +165,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
           latitude: mapLat,
           longitude: mapLng,
           name: mapName.trim(),
+          categoryId: mapCategoryId,
         }),
       });
       const data = await res.json();
@@ -148,10 +179,12 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
         address: null,
         latitude: data.place.latitude,
         longitude: data.place.longitude,
+        category: data.place.category ?? null,
       });
       setMapLat("");
       setMapLng("");
       setMapName("");
+      setMapCategoryId("");
     } catch {
       setCreateError("Network error");
     } finally {
@@ -208,6 +241,11 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
             <p className="text-sm font-semibold">{value.name}</p>
             {value.address && (
               <p className="text-xs text-muted-foreground truncate">{value.address}</p>
+            )}
+            {value.category?.label && (
+              <Badge variant="secondary" className="mt-1 text-[10px]">
+                {`${value.category.emoji ?? ""} ${value.category.label}`.trim()}
+              </Badge>
             )}
             {value.latitude && value.longitude && (
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -283,6 +321,17 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
           <p className="text-xs text-muted-foreground">
             New location: {mapLat}, {mapLng}
           </p>
+          <div className="space-y-2">
+            <Label htmlFor="place-picker-category" className="text-xs">
+              Category
+            </Label>
+            <PlaceCategorySelect
+              id="place-picker-category"
+              value={mapCategoryId}
+              onChange={setMapCategoryId}
+              options={placeCategories}
+            />
+          </div>
           <div className="flex gap-2">
             <Input
               placeholder="Place name"
@@ -293,7 +342,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
             <Button
               type="button"
               onClick={handleCreatePlace}
-              disabled={creating || !mapName.trim()}
+              disabled={creating || !mapName.trim() || !mapCategoryId}
               size="sm"
             >
               {creating ? "Creating..." : "Create"}
@@ -334,6 +383,11 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
                   <> · {place.checkinCount} check-in{place.checkinCount !== 1 ? "s" : ""}</>
                 )}
               </div>
+              {place.category?.label && (
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                  {`${place.category.emoji ?? ""} ${place.category.label}`.trim()}
+                </div>
+              )}
             </li>
           ))}
         </ul>
