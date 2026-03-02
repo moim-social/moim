@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { checkins, places } from "~/server/db/schema";
+import { checkins, placeCategories, places } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { postCheckin } from "~/server/fediverse/checkin";
 import { assertEnabledPlaceCategory, getPlaceCategorySummary } from "~/server/places/categories";
@@ -50,8 +50,12 @@ export const POST = async ({ request }: { request: Request }) => {
       // No coordinates — skip map generation
     } else {
       const [placeRow] = await db
-        .select({ mapImageUrl: places.mapImageUrl })
+        .select({
+          mapImageUrl: places.mapImageUrl,
+          categoryEmoji: placeCategories.emoji,
+        })
         .from(places)
+        .leftJoin(placeCategories, eq(places.categoryId, placeCategories.slug))
         .where(eq(places.id, place.id))
         .limit(1);
 
@@ -61,6 +65,7 @@ export const POST = async ({ request }: { request: Request }) => {
             place.id,
             parseFloat(place.latitude),
             parseFloat(place.longitude),
+            placeRow?.categoryEmoji,
           );
         } catch (err) {
           console.error("Failed to generate map snapshot:", err);

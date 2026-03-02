@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, Pencil } from "lucide-react";
+import { Search, Pencil, RefreshCw } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -53,6 +53,8 @@ function AdminPlacesPage() {
   const [editingPlace, setEditingPlace] = useState<AdminPlaceRow | null>(null);
   const [form, setForm] = useState<PlaceFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [bulkRegenerating, setBulkRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -131,11 +133,34 @@ function AdminPlacesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Places</h2>
-        <p className="mt-1 text-muted-foreground">
-          Review place metadata and correct category assignments.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Places</h2>
+          <p className="mt-1 text-muted-foreground">
+            Review place metadata and correct category assignments.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={bulkRegenerating}
+          onClick={async () => {
+            if (!confirm("Regenerate map snapshots for ALL places? This may take a while.")) return;
+            setBulkRegenerating(true);
+            try {
+              const res = await fetch("/api/admin/places/regenerate-snapshots", { method: "POST" });
+              const data = await res.json();
+              alert(`Done: ${data.succeeded} succeeded, ${data.failed} failed out of ${data.total}`);
+            } catch {
+              alert("Bulk regeneration failed");
+            } finally {
+              setBulkRegenerating(false);
+            }
+          }}
+        >
+          <RefreshCw className={`size-4 mr-1.5 ${bulkRegenerating ? "animate-spin" : ""}`} />
+          {bulkRegenerating ? "Regenerating..." : "Regenerate All Maps"}
+        </Button>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -250,13 +275,42 @@ function AdminPlacesPage() {
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditingPlace(null)}>
-                Cancel
+            <DialogFooter className="flex-row justify-between sm:justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={regenerating}
+                onClick={async () => {
+                  if (!editingPlace) return;
+                  setRegenerating(true);
+                  setError(null);
+                  try {
+                    const res = await fetch(`/api/admin/places/${editingPlace.id}/regenerate-snapshot`, {
+                      method: "POST",
+                    });
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({}));
+                      setError(data.error || "Failed to regenerate snapshot");
+                    }
+                  } catch {
+                    setError("Failed to regenerate snapshot");
+                  } finally {
+                    setRegenerating(false);
+                  }
+                }}
+              >
+                <RefreshCw className={`size-3.5 mr-1 ${regenerating ? "animate-spin" : ""}`} />
+                {regenerating ? "Regenerating..." : "Regenerate Map"}
               </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setEditingPlace(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>
