@@ -65,6 +65,7 @@ function PlacesPage() {
   const [user, setUser] = useState<{ handle: string } | null>(null);
   const [places, setPlaces] = useState<PlaceItem[]>([]);
   const [placeCategories, setPlaceCategories] = useState<PlaceCategoryOption[]>([]);
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"list" | "map">("list");
@@ -94,6 +95,18 @@ function PlacesPage() {
       .then((response) => response.json())
       .then((data) => setPlaceCategories(data.options ?? []))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setMapCenter([position.coords.latitude, position.coords.longitude]);
+      },
+      () => {},
+      { enableHighAccuracy: false, timeout: 5000 },
+    );
   }, []);
 
   const fetchPlaces = () => {
@@ -292,7 +305,9 @@ function PlacesPage() {
         </Card>
       ) : view === "map" ? (
         <LeafletMap
+          center={mapCenter ?? undefined}
           markers={markers}
+          fitToMarkers={false}
           height="500px"
           onMarkerClick={(marker) => navigate({ to: "/places/$placeId", params: { placeId: marker.id } })}
         />

@@ -16,6 +16,7 @@ type LeafletMapProps = {
   center?: [number, number];
   zoom?: number;
   markers?: MapMarker[];
+  fitToMarkers?: boolean;
   onMapClick?: (lat: number, lng: number) => void;
   onMarkerClick?: (marker: MapMarker) => void;
   height?: string;
@@ -26,6 +27,7 @@ export function LeafletMap({
   center = [37.5665, 126.978], // Seoul default
   zoom = 13,
   markers = [],
+  fitToMarkers = true,
   onMapClick,
   onMarkerClick,
   height = "300px",
@@ -159,12 +161,14 @@ export function LeafletMap({
       }
 
       // Fit bounds if multiple markers
-      if (markers.length > 1) {
+      if (fitToMarkers && markers.length > 1) {
         const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng]));
         mapRef.current.fitBounds(bounds, { padding: [50, 50] });
-      } else if (markers.length === 1) {
+      } else if (fitToMarkers && markers.length === 1) {
         const currentZoom = mapRef.current.getZoom();
         mapRef.current.setView([markers[0].lat, markers[0].lng], Math.max(currentZoom, zoom));
+      } else if (!fitToMarkers) {
+        mapRef.current.setView(center, zoom);
       } else if (markers.length === 0 && !gpsRequestedRef.current) {
         // No markers — try to center on user's GPS location and place a marker
         gpsRequestedRef.current = true;
@@ -195,7 +199,7 @@ export function LeafletMap({
     return () => {
       cancelled = true;
     };
-  }, [isClient, markers, center, zoom, onMapClick]);
+  }, [isClient, markers, center, zoom, fitToMarkers, onMapClick]);
 
   // Cleanup on unmount
   useEffect(() => {
