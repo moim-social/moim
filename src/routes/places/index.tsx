@@ -209,6 +209,7 @@ function PlacesPage() {
       lng: parseFloat(place.longitude!),
       label: place.name,
       id: place.id,
+      glyph: place.category?.emoji ?? null,
     }));
 
   const nearbyMapMarkers: MapMarker[] = nearbyPlaces
@@ -219,6 +220,7 @@ function PlacesPage() {
       label: place.name,
       id: place.id,
       color: "blue" as const,
+      glyph: place.category?.emoji ?? null,
     }));
 
   const pickedCheckinMarker: MapMarker[] = checkinLat && checkinLng
@@ -228,6 +230,7 @@ function PlacesPage() {
         label: checkinName || "Check-in",
         id: selectedNearbyPlace?.id ?? "new",
         color: "red" as const,
+        glyph: selectedNearbyPlace?.category?.emoji ?? null,
       }]
     : [];
 

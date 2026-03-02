@@ -222,10 +222,18 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
         label: p.name,
         id: p.id,
         color: "blue" as const,
+        glyph: p.category?.emoji ?? null,
       }));
     const pickedMarker: MapMarker[] =
       mapLat && mapLng
-        ? [{ lat: parseFloat(mapLat), lng: parseFloat(mapLng), label: mapName || "New place", id: "new", color: "red" as const }]
+        ? [{
+            lat: parseFloat(mapLat),
+            lng: parseFloat(mapLng),
+            label: mapName || "New place",
+            id: "new",
+            color: "red" as const,
+            glyph: placeCategories.find((category) => category.id === mapCategoryId)?.emoji ?? null,
+          }]
         : [];
     return [...placeMarkers, ...pickedMarker];
   }, [displayPlaces, mapLat, mapLng, mapName]);
@@ -265,6 +273,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
               label: value.name,
               id: value.id,
               color: "red",
+              glyph: value.category?.emoji ?? null,
             }]}
             height="150px"
           />

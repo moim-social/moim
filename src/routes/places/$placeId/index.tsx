@@ -243,6 +243,7 @@ function PlaceDetailPage() {
             lng: parseFloat(place.longitude!),
             label: place.name,
             id: place.id,
+            glyph: place.category?.emoji ?? null,
           }]}
           height="300px"
         />
