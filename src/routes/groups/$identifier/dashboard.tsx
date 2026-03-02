@@ -84,7 +84,7 @@ function GroupDashboard() {
   const [noteSuccess, setNoteSuccess] = useState(false);
 
   useEffect(() => {
-    fetch(`/groups/detail?handle=${encodeURIComponent(handle)}`)
+    fetch(`/api/groups/by-handle/${encodeURIComponent(handle)}`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load group");
         return r.json();
@@ -104,14 +104,15 @@ function GroupDashboard() {
   }, [handle, identifier, navigate]);
 
   async function submitNote() {
+    if (!data) return;
     setNoteSubmitting(true);
     setNoteError("");
     setNoteSuccess(false);
     try {
-      const res = await fetch("/groups/create-note", {
+      const res = await fetch(`/api/groups/${data.group.id}/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupHandle: handle, content: noteContent }),
+        body: JSON.stringify({ content: noteContent }),
       });
       const result = await res.json();
       if (!res.ok) {
@@ -123,7 +124,7 @@ function GroupDashboard() {
       setNoteSuccess(true);
       setNoteDialogOpen(false);
       // Refresh data to show new post
-      const refreshRes = await fetch(`/groups/detail?handle=${encodeURIComponent(handle)}`);
+      const refreshRes = await fetch(`/api/groups/by-handle/${encodeURIComponent(handle)}`);
       const refreshData = await refreshRes.json();
       setData(refreshData);
     } catch {

@@ -69,7 +69,7 @@ function AdminUserDetailPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/admin/users/detail?id=${userId}`)
+    fetch(`/api/admin/users/${userId}`)
       .then((r) => r.json())
       .then((data) => {
         setUser(data.user ?? null);

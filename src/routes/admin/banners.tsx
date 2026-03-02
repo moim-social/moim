@@ -90,7 +90,7 @@ function AdminBannersPage() {
 
   const fetchBanners = () => {
     setLoading(true);
-    fetch("/admin/banners/list")
+    fetch("/api/admin/banners")
       .then((r) => r.json())
       .then((data) => setBanners(data.banners ?? []))
       .catch(() => {})
@@ -102,10 +102,10 @@ function AdminBannersPage() {
   }, []);
 
   const handleToggle = async (id: string, enabled: boolean) => {
-    await fetch("/admin/banners/toggle", {
+    await fetch(`/api/admin/banners/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, enabled }),
+      body: JSON.stringify({ enabled }),
     });
     fetchBanners();
   };
@@ -149,8 +149,8 @@ function AdminBannersPage() {
       endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
     };
 
-    await fetch(editingId ? "/admin/banners/update" : "/admin/banners/create", {
-      method: editingId ? "PUT" : "POST",
+    await fetch(editingId ? `/api/admin/banners/${editingId}` : "/api/admin/banners", {
+      method: editingId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
@@ -162,7 +162,7 @@ function AdminBannersPage() {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    await fetch(`/admin/banners/delete?id=${deleteId}`, { method: "DELETE" });
+    await fetch(`/api/admin/banners/${deleteId}`, { method: "DELETE" });
     setDeleteId(null);
     fetchBanners();
   };
@@ -351,7 +351,7 @@ function AdminBannersPage() {
                   try {
                     const formData = new FormData();
                     formData.append("file", file);
-                    const res = await fetch("/admin/banner-upload", {
+                    const res = await fetch("/api/admin/banners/assets", {
                       method: "POST",
                       body: formData,
                     });

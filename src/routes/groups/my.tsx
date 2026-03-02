@@ -35,14 +35,14 @@ function MyGroupsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/auth/me")
+    fetch("/api/session")
       .then((r) => r.json())
       .then((data) => {
         if (!data.user) {
           navigate({ to: "/auth/signin" });
           return;
         }
-        return fetch("/groups/my-groups");
+        return fetch("/api/me/groups");
       })
       .then((r) => r?.json())
       .then((data) => {

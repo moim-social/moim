@@ -43,7 +43,7 @@ function SignInPage() {
     setError("");
     const normalized = normalizeHandle(handle);
     try {
-      const res = await fetch("/auth/request-otp", {
+      const res = await fetch("/api/auth/otp-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ handle: normalized }),
@@ -76,7 +76,7 @@ function SignInPage() {
 
     const poll = async () => {
       try {
-        const res = await fetch("/auth/verify-otp", {
+        const res = await fetch("/api/auth/otp-verifications", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ handle: normalized, challengeId }),

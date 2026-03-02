@@ -46,7 +46,7 @@ function EditEventPage() {
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
 
   useEffect(() => {
-    fetch(`/events/detail?id=${eventId}`)
+    fetch(`/api/events/${eventId}`)
       .then((r) => {
         if (!r.ok) throw new Error("Event not found");
         return r.json();
@@ -98,11 +98,10 @@ function EditEventPage() {
     setError("");
 
     try {
-      const res = await fetch("/events/update", {
-        method: "POST",
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventId,
           title: title.trim(),
           description: description.trim() || undefined,
           categoryId: categoryId || undefined,

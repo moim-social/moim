@@ -51,7 +51,7 @@ function EventsPage() {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
 
   useEffect(() => {
-    fetch("/auth/me")
+    fetch("/api/session")
       .then((r) => r.json())
       .then((data) => setUser(data.user))
       .catch(() => {});
@@ -59,7 +59,7 @@ function EventsPage() {
 
   useEffect(() => {
     setLoading(true);
-    const url = tab === "past" ? "/events/list?past=1" : "/events/list";
+    const url = tab === "past" ? "/api/events?past=1" : "/api/events";
     fetch(url)
       .then((r) => r.json())
       .then((data) => {

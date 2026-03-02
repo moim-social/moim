@@ -176,7 +176,7 @@ function EventDetailPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetch(`/events/detail?id=${eventId}`)
+    fetch(`/api/events/${eventId}`)
       .then((r) => {
         if (!r.ok) throw new Error("Event not found");
         return r.json();
@@ -192,7 +192,7 @@ function EventDetailPage() {
   }, [eventId]);
 
   useEffect(() => {
-    fetch(`/events/rsvp-status?eventId=${eventId}`)
+    fetch(`/api/events/${eventId}/rsvp`)
       .then((r) => r.json())
       .then((d) => {
         setRsvpData(d);
@@ -209,7 +209,7 @@ function EventDetailPage() {
 
   // Fetch attendees (will 403 for non-organizers, that's fine)
   useEffect(() => {
-    fetch(`/events/attendees?eventId=${eventId}`)
+    fetch(`/api/events/${eventId}/attendees`)
       .then((r) => {
         if (!r.ok) return null;
         return r.json();
@@ -224,8 +224,8 @@ function EventDetailPage() {
     setRsvpSubmitting(true);
     setRsvpError("");
     try {
-      const res = await fetch("/events/rsvp", {
-        method: "POST",
+      const res = await fetch(`/api/events/${eventId}/rsvp`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId,
@@ -245,7 +245,7 @@ function EventDetailPage() {
       setRsvpDialogOpen(false);
       posthog?.capture("rsvp_submitted", { eventId, status });
       // Refresh RSVP data
-      const refreshRes = await fetch(`/events/rsvp-status?eventId=${eventId}`);
+      const refreshRes = await fetch(`/api/events/${eventId}/rsvp`);
       const refreshData = await refreshRes.json();
       setRsvpData(refreshData);
       if (refreshData.userRsvp?.answers) {

@@ -98,7 +98,7 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/groups/detail?handle=${encodeURIComponent(handle)}`)
+    fetch(`/api/groups/by-handle/${encodeURIComponent(handle)}`)
       .then((r) => r.json())
       .then((d) => {
         setData(d);

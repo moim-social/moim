@@ -73,7 +73,7 @@ function PlacesPage() {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    fetch("/auth/me")
+    fetch("/api/session")
       .then((r) => r.json())
       .then((data) => setUser(data.user))
       .catch(() => {});
@@ -82,7 +82,7 @@ function PlacesPage() {
   const fetchPlaces = () => {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
-    fetch(`/places/list?${params}`)
+    fetch(`/api/places?${params}`)
       .then((r) => r.json())
       .then((data) => {
         setPlaces(data.places ?? []);
@@ -119,7 +119,7 @@ function PlacesPage() {
       return;
     }
     setNearbyLoading(true);
-    fetch(`/places/nearby?lat=${checkinLat}&lng=${checkinLng}&radius=2`)
+    fetch(`/api/places/nearby?lat=${checkinLat}&lng=${checkinLng}&radius=2`)
       .then((r) => r.json())
       .then((data) => setNearbyPlaces(data.places ?? []))
       .catch(() => setNearbyPlaces([]))
@@ -171,7 +171,7 @@ function PlacesPage() {
     setCheckinError("");
 
     try {
-      const res = await fetch("/places/checkin", {
+      const res = await fetch("/api/check-ins", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
