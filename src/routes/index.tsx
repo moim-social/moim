@@ -234,27 +234,48 @@ function HomePage() {
 
 /* ─── Hero Carousel (mixed banner + event slides) ─── */
 
+const SLIDE_DURATION = 5000;
+
 function HeroCarousel({ slides }: { slides: CarouselSlide[] }) {
   const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % slides.length);
-    }, 5000);
-  }, [slides.length]);
+  const clearTimers = useCallback(() => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+  }, []);
+
+  const resumeTimers = useCallback(() => {
+    clearTimers();
+    const step = 50;
+    progressRef.current = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + (step / SLIDE_DURATION) * 100;
+        if (next >= 100) {
+          setCurrent((c) => (c + 1) % slides.length);
+          return 0;
+        }
+        return next;
+      });
+    }, step);
+  }, [slides.length, clearTimers]);
 
   useEffect(() => {
-    resetTimer();
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [resetTimer]);
+    if (!paused) resumeTimers();
+    return clearTimers;
+  }, [paused, resumeTimers, clearTimers]);
+
+  // Reset progress on manual slide change
+  useEffect(() => {
+    setProgress(0);
+    if (!paused) resumeTimers();
+  }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goTo = (index: number) => {
     setCurrent(index);
-    resetTimer();
   };
 
   const prev = () => goTo((current - 1 + slides.length) % slides.length);
@@ -263,7 +284,11 @@ function HeroCarousel({ slides }: { slides: CarouselSlide[] }) {
   const slide = slides[current];
 
   return (
-    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen">
+    <div
+      className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       <div className="relative h-[200px] md:h-[340px] transition-all duration-500 overflow-hidden">
         {slide.type === "banner" ? (
           <BannerSlideContent slide={slide} />
@@ -296,17 +321,15 @@ function HeroCarousel({ slides }: { slides: CarouselSlide[] }) {
             </svg>
           </button>
 
-          {/* Dots */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => goTo(i)}
-                className={`size-2 rounded-full transition-colors ${i === current ? "bg-white" : "bg-white/40 hover:bg-white/60"}`}
-                aria-label={`Go to slide ${i + 1}`}
-              />
-            ))}
+          {/* Progress bar */}
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-300/80">
+            <div
+              className="h-full bg-white"
+              style={{
+                width: `${progress}%`,
+                transition: "width 50ms linear",
+              }}
+            />
           </div>
         </>
       )}
