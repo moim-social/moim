@@ -11,6 +11,7 @@ import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
 
 const getGroupMeta = createServerFn({ method: "GET" })
@@ -62,6 +63,7 @@ type GroupData = {
     name: string | null;
     summary: string | null;
     website: string | null;
+    avatarUrl: string | null;
     categories: string[] | null;
     followersCount: number;
     createdAt: string;
@@ -135,9 +137,12 @@ function ProfilePage() {
       <Card className="rounded-lg">
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <div className="size-14 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-semibold shrink-0">
-              {(group.name ?? handle).charAt(0).toUpperCase()}
-            </div>
+            <Avatar className="size-14 shrink-0">
+              {group.avatarUrl && <AvatarImage src={group.avatarUrl} alt={group.name ?? handle} />}
+              <AvatarFallback className="text-xl font-semibold bg-primary/10 text-primary">
+                {(group.name ?? handle).charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold tracking-tight truncate">

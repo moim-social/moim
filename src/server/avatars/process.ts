@@ -45,7 +45,7 @@ async function fetchRemoteImage(imageUrl: string): Promise<Buffer | null> {
   }
 }
 
-async function createThumbnail(
+export async function createThumbnail(
   imageBuffer: Buffer,
   size = 256,
 ): Promise<Buffer> {

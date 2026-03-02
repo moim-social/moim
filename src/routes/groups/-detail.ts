@@ -101,6 +101,7 @@ export const GET = async ({ request }: { request: Request }) => {
       name: group.name,
       summary: group.summary,
       website: group.website,
+      avatarUrl: group.avatarUrl,
       categories: group.categories,
       followersCount: followers.length,
       createdAt: group.createdAt,

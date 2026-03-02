@@ -98,6 +98,8 @@ function CreateGroupPage() {
   const [name, setName] = useState("");
   const [summary, setSummary] = useState("");
   const [website, setWebsite] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Categories
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -205,6 +207,19 @@ function CreateGroupPage() {
         return;
       }
       setCreatedHandle(data.group.handle);
+
+      // Upload avatar if selected
+      if (avatarFile) {
+        try {
+          const formData = new FormData();
+          formData.append("handle", data.group.handle);
+          formData.append("avatar", avatarFile);
+          await fetch("/groups/upload-avatar", { method: "POST", body: formData });
+        } catch {
+          // Avatar upload failure is non-blocking
+        }
+      }
+
       posthog?.capture("group_created", { handle: data.group.handle });
       setPhase("success");
     } catch {
@@ -306,6 +321,41 @@ function CreateGroupPage() {
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="avatar">Profile Image (optional)</Label>
+                <div className="flex items-center gap-4">
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
+                      alt="Avatar preview"
+                      className="size-16 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="size-16 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xl font-semibold">
+                      {name ? name.charAt(0).toUpperCase() : "?"}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <Input
+                      id="avatar"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] ?? null;
+                        setAvatarFile(file);
+                        if (file) {
+                          setAvatarPreview(URL.createObjectURL(file));
+                        } else {
+                          setAvatarPreview(null);
+                        }
+                      }}
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Max 5MB. Will be resized to 256x256.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end">
