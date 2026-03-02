@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1000.0",
+    "@discordapp/twemoji": "^16.0.1",
     "@fedify/fedify": "^1.9.0",
     "@fedify/h3": "^1.9.0",
     "@js-temporal/polyfill": "^0.5.1",
