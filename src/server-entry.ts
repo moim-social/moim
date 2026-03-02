@@ -1,4 +1,5 @@
-import { createApp, defineEventHandler, fromWebHandler, toWebHandler, toWebRequest } from "h3";
+import { and, eq } from "drizzle-orm";
+import { createApp, createRouter, defineEventHandler, fromWebHandler, toWebHandler, toWebRequest, useBase } from "h3";
 import {
   createStartHandler,
   defaultStreamHandler,
@@ -6,6 +7,8 @@ import {
 import { integrateFederation, onError } from "@fedify/h3";
 import { Note, Place, respondWithObjectIfAcceptable } from "@fedify/fedify";
 import { federation } from "./server/fediverse/federation";
+import { db } from "./server/db/client";
+import { actors } from "./server/db/schema";
 import { POST as requestOtp } from "./routes/auth/-request-otp";
 import { POST as verifyOtp } from "./routes/auth/-verify-otp";
 import { GET as getMe } from "./routes/auth/-me";
@@ -36,7 +39,7 @@ import { GET as serveMap } from "./routes/maps/-serve";
 import { GET as serveAvatar } from "./routes/avatars/-serve";
 import { GET as serveBanner } from "./routes/banners/-serve";
 import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
-import { GET as listBanners, POST as createBanner, PUT as updateBanner, PATCH as toggleBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
+import { GET as listBanners, POST as createBanner, PUT as updateBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
 import { GET as listUsers } from "./routes/admin/users/-list";
 import { GET as userDetail } from "./routes/admin/users/-detail";
 import { GET as getCarouselSlides } from "./routes/-carousel";
@@ -47,141 +50,323 @@ const startFetch = createStartHandler(defaultStreamHandler);
 
 const app = createApp({ onError });
 app.use(integrateFederation(federation, () => undefined));
+const apiRouter = createRouter();
 
-// Auth API routes (pathless route files, registered explicitly via h3)
-app.use("/auth/request-otp", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return requestOtp({ request });
+function buildForwardUrl(
+  request: Request,
+  pathname: string,
+  query: Record<string, string | undefined> = {},
+): URL {
+  const url = new URL(request.url);
+  const next = new URL(pathname, url.origin);
+  for (const [key, value] of url.searchParams.entries()) {
+    next.searchParams.set(key, value);
+  }
+  for (const [key, value] of Object.entries(query)) {
+    if (value == null) next.searchParams.delete(key);
+    else next.searchParams.set(key, value);
+  }
+  return next;
+}
+
+function forwardGet(
+  request: Request,
+  pathname: string,
+  query: Record<string, string | undefined> = {},
+): Request {
+  return new Request(buildForwardUrl(request, pathname, query), {
+    method: "GET",
+    headers: new Headers(request.headers),
+  });
+}
+
+async function forwardJson(
+  request: Request,
+  pathname: string,
+  method: string,
+  mutate: (body: Record<string, unknown> | null) => Record<string, unknown>,
+): Promise<Request> {
+  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const headers = new Headers(request.headers);
+  headers.set("content-type", "application/json");
+  return new Request(buildForwardUrl(request, pathname), {
+    method,
+    headers,
+    body: JSON.stringify(mutate(body)),
+  });
+}
+
+async function forwardFormData(
+  request: Request,
+  pathname: string,
+  method: string,
+  mutate: (formData: FormData) => Promise<FormData> | FormData,
+): Promise<Request> {
+  const formData = await request.formData();
+  const nextFormData = await mutate(formData);
+  const headers = new Headers(request.headers);
+  headers.delete("content-type");
+  return new Request(buildForwardUrl(request, pathname), {
+    method,
+    headers,
+    body: nextFormData,
+  });
+}
+
+async function resolveGroupHandle(groupId: string): Promise<string | null> {
+  const [group] = await db
+    .select({ handle: actors.handle })
+    .from(actors)
+    .where(and(eq(actors.id, groupId), eq(actors.type, "Group")))
+    .limit(1);
+
+  return group?.handle ?? null;
+}
+
+apiRouter.post("/auth/otp-requests", defineEventHandler(async (event) => {
+  return requestOtp({ request: toWebRequest(event) });
 }));
 
-app.use("/auth/verify-otp", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return verifyOtp({ request });
+apiRouter.post("/auth/otp-verifications", defineEventHandler(async (event) => {
+  return verifyOtp({ request: toWebRequest(event) });
 }));
 
-app.use("/auth/me", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return getMe({ request });
+apiRouter.get("/session", defineEventHandler(async (event) => {
+  return getMe({ request: toWebRequest(event) });
 }));
 
-app.use("/auth/signout", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return signout({ request });
+apiRouter.delete("/session", defineEventHandler(async (event) => {
+  return signout({ request: toWebRequest(event) });
 }));
 
-// Group API routes
-app.use("/groups/search-users", defineEventHandler(async (event) => {
+apiRouter.get("/users", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return searchUsers({ request });
+  const query = new URL(request.url).searchParams.get("query")?.trim();
+  return searchUsers({
+    request: forwardGet(request, "/api/users", { q: query, query: undefined }),
+  });
 }));
 
-app.use("/groups/resolve-moderator", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return resolveModerator({ request });
+apiRouter.post("/actors/resolve", defineEventHandler(async (event) => {
+  return resolveModerator({ request: toWebRequest(event) });
 }));
 
-app.use("/groups/create-note", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return createGroupNote({ request });
+apiRouter.post("/groups", defineEventHandler(async (event) => {
+  return createGroup({ request: toWebRequest(event) });
 }));
 
-app.use("/groups/create", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return createGroup({ request });
+apiRouter.get("/me/groups", defineEventHandler(async (event) => {
+  return myGroups({ request: toWebRequest(event) });
 }));
 
-app.use("/groups/my-groups", defineEventHandler(async (event) => {
+apiRouter.get("/groups/by-handle/:handle", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return myGroups({ request });
+  const handle = decodeURIComponent(event.context.params?.handle ?? "");
+  return groupDetail({
+    request: forwardGet(request, "/api/groups/by-handle", { handle }),
+  });
 }));
 
-app.use("/groups/detail", defineEventHandler(async (event) => {
+apiRouter.patch("/groups/:groupId", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return groupDetail({ request });
+  const groupId = event.context.params?.groupId;
+  if (!groupId) return Response.json({ error: "groupId is required" }, { status: 400 });
+
+  const handle = await resolveGroupHandle(groupId);
+  if (!handle) return Response.json({ error: "Group not found" }, { status: 404 });
+
+  return updateGroup({
+    request: await forwardJson(request, `/api/groups/${groupId}`, "POST", (body) => ({
+      ...(body ?? {}),
+      handle,
+    })),
+  });
 }));
 
-app.use("/groups/update", defineEventHandler(async (event) => {
+apiRouter.post("/groups/:groupId/avatar", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return updateGroup({ request });
+  const groupId = event.context.params?.groupId;
+  if (!groupId) return Response.json({ error: "groupId is required" }, { status: 400 });
+
+  const handle = await resolveGroupHandle(groupId);
+  if (!handle) return Response.json({ error: "Group not found" }, { status: 404 });
+
+  return uploadGroupAvatar({
+    request: await forwardFormData(request, `/api/groups/${groupId}/avatar`, "POST", (formData) => {
+      formData.set("handle", handle);
+      return formData;
+    }),
+  });
 }));
 
-app.use("/groups/upload-avatar", defineEventHandler(async (event) => {
+apiRouter.post("/groups/:groupId/posts", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return uploadGroupAvatar({ request });
+  const groupId = event.context.params?.groupId;
+  if (!groupId) return Response.json({ error: "groupId is required" }, { status: 400 });
+
+  const handle = await resolveGroupHandle(groupId);
+  if (!handle) return Response.json({ error: "Group not found" }, { status: 404 });
+
+  return createGroupNote({
+    request: await forwardJson(request, `/api/groups/${groupId}/posts`, "POST", (body) => ({
+      groupHandle: handle,
+      content: typeof body?.content === "string" ? body.content : "",
+    })),
+  });
 }));
 
-// Event API routes
-app.use("/events/create", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return createEvent({ request });
+apiRouter.get("/events", defineEventHandler(async (event) => {
+  return listEvents({ request: toWebRequest(event) });
 }));
 
-app.use("/events/list", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return listEvents({ request });
+apiRouter.post("/events", defineEventHandler(async (event) => {
+  return createEvent({ request: toWebRequest(event) });
 }));
 
-app.use("/events/detail", defineEventHandler(async (event) => {
+apiRouter.get("/events/:eventId", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return eventDetail({ request });
+  const eventId = event.context.params?.eventId;
+  return eventDetail({
+    request: forwardGet(request, `/api/events/${eventId}`, { id: eventId }),
+  });
 }));
 
-app.use("/events/rsvp-status", defineEventHandler(async (event) => {
+apiRouter.patch("/events/:eventId", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return rsvpStatus({ request });
+  const eventId = event.context.params?.eventId;
+  if (!eventId) return Response.json({ error: "eventId is required" }, { status: 400 });
+
+  return updateEvent({
+    request: await forwardJson(request, `/api/events/${eventId}`, "POST", (body) => ({
+      ...(body ?? {}),
+      eventId,
+    })),
+  });
 }));
 
-app.use("/events/attendees", defineEventHandler(async (event) => {
+apiRouter.get("/events/:eventId/rsvp", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return eventAttendees({ request });
+  const eventId = event.context.params?.eventId;
+  return rsvpStatus({
+    request: forwardGet(request, `/api/events/${eventId}/rsvp`, { eventId }),
+  });
 }));
 
-app.use("/events/rsvp", defineEventHandler(async (event) => {
+apiRouter.put("/events/:eventId/rsvp", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return submitRsvp({ request });
+  const eventId = event.context.params?.eventId;
+  if (!eventId) return Response.json({ error: "eventId is required" }, { status: 400 });
+
+  return submitRsvp({
+    request: await forwardJson(request, `/api/events/${eventId}/rsvp`, "POST", (body) => ({
+      ...(body ?? {}),
+      eventId,
+    })),
+  });
 }));
 
-app.use("/events/update", defineEventHandler(async (event) => {
+apiRouter.get("/events/:eventId/attendees", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return updateEvent({ request });
+  const eventId = event.context.params?.eventId;
+  return eventAttendees({
+    request: forwardGet(request, `/api/events/${eventId}/attendees`, { eventId }),
+  });
 }));
 
-// Note API routes
-app.use("/notes/detail", defineEventHandler(async (event) => {
+apiRouter.get("/notes/:noteId", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return noteDetail({ request });
+  const noteId = event.context.params?.noteId;
+  return noteDetail({
+    request: forwardGet(request, `/api/notes/${noteId}`, { id: noteId }),
+  });
 }));
 
-// Place API routes
-app.use("/places/list", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return listPlaces({ request });
+apiRouter.get("/places", defineEventHandler(async (event) => {
+  return listPlaces({ request: toWebRequest(event) });
 }));
 
-app.use("/places/detail", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return placeDetail({ request });
+apiRouter.post("/places", defineEventHandler(async (event) => {
+  return findOrCreatePlace({ request: toWebRequest(event) });
 }));
 
-app.use("/places/checkins", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return placeCheckins({ request });
+apiRouter.get("/places/nearby", defineEventHandler(async (event) => {
+  return nearbyPlaces({ request: toWebRequest(event) });
 }));
 
-app.use("/places/checkin", defineEventHandler(async (event) => {
+apiRouter.get("/places/:placeId", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  return checkinPlace({ request });
+  const placeId = event.context.params?.placeId;
+  return placeDetail({
+    request: forwardGet(request, `/api/places/${placeId}`, { id: placeId }),
+  });
 }));
 
-app.use("/places/nearby", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return nearbyPlaces({ request });
+apiRouter.get("/check-ins", defineEventHandler(async (event) => {
+  return placeCheckins({ request: toWebRequest(event) });
 }));
 
-app.use("/places/find-or-create", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return findOrCreatePlace({ request });
+apiRouter.post("/check-ins", defineEventHandler(async (event) => {
+  return checkinPlace({ request: toWebRequest(event) });
 }));
+
+apiRouter.post("/admin/banners/assets", defineEventHandler(async (event) => {
+  return uploadBannerImage({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/admin/banners", defineEventHandler(async (event) => {
+  return listBanners({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/admin/banners", defineEventHandler(async (event) => {
+  return createBanner({ request: toWebRequest(event) });
+}));
+
+apiRouter.patch("/admin/banners/:bannerId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const bannerId = event.context.params?.bannerId;
+  if (!bannerId) return Response.json({ error: "bannerId is required" }, { status: 400 });
+
+  return updateBanner({
+    request: await forwardJson(request, `/api/admin/banners/${bannerId}`, "PUT", (body) => ({
+      ...(body ?? {}),
+      id: bannerId,
+    })),
+  });
+}));
+
+apiRouter.delete("/admin/banners/:bannerId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const bannerId = event.context.params?.bannerId;
+  return deleteBanner({
+    request: forwardGet(request, `/api/admin/banners/${bannerId}`, { id: bannerId }),
+  });
+}));
+
+apiRouter.get("/admin/users", defineEventHandler(async (event) => {
+  return listUsers({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/admin/users/:userId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const userId = event.context.params?.userId;
+  return userDetail({
+    request: forwardGet(request, `/api/admin/users/${userId}`, { id: userId }),
+  });
+}));
+
+apiRouter.get("/home/carousel", defineEventHandler(async () => {
+  return getCarouselSlides();
+}));
+
+apiRouter.post("/banner-clicks", defineEventHandler(async (event) => {
+  return trackBannerClick({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/webfinger", defineEventHandler(async (event) => {
+  return webfingerLookup({ request: toWebRequest(event) });
+}));
+
+app.use("/api", useBase("/api", apiRouter.handler));
 
 // Map image routes
 app.use("/maps", defineEventHandler(async (event) => {
@@ -199,64 +384,6 @@ app.use("/avatars", defineEventHandler(async (event) => {
 app.use("/banners", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return serveBanner({ request });
-}));
-
-app.use("/admin/banner-upload", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return uploadBannerImage({ request });
-}));
-
-// Public carousel data
-app.use("/carousel", defineEventHandler(async () => {
-  return getCarouselSlides();
-}));
-
-app.use("/banner-click", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return trackBannerClick({ request });
-}));
-
-// Admin banner CRUD
-app.use("/admin/banners/list", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return listBanners({ request });
-}));
-
-app.use("/admin/banners/create", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return createBanner({ request });
-}));
-
-app.use("/admin/banners/update", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return updateBanner({ request });
-}));
-
-app.use("/admin/banners/toggle", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return toggleBanner({ request });
-}));
-
-app.use("/admin/banners/delete", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return deleteBanner({ request });
-}));
-
-// Admin user management
-app.use("/admin/users/list", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return listUsers({ request });
-}));
-
-app.use("/admin/users/detail", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return userDetail({ request });
-}));
-
-// API routes
-app.use("/api/webfinger", defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  return webfingerLookup({ request });
 }));
 
 app.use(

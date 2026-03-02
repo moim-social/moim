@@ -71,7 +71,7 @@ function NoteDetailPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`/notes/detail?id=${noteId}`)
+    fetch(`/api/notes/${noteId}`)
       .then((r) => {
         if (!r.ok) throw new Error("Note not found");
         return r.json();

@@ -44,7 +44,7 @@ function AdminUsersPage() {
     if (q) params.set("q", q);
     params.set("limit", String(LIMIT));
     params.set("offset", String(off));
-    fetch(`/admin/users/list?${params}`)
+    fetch(`/api/admin/users?${params}`)
       .then((r) => r.json())
       .then((data) => {
         setUsers(data.users ?? []);

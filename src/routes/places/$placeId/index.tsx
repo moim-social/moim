@@ -118,14 +118,14 @@ function PlaceDetailPage() {
   const [checkinSubmitting, setCheckinSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch("/auth/me")
+    fetch("/api/session")
       .then((r) => r.json())
       .then((d) => setUser(d.user))
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    fetch(`/places/detail?id=${placeId}`)
+    fetch(`/api/places/${placeId}`)
       .then((r) => r.json())
       .then((d) => {
         setData(d);
@@ -137,7 +137,7 @@ function PlaceDetailPage() {
   const handleCheckin = async () => {
     setCheckinSubmitting(true);
     try {
-      const res = await fetch("/places/checkin", {
+      const res = await fetch("/api/check-ins", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -152,7 +152,7 @@ function PlaceDetailPage() {
         setCheckinOpen(false);
         setCheckinNote("");
         // Refresh data
-        const refreshed = await fetch(`/places/detail?id=${placeId}`).then((r) => r.json());
+        const refreshed = await fetch(`/api/places/${placeId}`).then((r) => r.json());
         setData(refreshed);
       }
     } finally {

@@ -89,7 +89,7 @@ function RootLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("/auth/me")
+    fetch("/api/session")
       .then((r) => r.json())
       .then((data) => {
         setUser(data.user);
@@ -99,7 +99,7 @@ function RootLayout() {
   }, []);
 
   async function handleSignOut() {
-    await fetch("/auth/signout", { method: "POST" });
+    await fetch("/api/session", { method: "DELETE" });
     setUser(null);
     navigate({ to: "/" });
   }

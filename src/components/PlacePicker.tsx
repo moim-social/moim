@@ -42,7 +42,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
   useEffect(() => {
     if (!userPos) return;
     setNearbyLoading(true);
-    fetch(`/places/nearby?lat=${userPos.lat}&lng=${userPos.lng}&radius=5`)
+    fetch(`/api/places/nearby?lat=${userPos.lat}&lng=${userPos.lng}&radius=5`)
       .then((r) => r.json())
       .then((data) => setNearby(data.places ?? []))
       .catch(() => setNearby([]))
@@ -69,7 +69,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
           params.set("lat", String(userPos.lat));
           params.set("lng", String(userPos.lng));
         }
-        const res = await fetch(`/places/list?${params}`);
+        const res = await fetch(`/api/places?${params}`);
         const data = await res.json();
         setSearchResults(
           (data.places ?? []).map((p: any) => ({
@@ -128,7 +128,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
     setCreateError("");
 
     try {
-      const res = await fetch("/places/find-or-create", {
+      const res = await fetch("/api/places", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

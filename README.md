@@ -29,7 +29,21 @@ pnpm dev
 
 ## OTP Auth
 
-1. `POST /auth/request-otp` with `{ "handle": "alice@example.com" }`
+1. `POST /api/auth/otp-requests` with `{ "handle": "alice@example.com" }`
 2. Post the OTP on the fediverse.
-3. `POST /auth/verify-otp` with `{ "handle": "alice@example.com" }`
+3. `POST /api/auth/otp-verifications` with `{ "handle": "alice@example.com" }`
 
+## API Routing
+
+- All app/business endpoints registered in `src/server-entry.ts` live under `/api`.
+- UI pages keep their TanStack Start routes such as `/events/create` and `/groups/create`.
+- ActivityPub and federation endpoints remain outside `/api` under `/.well-known/*`, `/nodeinfo/*`, and `/ap/*`.
+
+Examples:
+
+- `GET /api/session`
+- `GET /api/events`
+- `POST /api/events`
+- `GET /api/groups/by-handle/{handle}`
+- `PATCH /api/groups/{groupId}`
+- `POST /api/check-ins`

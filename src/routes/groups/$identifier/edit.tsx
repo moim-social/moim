@@ -29,9 +29,10 @@ function EditGroupPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [groupId, setGroupId] = useState("");
 
   useEffect(() => {
-    fetch(`/groups/detail?handle=${encodeURIComponent(handle)}`)
+    fetch(`/api/groups/by-handle/${encodeURIComponent(handle)}`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load group");
         return r.json();
@@ -42,6 +43,7 @@ function EditGroupPage() {
           return;
         }
         const g = data.group;
+        setGroupId(g.id);
         setName(g.name ?? "");
         setSummary(g.summary ?? "");
         setWebsite(g.website ?? "");
@@ -68,11 +70,10 @@ function EditGroupPage() {
     setError("");
 
     try {
-      const res = await fetch("/groups/update", {
-        method: "POST",
+      const res = await fetch(`/api/groups/${groupId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          handle,
           name: name.trim(),
           summary: summary.trim(),
           website: website.trim() || undefined,
@@ -91,7 +92,7 @@ function EditGroupPage() {
           const formData = new FormData();
           formData.append("handle", handle);
           formData.append("avatar", avatarFile);
-          await fetch("/groups/upload-avatar", { method: "POST", body: formData });
+          await fetch(`/api/groups/${groupId}/avatar`, { method: "POST", body: formData });
         } catch {
           // Avatar upload failure is non-blocking
         }

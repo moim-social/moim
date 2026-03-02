@@ -81,7 +81,7 @@ function CreateGroupPage() {
   // Auth guard
   const [authed, setAuthed] = useState<boolean | null>(null);
   useEffect(() => {
-    fetch("/auth/me")
+    fetch("/api/session")
       .then((r) => r.json())
       .then((data) => {
         if (!data.user) {
@@ -122,7 +122,7 @@ function CreateGroupPage() {
     }
     searchTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/groups/search-users?q=${encodeURIComponent(searchQuery)}`);
+        const res = await fetch(`/api/users?query=${encodeURIComponent(searchQuery)}`);
         const data = await res.json();
         setSearchResults(data.users ?? []);
       } catch {
@@ -155,7 +155,7 @@ function CreateGroupPage() {
     setResolving(true);
     setError("");
     try {
-      const res = await fetch("/groups/resolve-moderator", {
+      const res = await fetch("/api/actors/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ handle: fedHandle }),
@@ -188,7 +188,7 @@ function CreateGroupPage() {
     setPhase("submitting");
     setError("");
     try {
-      const res = await fetch("/groups/create", {
+      const res = await fetch("/api/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -214,7 +214,7 @@ function CreateGroupPage() {
           const formData = new FormData();
           formData.append("handle", data.group.handle);
           formData.append("avatar", avatarFile);
-          await fetch("/groups/upload-avatar", { method: "POST", body: formData });
+          await fetch(`/api/groups/${data.group.id}/avatar`, { method: "POST", body: formData });
         } catch {
           // Avatar upload failure is non-blocking
         }

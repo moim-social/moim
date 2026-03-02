@@ -24,6 +24,14 @@ pnpm lint          # lint src/
 - `src/routes/` — file-based routes (UI + API endpoints)
 - `src/server/db/` — Drizzle client + schema
 - `src/server/fediverse/` — Fedify federation setup + OTP helpers
+- `src/server-entry.ts` — manual h3 route registration for non-file-based endpoints
+
+## API Routing Rules
+
+- All non-ActivityPub business endpoints registered in `src/server-entry.ts` must live under `/api`.
+- Do not register h3 handlers on the same paths used by TanStack Start UI pages.
+- Prefer resource-oriented paths and conventional HTTP methods for new endpoints.
+- Keep Fedify/ActivityPub endpoints outside `/api`.
 
 ## ActivityPub (Fedify)
 
@@ -44,9 +52,9 @@ Human-readable profiles: Groups at `/groups/@{identifier}`, Users at `/users/@{i
 
 ## OTP Authentication (Outbox Polling)
 
-- `POST /auth/request-otp` generates a short-lived OTP challenge.
+- `POST /api/auth/otp-requests` generates a short-lived OTP challenge.
 - User posts the OTP publicly on their Fediverse account.
-- `POST /auth/verify-otp` resolves the actor, polls the outbox, and verifies OTP.
+- `POST /api/auth/otp-verifications` resolves the actor, polls the outbox, and verifies OTP.
 
 Environment controls:
 - `OTP_TTL_SECONDS`

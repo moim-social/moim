@@ -94,17 +94,17 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSlides = fetch("/carousel")
+    const fetchSlides = fetch("/api/home/carousel")
       .then((r) => r.json())
       .then((data) => setSlides(data.slides ?? []))
       .catch(() => {});
 
-    const fetchEvents = fetch("/events/list")
+    const fetchEvents = fetch("/api/events")
       .then((r) => r.json())
       .then((data) => setEvents(data.events ?? []))
       .catch(() => {});
 
-    const fetchCheckins = fetch("/places/checkins?limit=10")
+    const fetchCheckins = fetch("/api/check-ins?limit=10")
       .then((r) => r.json())
       .then((data) => setCheckins(data.checkins ?? []))
       .catch(() => {});
@@ -341,7 +341,7 @@ function HeroCarousel({ slides }: { slides: CarouselSlide[] }) {
 
 function BannerSlideContent({ slide }: { slide: BannerSlide }) {
   const handleClick = () => {
-    fetch("/banner-click", {
+    fetch("/api/banner-clicks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bannerId: slide.id }),

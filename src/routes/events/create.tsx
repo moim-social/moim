@@ -86,7 +86,7 @@ function CreateEventPage() {
   // Auth guard
   const [authed, setAuthed] = useState<boolean | null>(null);
   useEffect(() => {
-    fetch("/auth/me")
+    fetch("/api/session")
       .then((r) => r.json())
       .then((data) => {
         if (!data.user) {
@@ -105,7 +105,7 @@ function CreateEventPage() {
   const [groupsLoaded, setGroupsLoaded] = useState(false);
 
   useEffect(() => {
-    fetch("/groups/my-groups")
+    fetch("/api/me/groups")
       .then((r) => r.json())
       .then((data) => {
         setGroups(data.groups ?? []);
@@ -148,7 +148,7 @@ function CreateEventPage() {
     searchTimer.current = setTimeout(async () => {
       try {
         const res = await fetch(
-          `/groups/search-users?q=${encodeURIComponent(searchQuery)}`,
+          `/api/users?query=${encodeURIComponent(searchQuery)}`,
         );
         const data = await res.json();
         setSearchResults(data.users ?? []);
@@ -179,7 +179,7 @@ function CreateEventPage() {
     setResolving(true);
     setError("");
     try {
-      const res = await fetch("/groups/resolve-moderator", {
+      const res = await fetch("/api/actors/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ handle: fedHandle }),
@@ -214,7 +214,7 @@ function CreateEventPage() {
     setPhase("submitting");
     setError("");
     try {
-      const res = await fetch("/events/create", {
+      const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
