@@ -212,3 +212,20 @@ export const sessions = pgTable("sessions", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const banners = pgTable("banners", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: varchar("title", { length: 256 }).notNull(),
+  imageUrl: text("image_url").notNull(),
+  linkUrl: text("link_url").notNull(),
+  altText: varchar("alt_text", { length: 512 }),
+  requester: varchar("requester", { length: 256 }),
+  weight: integer("weight").default(0).notNull(),
+  enabled: boolean("enabled").default(false).notNull(),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  impressionCount: integer("impression_count").default(0).notNull(),
+  clickCount: integer("click_count").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
