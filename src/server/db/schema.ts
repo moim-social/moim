@@ -45,6 +45,7 @@ export const actors = pgTable("actors", {
   // Owner: for Person actors, points to the user; for Group actors, can be null (managed via group_members)
   userId: uuid("user_id").references(() => users.id),
   website: text("website"),
+  avatarUrl: text("avatar_url"),
   categories: jsonb("categories"), // string[] of category IDs (for Group actors)
   raw: jsonb("raw"),
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
