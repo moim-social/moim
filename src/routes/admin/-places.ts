@@ -3,6 +3,7 @@ import { db } from "~/server/db/client";
 import { checkins, placeCategories, places } from "~/server/db/schema";
 import { requireAdmin } from "~/server/admin";
 import { getDescendantCategorySlugs, getPlaceCategories } from "~/server/places/categories";
+import { generateAndUploadMapSnapshot } from "~/server/places/map-snapshot";
 
 function normalizeOptionalString(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -127,6 +128,29 @@ export const PATCH = async ({ request }: { request: Request }) => {
     .set(updates)
     .where(eq(places.id, placeId))
     .returning();
+
+  // Regenerate map snapshot when category changes
+  if (body && "categoryId" in body && place.latitude && place.longitude) {
+    try {
+      let emoji: string | null = null;
+      if (place.categoryId) {
+        const [cat] = await db
+          .select({ emoji: placeCategories.emoji })
+          .from(placeCategories)
+          .where(eq(placeCategories.slug, place.categoryId))
+          .limit(1);
+        emoji = cat?.emoji ?? null;
+      }
+      await generateAndUploadMapSnapshot(
+        place.id,
+        parseFloat(place.latitude),
+        parseFloat(place.longitude),
+        emoji,
+      );
+    } catch (err) {
+      console.error("Failed to regenerate map snapshot:", err);
+    }
+  }
 
   return Response.json({ place });
 };

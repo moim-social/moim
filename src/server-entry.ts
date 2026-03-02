@@ -43,6 +43,8 @@ import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
 import { GET as listBanners, POST as createBanner, PUT as updateBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
 import { GET as listAdminPlaceCategories, POST as createAdminPlaceCategory, PATCH as updateAdminPlaceCategory, PUT as importAdminPlaceCategories } from "./routes/admin/-place-categories";
 import { GET as listAdminPlaces, PATCH as updateAdminPlace } from "./routes/admin/-places";
+import { POST as regeneratePlaceSnapshot } from "./routes/admin/-place-snapshot";
+import { POST as bulkRegeneratePlaceSnapshots } from "./routes/admin/-place-snapshots-bulk";
 import { GET as listUsers } from "./routes/admin/users/-list";
 import { GET as userDetail } from "./routes/admin/users/-detail";
 import { GET as getCarouselSlides } from "./routes/-carousel";
@@ -393,6 +395,21 @@ apiRouter.patch("/admin/places/:placeId", defineEventHandler(async (event) => {
       id: placeId,
     })),
   });
+}));
+
+apiRouter.post("/admin/places/:placeId/regenerate-snapshot", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const placeId = event.context.params?.placeId;
+  if (!placeId) return Response.json({ error: "placeId is required" }, { status: 400 });
+  return regeneratePlaceSnapshot({
+    request: await forwardJson(request, `/api/admin/places/${placeId}/regenerate-snapshot`, "POST", () => ({
+      placeId,
+    })),
+  });
+}));
+
+apiRouter.post("/admin/places/regenerate-snapshots", defineEventHandler(async (event) => {
+  return bulkRegeneratePlaceSnapshots({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/admin/users/:userId", defineEventHandler(async (event) => {

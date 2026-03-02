@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { env } from "~/server/env";
 
 let client: S3Client | undefined;
@@ -51,4 +51,14 @@ export async function getObject(key: string): Promise<Uint8Array | null> {
     if (err instanceof Error && err.name === "NoSuchKey") return null;
     throw err;
   }
+}
+
+export async function deleteObject(key: string): Promise<void> {
+  const s3 = getClient();
+  await s3.send(
+    new DeleteObjectCommand({
+      Bucket: env.s3Bucket,
+      Key: key,
+    }),
+  );
 }
