@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { EmojiPickerInput } from "~/components/EmojiPickerInput";
 import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
 import type { PlaceCategoryOption } from "~/lib/place";
 
@@ -248,10 +249,10 @@ function AdminPlaceCategoriesPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category-emoji">Emoji</Label>
-                <Input
+                <EmojiPickerInput
                   id="category-emoji"
                   value={form.emoji}
-                  onChange={(event) => setForm((current) => ({ ...current, emoji: event.target.value }))}
+                  onChange={(emoji) => setForm((current) => ({ ...current, emoji }))}
                 />
               </div>
               <div className="space-y-2">
