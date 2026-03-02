@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import {
   Card,
   CardContent,
@@ -20,6 +21,7 @@ type GroupSummary = {
   name: string | null;
   summary: string | null;
   categories: string[] | null;
+  avatarUrl: string | null;
   role: string;
   followersCount: number;
   membersCount: number;
@@ -92,9 +94,12 @@ function MyGroupsPage() {
               >
                 <CardContent className="py-2">
                   <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
-                      {(group.name ?? group.handle).charAt(0).toUpperCase()}
-                    </div>
+                    <Avatar className="size-10 shrink-0">
+                      {group.avatarUrl && <AvatarImage src={group.avatarUrl} alt={group.name ?? group.handle} />}
+                      <AvatarFallback className="text-sm font-semibold bg-primary/10 text-primary">
+                        {(group.name ?? group.handle).charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold truncate">

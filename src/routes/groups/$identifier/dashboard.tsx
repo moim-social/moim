@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { CATEGORIES } from "~/shared/categories";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import {
   Card,
   CardContent,
@@ -34,6 +35,7 @@ type GroupData = {
     name: string | null;
     summary: string | null;
     website: string | null;
+    avatarUrl: string | null;
     categories: string[] | null;
     followersCount: number;
     createdAt: string;
@@ -159,9 +161,12 @@ function GroupDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <div className="size-14 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-semibold shrink-0">
-            {(group.name ?? handle).charAt(0).toUpperCase()}
-          </div>
+          <Avatar className="size-14 shrink-0">
+            {group.avatarUrl && <AvatarImage src={group.avatarUrl} alt={group.name ?? handle} />}
+            <AvatarFallback className="text-xl font-semibold bg-primary/10 text-primary">
+              {(group.name ?? handle).charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-semibold tracking-tight truncate">

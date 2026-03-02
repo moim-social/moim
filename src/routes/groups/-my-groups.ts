@@ -18,6 +18,7 @@ export const GET = async ({ request }: { request: Request }) => {
       name: actors.name,
       summary: actors.summary,
       categories: actors.categories,
+      avatarUrl: actors.avatarUrl,
       role: groupMembers.role,
     })
     .from(groupMembers)
@@ -56,6 +57,7 @@ export const GET = async ({ request }: { request: Request }) => {
         name: row.name,
         summary: row.summary,
         categories: row.categories,
+        avatarUrl: row.avatarUrl,
         role: row.role,
         followersCount: followerCount.count,
         membersCount: memberCount.count,
