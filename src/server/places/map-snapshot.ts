@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
@@ -16,17 +17,42 @@ const DEFAULT_MARKER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="28" h
   <circle cx="14" cy="14" r="5.5" fill="#ffffff"/>
 </svg>`;
 
-// Marker SVG matching LeafletMap makeIcon() — white rounded rect with bottom pointer + emoji
-function emojiMarkerSvg(emoji: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="48" viewBox="0 0 48 54">
+// Marker background SVG matching LeafletMap makeIcon() — white rounded rect with bottom pointer (no text)
+const EMOJI_MARKER_BG_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="48" viewBox="0 0 48 54">
   <rect x="4" y="4" width="40" height="32" rx="11" fill="#ffffff" stroke="#6b7280" stroke-width="1.5"/>
   <path d="M19 36 L19 50 L29 36" fill="#ffffff" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round"/>
-  <text x="24" y="25.5" text-anchor="middle" font-size="18">${emoji}</text>
 </svg>`;
-}
+
+// Resolve Twemoji SVG directory from @discordapp/twemoji package
+const require_ = createRequire(import.meta.url);
+const TWEMOJI_SVG_DIR = join(
+  require_.resolve("@discordapp/twemoji/package.json"),
+  "..",
+  "dist",
+  "svg",
+);
 
 const markerDir = join(tmpdir(), "moim-markers");
 const markerCache = new Map<string, string>();
+
+/** Convert an emoji string to Twemoji codepoint filename (strip fe0f variant selector). */
+function emojiToTwemojiCode(emoji: string): string {
+  return [...emoji]
+    .map((c) => c.codePointAt(0)!.toString(16))
+    .filter((cp) => cp !== "fe0f")
+    .join("-");
+}
+
+/** Read a Twemoji SVG from the local package and render it to a PNG buffer. */
+function loadEmojiPng(emoji: string, size: number): Promise<Buffer> {
+  const code = emojiToTwemojiCode(emoji);
+  const svgPath = join(TWEMOJI_SVG_DIR, `${code}.svg`);
+  if (!existsSync(svgPath)) {
+    throw new Error(`Twemoji SVG not found for ${emoji} (${code})`);
+  }
+  const svg = readFileSync(svgPath);
+  return sharp(svg).resize(size, size).png().toBuffer();
+}
 
 async function getMarkerPngPath(emoji?: string | null): Promise<{
   path: string;
@@ -47,8 +73,19 @@ async function getMarkerPngPath(emoji?: string | null): Promise<{
   const pngPath = join(markerDir, `pin-${hash}.png`);
 
   if (!existsSync(pngPath)) {
-    const svg = emoji ? emojiMarkerSvg(emoji) : DEFAULT_MARKER_SVG;
-    await sharp(Buffer.from(svg)).png().toFile(pngPath);
+    if (emoji) {
+      // Render background bubble, then composite Twemoji on top
+      const bg = await sharp(Buffer.from(EMOJI_MARKER_BG_SVG)).png().toBuffer();
+      const emojiImg = await loadEmojiPng(emoji, 22);
+      // Center emoji in the 40x32 rect area (offset by 4px padding, rect starts at y=4)
+      const left = Math.round(4 + (40 - 22) / 2);
+      const top = Math.round(4 + (32 - 22) / 2);
+      await sharp(bg)
+        .composite([{ input: emojiImg, left, top }])
+        .toFile(pngPath);
+    } else {
+      await sharp(Buffer.from(DEFAULT_MARKER_SVG)).png().toFile(pngPath);
+    }
   }
 
   markerCache.set(cacheKey, pngPath);
