@@ -6,6 +6,7 @@ import {
   Shield,
   BarChart3,
   ArrowLeft,
+  Image,
 } from "lucide-react";
 
 type NavItem = { to: string; icon: LucideIcon; label: string; exact?: boolean };
@@ -20,7 +21,10 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     label: "Management",
-    items: [{ to: "/admin/users", icon: Users, label: "Users" }],
+    items: [
+      { to: "/admin/users", icon: Users, label: "Users" },
+      { to: "/admin/banners", icon: Image, label: "Banners" },
+    ],
   },
   {
     label: "Moderation",
