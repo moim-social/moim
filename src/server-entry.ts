@@ -34,6 +34,11 @@ import { GET as nearbyPlaces } from "./routes/places/-nearby";
 import { POST as findOrCreatePlace } from "./routes/places/-find-or-create";
 import { GET as serveMap } from "./routes/maps/-serve";
 import { GET as serveAvatar } from "./routes/avatars/-serve";
+import { GET as serveBanner } from "./routes/banners/-serve";
+import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
+import { GET as listBanners, POST as createBanner, PUT as updateBanner, PATCH as toggleBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
+import { GET as getCarouselSlides } from "./routes/-carousel";
+import { POST as trackBannerClick } from "./routes/-banner-click";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
 
 const startFetch = createStartHandler(defaultStreamHandler);
@@ -186,6 +191,53 @@ app.use("/maps", defineEventHandler(async (event) => {
 app.use("/avatars", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return serveAvatar({ request });
+}));
+
+// Banner image routes
+app.use("/banners", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return serveBanner({ request });
+}));
+
+app.use("/admin/banner-upload", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return uploadBannerImage({ request });
+}));
+
+// Public carousel data
+app.use("/carousel", defineEventHandler(async () => {
+  return getCarouselSlides();
+}));
+
+app.use("/banner-click", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return trackBannerClick({ request });
+}));
+
+// Admin banner CRUD
+app.use("/admin/banners/list", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return listBanners({ request });
+}));
+
+app.use("/admin/banners/create", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return createBanner({ request });
+}));
+
+app.use("/admin/banners/update", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return updateBanner({ request });
+}));
+
+app.use("/admin/banners/toggle", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return toggleBanner({ request });
+}));
+
+app.use("/admin/banners/delete", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return deleteBanner({ request });
 }));
 
 // API routes
