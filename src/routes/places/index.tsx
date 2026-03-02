@@ -224,6 +224,7 @@ function PlacesPage() {
     }));
 
   const nearbyMapMarkers: MapMarker[] = nearbyPlaces
+    .filter((place) => place.id !== selectedNearbyPlace?.id)
     .filter((place) => place.latitude && place.longitude)
     .map((place) => ({
       lat: parseFloat(place.latitude),
@@ -241,7 +242,10 @@ function PlacesPage() {
         label: checkinName || "Check-in",
         id: selectedNearbyPlace?.id ?? "new",
         color: "red" as const,
-        glyph: selectedNearbyPlace?.category?.emoji ?? null,
+        highlighted: true,
+        glyph: selectedNearbyPlace?.category?.emoji
+          ?? placeCategories.find((category) => category.slug === checkinCategoryId)?.emoji
+          ?? null,
       }]
     : [];
 

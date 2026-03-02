@@ -10,6 +10,7 @@ export type MapMarker = {
   id: string;
   color?: MarkerColor;
   glyph?: string | null;
+  highlighted?: boolean;
 };
 
 type LeafletMapProps = {
@@ -120,36 +121,69 @@ export function LeafletMap({
         },
       };
       const MARKER_BORDER = "#6b7280";
-      function makeIcon(color: MarkerColor, glyph?: string | null) {
+      function makeSelectedPin() {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="42" viewBox="0 0 28 42">
+          <defs>
+            <filter id="selected-pin-shadow" x="-30%" y="-20%" width="160%" height="180%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#7f1d1d" flood-opacity="0.22"/>
+            </filter>
+          </defs>
+          <g filter="url(#selected-pin-shadow)">
+            <path d="M14 40 C20.5 29, 25 23, 25 14 C25 7.925, 20.075 3, 14 3 C7.925 3, 3 7.925, 3 14 C3 23, 7.5 29, 14 40 Z" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5"/>
+            <circle cx="14" cy="14" r="5.5" fill="#ffffff"/>
+          </g>
+        </svg>`;
+        return L.divIcon({
+          html: svg,
+          iconSize: [28, 42],
+          iconAnchor: [14, 42],
+          popupAnchor: [0, -36],
+          className: "",
+        });
+      }
+      function makeIcon(color: MarkerColor, glyph?: string | null, highlighted = false) {
         const palette = MARKER_COLORS[color];
+        const isHighlighted = highlighted && !!glyph;
+        const width = isHighlighted ? 44 : 44;
+        const height = isHighlighted ? 48 : 48;
+        const iconAnchorX = 22;
+        const iconAnchorY = 48;
+        const shadowId = isHighlighted ? "marker-shadow-active" : "marker-shadow";
+        const strokeColor = isHighlighted ? "#ef4444" : MARKER_BORDER;
+        const fillColor = "#ffffff";
         const glyphMarkup = glyph
           ? `<text x="22" y="25.5" text-anchor="middle" font-size="18">${glyph}</text>`
-          : `<text x="22" y="24.5" text-anchor="middle" font-size="14" fill="${palette.text}">•</text>`;
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="48" viewBox="0 0 44 48">
+          : "";
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 48 54">
           <defs>
             <filter id="marker-shadow" x="-20%" y="-20%" width="140%" height="160%">
               <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.18"/>
             </filter>
+            <filter id="marker-shadow-active" x="-30%" y="-30%" width="160%" height="200%">
+              <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#7f1d1d" flood-opacity="0.18"/>
+            </filter>
           </defs>
-          <g filter="url(#marker-shadow)">
-            <rect x="4" y="4" width="36" height="30" rx="10" fill="#ffffff" stroke="${MARKER_BORDER}" stroke-width="1.5"/>
-            <path d="M18 34 L18 44 L26 34" fill="#ffffff" stroke="${MARKER_BORDER}" stroke-width="1.5" stroke-linejoin="round"/>
+          <g filter="url(#${shadowId})">
+            <rect x="4" y="4" width="40" height="32" rx="11" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${isHighlighted ? 2.25 : 1.5}"/>
+            <path d="M19 36 L19 50 L29 36" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${isHighlighted ? 2.25 : 1.5}" stroke-linejoin="round"/>
           </g>
           ${glyphMarkup}
         </svg>`;
         return L.divIcon({
           html: svg,
-          iconSize: [44, 48],
-          iconAnchor: [22, 48],
-          popupAnchor: [0, -42],
+          iconSize: [width, height],
+          iconAnchor: [iconAnchorX, iconAnchorY],
+          popupAnchor: [0, isHighlighted ? -50 : -42],
           className: "",
         });
       }
 
       // Add new markers
       for (const marker of markers) {
-        const icon = marker.color || marker.glyph
-          ? makeIcon(marker.color ?? "blue", marker.glyph)
+        const icon = marker.glyph
+          ? makeIcon(marker.color ?? "blue", marker.glyph, marker.highlighted)
+          : marker.highlighted
+            ? makeSelectedPin()
           : undefined;
         const m = L.marker([marker.lat, marker.lng], icon ? { icon } : {})
           .addTo(mapRef.current)

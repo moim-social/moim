@@ -232,6 +232,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
             label: mapName || "New place",
             id: "new",
             color: "red" as const,
+            highlighted: true,
             glyph: placeCategories.find((category) => category.slug === mapCategoryId)?.emoji ?? null,
           }]
         : [];
@@ -273,6 +274,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
               label: value.name,
               id: value.id,
               color: "red",
+              highlighted: true,
               glyph: value.category?.emoji ?? null,
             }]}
             height="150px"
