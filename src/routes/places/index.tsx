@@ -67,7 +67,6 @@ function PlacesPage() {
   const [placeCategories, setPlaceCategories] = useState<PlaceCategoryOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [view, setView] = useState<"list" | "map">("list");
 
   const [checkinOpen, setCheckinOpen] = useState(false);
@@ -101,7 +100,6 @@ function PlacesPage() {
     setLoading(true);
     const params = new URLSearchParams();
     if (query) params.set("q", query);
-    if (selectedCategoryId) params.set("categoryId", selectedCategoryId);
     fetch(`/api/places?${params}`)
       .then((response) => response.json())
       .then((data) => setPlaces(data.places ?? []))
@@ -115,7 +113,7 @@ function PlacesPage() {
     return () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);
     };
-  }, [query, selectedCategoryId]);
+  }, [query]);
 
   useEffect(() => {
     if (!checkinLat || !checkinLng) {
@@ -261,19 +259,6 @@ function PlacesPage() {
           onChange={(event) => setQuery(event.target.value)}
           className="max-w-sm"
         />
-        <div className="w-full lg:w-72">
-          <PlaceCategorySelect
-            value={selectedCategoryId}
-            onChange={setSelectedCategoryId}
-            options={placeCategories}
-            emptyLabel="All categories"
-          />
-        </div>
-        {selectedCategoryId && (
-          <Button variant="outline" size="sm" onClick={() => setSelectedCategoryId("")}>
-            Clear Filter
-          </Button>
-        )}
         <div className="ml-auto flex gap-1">
           <Button
             variant={view === "list" ? "default" : "outline"}
@@ -301,7 +286,7 @@ function PlacesPage() {
               No places found
             </CardTitle>
             <CardDescription>
-              Try a different search or clear the current category filter.
+              Try a different search query.
             </CardDescription>
           </CardHeader>
         </Card>
