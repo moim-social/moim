@@ -37,6 +37,8 @@ import { GET as serveAvatar } from "./routes/avatars/-serve";
 import { GET as serveBanner } from "./routes/banners/-serve";
 import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
 import { GET as listBanners, POST as createBanner, PUT as updateBanner, PATCH as toggleBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
+import { GET as listUsers } from "./routes/admin/users/-list";
+import { GET as userDetail } from "./routes/admin/users/-detail";
 import { GET as getCarouselSlides } from "./routes/-carousel";
 import { POST as trackBannerClick } from "./routes/-banner-click";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
@@ -238,6 +240,17 @@ app.use("/admin/banners/toggle", defineEventHandler(async (event) => {
 app.use("/admin/banners/delete", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return deleteBanner({ request });
+}));
+
+// Admin user management
+app.use("/admin/users/list", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return listUsers({ request });
+}));
+
+app.use("/admin/users/detail", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return userDetail({ request });
 }));
 
 // API routes
