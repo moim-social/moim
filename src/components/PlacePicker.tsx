@@ -232,7 +232,7 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
             label: mapName || "New place",
             id: "new",
             color: "red" as const,
-            glyph: placeCategories.find((category) => category.id === mapCategoryId)?.emoji ?? null,
+            glyph: placeCategories.find((category) => category.slug === mapCategoryId)?.emoji ?? null,
           }]
         : [];
     return [...placeMarkers, ...pickedMarker];

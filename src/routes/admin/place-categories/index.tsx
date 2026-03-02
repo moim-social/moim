@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Pencil } from "lucide-react";
+import { Download, Pencil, Plus, Upload } from "lucide-react";
+import { EmojiPickerInput } from "~/components/EmojiPickerInput";
+import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
   Dialog,
@@ -12,8 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { EmojiPickerInput } from "~/components/EmojiPickerInput";
-import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Textarea } from "~/components/ui/textarea";
 import type { PlaceCategoryOption } from "~/lib/place";
 
 export const Route = createFileRoute("/admin/place-categories/")({
@@ -21,32 +22,29 @@ export const Route = createFileRoute("/admin/place-categories/")({
 });
 
 type AdminPlaceCategory = {
-  id: string;
   slug: string;
   label: string;
   emoji: string;
-  parentId: string | null;
+  parentSlug: string | null;
   sortOrder: number;
   enabled: boolean;
   children: AdminPlaceCategory[];
 };
 
 type CategoryFormState = {
-  id: string;
   slug: string;
   label: string;
   emoji: string;
-  parentId: string;
+  parentSlug: string;
   sortOrder: string;
   enabled: boolean;
 };
 
 const emptyForm: CategoryFormState = {
-  id: "",
   slug: "",
   label: "",
   emoji: "",
-  parentId: "",
+  parentSlug: "",
   sortOrder: "0",
   enabled: true,
 };
@@ -63,9 +61,13 @@ function AdminPlaceCategoriesPage() {
   const [options, setOptions] = useState<PlaceCategoryOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importText, setImportText] = useState("");
   const [form, setForm] = useState<CategoryFormState>(emptyForm);
 
   const rows = useMemo(() => flattenCategories(categories), [categories]);
@@ -87,25 +89,71 @@ function AdminPlaceCategoriesPage() {
   }, []);
 
   const openCreate = () => {
-    setEditingId(null);
+    setEditingSlug(null);
     setError(null);
     setForm(emptyForm);
     setShowForm(true);
   };
 
   const openEdit = (category: AdminPlaceCategory & { depth: number }) => {
-    setEditingId(category.id);
+    setEditingSlug(category.slug);
     setError(null);
     setForm({
-      id: category.id,
       slug: category.slug,
       label: category.label,
       emoji: category.emoji,
-      parentId: category.parentId ?? "",
+      parentSlug: category.parentSlug ?? "",
       sortOrder: String(category.sortOrder),
       enabled: category.enabled,
     });
     setShowForm(true);
+  };
+
+  const handleExport = async () => {
+    const response = await fetch("/api/admin/place-categories?format=json");
+    const data = await response.json();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `place-categories-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setImporting(true);
+    setImportError(null);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(importText);
+    } catch {
+      setImportError("Import JSON is not valid.");
+      setImporting(false);
+      return;
+    }
+
+    const response = await fetch("/api/admin/place-categories", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsed),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setImportError(data.error || "Failed to import categories");
+      setImporting(false);
+      return;
+    }
+
+    setImporting(false);
+    setShowImportDialog(false);
+    setImportText("");
+    fetchCategories();
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -114,23 +162,22 @@ function AdminPlaceCategoriesPage() {
     setError(null);
 
     const payload = {
-      id: form.id.trim(),
       slug: form.slug.trim(),
       label: form.label.trim(),
       emoji: form.emoji.trim(),
-      parentId: form.parentId || null,
+      parentSlug: form.parentSlug || null,
       sortOrder: Number(form.sortOrder),
       enabled: form.enabled,
     };
 
     const response = await fetch(
-      editingId
-        ? `/api/admin/place-categories/${editingId}`
+      editingSlug
+        ? `/api/admin/place-categories/${editingSlug}`
         : "/api/admin/place-categories",
       {
-        method: editingId ? "PATCH" : "POST",
+        method: editingSlug ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(editingSlug ? { ...payload, categorySlug: editingSlug } : payload),
       },
     );
 
@@ -155,10 +202,27 @@ function AdminPlaceCategoriesPage() {
             Manage the hierarchical taxonomy used for places and check-ins.
           </p>
         </div>
-        <Button onClick={openCreate} size="sm">
-          <Plus className="mr-1 size-4" />
-          New Category
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="mr-1 size-4" />
+            Export JSON
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setImportError(null);
+              setShowImportDialog(true);
+            }}
+          >
+            <Upload className="mr-1 size-4" />
+            Import JSON
+          </Button>
+          <Button onClick={openCreate} size="sm">
+            <Plus className="mr-1 size-4" />
+            New Category
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -182,26 +246,20 @@ function AdminPlaceCategoriesPage() {
             </thead>
             <tbody>
               {rows.map((category) => {
-                const parent = rows.find((row) => row.id === category.parentId);
+                const parent = rows.find((row) => row.slug === category.parentSlug);
                 return (
-                  <tr key={category.id} className="border-b last:border-0 hover:bg-muted/30">
+                  <tr key={category.slug} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3">
-                      <div
-                        className="font-medium"
-                        style={{ paddingLeft: `${category.depth * 20}px` }}
-                      >
+                      <div className="font-medium" style={{ paddingLeft: `${category.depth * 20}px` }}>
                         {category.emoji} {category.label}
                       </div>
-                      <div className="text-xs text-muted-foreground">{category.id}</div>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{category.slug}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{category.slug}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {parent ? `${parent.emoji} ${parent.label}` : "Root"}
                     </td>
                     <td className="px-4 py-3 text-center">{category.sortOrder}</td>
-                    <td className="px-4 py-3 text-center">
-                      {category.enabled ? "Yes" : "No"}
-                    </td>
+                    <td className="px-4 py-3 text-center">{category.enabled ? "Yes" : "No"}</td>
                     <td className="px-4 py-3 text-right">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(category)}>
                         <Pencil className="size-4" />
@@ -218,26 +276,23 @@ function AdminPlaceCategoriesPage() {
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Category" : "Create Category"}</DialogTitle>
+            <DialogTitle>{editingSlug ? "Edit Category" : "Create Category"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="category-id">ID</Label>
-                <Input
-                  id="category-id"
-                  value={form.id}
-                  disabled={editingId != null}
-                  onChange={(event) => setForm((current) => ({ ...current, id: event.target.value }))}
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="category-slug">Slug</Label>
                 <Input
                   id="category-slug"
                   value={form.slug}
+                  disabled={editingSlug != null}
                   onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
                 />
+                {editingSlug && (
+                  <p className="text-xs text-muted-foreground">
+                    Slug is the stable identifier for this taxonomy.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category-label">Label</Label>
@@ -259,9 +314,9 @@ function AdminPlaceCategoriesPage() {
                 <Label htmlFor="category-parent">Parent</Label>
                 <PlaceCategorySelect
                   id="category-parent"
-                  value={form.parentId}
-                  onChange={(parentId) => setForm((current) => ({ ...current, parentId }))}
-                  options={options.filter((option) => option.id !== editingId)}
+                  value={form.parentSlug}
+                  onChange={(parentSlug) => setForm((current) => ({ ...current, parentSlug }))}
+                  options={options.filter((option) => option.slug !== editingSlug)}
                   includeDisabled
                   emptyLabel="Root category"
                 />
@@ -292,7 +347,51 @@ function AdminPlaceCategoriesPage() {
                 Cancel
               </Button>
               <Button type="submit" disabled={saving}>
-                {saving ? "Saving..." : editingId ? "Save Changes" : "Create Category"}
+                {saving ? "Saving..." : editingSlug ? "Save Changes" : "Create Category"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Categories</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleImport} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="category-import-file">JSON File</Label>
+              <Input
+                id="category-import-file"
+                type="file"
+                accept="application/json"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  setImportText(await file.text());
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category-import-json">JSON Payload</Label>
+              <Textarea
+                id="category-import-json"
+                rows={14}
+                value={importText}
+                onChange={(event) => setImportText(event.target.value)}
+                placeholder='{"categories":[...]}'
+              />
+            </div>
+
+            {importError && <p className="text-sm text-destructive">{importError}</p>}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowImportDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={importing || !importText.trim()}>
+                {importing ? "Importing..." : "Import Categories"}
               </Button>
             </DialogFooter>
           </form>

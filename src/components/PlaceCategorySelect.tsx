@@ -50,7 +50,7 @@ export function PlaceCategorySelect({
         </option>
       )}
       {visibleOptions.map((option) => (
-        <option key={option.id} value={option.id} disabled={!includeDisabled && !option.enabled}>
+        <option key={option.slug} value={option.slug} disabled={!includeDisabled && !option.enabled}>
           {formatOptionLabel(option)}
         </option>
       ))}

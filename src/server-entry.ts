@@ -41,7 +41,7 @@ import { GET as serveAvatar } from "./routes/avatars/-serve";
 import { GET as serveBanner } from "./routes/banners/-serve";
 import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
 import { GET as listBanners, POST as createBanner, PUT as updateBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
-import { GET as listAdminPlaceCategories, POST as createAdminPlaceCategory, PATCH as updateAdminPlaceCategory } from "./routes/admin/-place-categories";
+import { GET as listAdminPlaceCategories, POST as createAdminPlaceCategory, PATCH as updateAdminPlaceCategory, PUT as importAdminPlaceCategories } from "./routes/admin/-place-categories";
 import { GET as listAdminPlaces, PATCH as updateAdminPlace } from "./routes/admin/-places";
 import { GET as listUsers } from "./routes/admin/users/-list";
 import { GET as userDetail } from "./routes/admin/users/-detail";
@@ -361,6 +361,10 @@ apiRouter.post("/admin/place-categories", defineEventHandler(async (event) => {
   return createAdminPlaceCategory({ request: toWebRequest(event) });
 }));
 
+apiRouter.put("/admin/place-categories", defineEventHandler(async (event) => {
+  return importAdminPlaceCategories({ request: toWebRequest(event) });
+}));
+
 apiRouter.patch("/admin/place-categories/:categoryId", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   const categoryId = event.context.params?.categoryId;
@@ -369,7 +373,7 @@ apiRouter.patch("/admin/place-categories/:categoryId", defineEventHandler(async 
   return updateAdminPlaceCategory({
     request: await forwardJson(request, `/api/admin/place-categories/${categoryId}`, "PATCH", (body) => ({
       ...(body ?? {}),
-      id: categoryId,
+      categorySlug: categoryId,
     })),
   });
 }));

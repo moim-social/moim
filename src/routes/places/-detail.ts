@@ -32,7 +32,7 @@ export const GET = async ({ request }: { request: Request }) => {
       categoryEnabled: placeCategories.enabled,
     })
     .from(places)
-    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.id))
+    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.slug))
     .where(eq(places.id, placeId))
     .limit(1);
 
@@ -83,7 +83,6 @@ export const GET = async ({ request }: { request: Request }) => {
 
   const categoryPath = place.categoryId
     ? getCategoryPath(place.categoryId, await getPlaceCategories(true)).map((row) => ({
-        id: row.id,
         slug: row.slug,
         label: row.label,
         emoji: row.emoji,
@@ -102,7 +101,6 @@ export const GET = async ({ request }: { request: Request }) => {
       website: place.website,
       category: place.categoryId
         ? {
-            id: place.categoryId,
             slug: place.categorySlug,
             label: place.categoryLabel,
             emoji: place.categoryEmoji,

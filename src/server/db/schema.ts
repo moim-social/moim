@@ -115,11 +115,10 @@ export const eventOrganizers = pgTable("event_organizers", {
 }));
 
 export const placeCategories = pgTable("place_categories", {
-  id: varchar("id", { length: 64 }).primaryKey(),
-  slug: varchar("slug", { length: 64 }).notNull().unique(),
+  slug: varchar("slug", { length: 64 }).primaryKey(),
   label: varchar("label", { length: 128 }).notNull(),
   emoji: varchar("emoji", { length: 16 }).notNull(),
-  parentId: varchar("parent_id", { length: 64 }).references((): AnyPgColumn => placeCategories.id),
+  parentSlug: varchar("parent_slug", { length: 64 }).references((): AnyPgColumn => placeCategories.slug),
   sortOrder: integer("sort_order").default(0).notNull(),
   enabled: boolean("enabled").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -128,7 +127,7 @@ export const placeCategories = pgTable("place_categories", {
 
 export const places = pgTable("places", {
   id: uuid("id").defaultRandom().primaryKey(),
-  categoryId: varchar("category_id", { length: 64 }).references(() => placeCategories.id),
+  categoryId: varchar("category_id", { length: 64 }).references(() => placeCategories.slug),
   name: varchar("name", { length: 200 }).notNull(),
   description: text("description"),
   latitude: varchar("latitude", { length: 32 }),

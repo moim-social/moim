@@ -2,7 +2,7 @@ import { and, desc, eq, ilike, inArray, sql, type SQL } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { checkins, placeCategories, places } from "~/server/db/schema";
 import { requireAdmin } from "~/server/admin";
-import { getDescendantCategoryIds, getPlaceCategories } from "~/server/places/categories";
+import { getDescendantCategorySlugs, getPlaceCategories } from "~/server/places/categories";
 
 function normalizeOptionalString(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -25,7 +25,7 @@ export const GET = async ({ request }: { request: Request }) => {
   }
   if (categoryId) {
     const categoryRows = await getPlaceCategories(true);
-    conditions.push(inArray(places.categoryId, getDescendantCategoryIds(categoryId, categoryRows)));
+    conditions.push(inArray(places.categoryId, getDescendantCategorySlugs(categoryId, categoryRows)));
   }
 
   let baseQuery = db
@@ -43,11 +43,11 @@ export const GET = async ({ request }: { request: Request }) => {
       checkinCount: sql<number>`coalesce(count(${checkins.id})::int, 0)`,
     })
     .from(places)
-    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.id))
+    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.slug))
     .leftJoin(checkins, eq(checkins.placeId, places.id))
     .groupBy(
       places.id,
-      placeCategories.id,
+      placeCategories.slug,
       placeCategories.label,
       placeCategories.emoji,
       placeCategories.slug,
@@ -74,7 +74,6 @@ export const GET = async ({ request }: { request: Request }) => {
       ...row,
       category: row.categoryId
         ? {
-            id: row.categoryId,
             slug: row.categorySlug,
             label: row.categoryLabel,
             emoji: row.categoryEmoji,
@@ -111,7 +110,7 @@ export const PATCH = async ({ request }: { request: Request }) => {
     const categoryId = normalizeOptionalString(body.categoryId);
     if (categoryId) {
       const rows = await getPlaceCategories(true);
-      if (!rows.some((row) => row.id === categoryId)) {
+      if (!rows.some((row) => row.slug === categoryId)) {
         return Response.json({ error: "Category not found" }, { status: 400 });
       }
       updates.categoryId = categoryId;

@@ -44,7 +44,7 @@ export const GET = async ({ request }: { request: Request }) => {
       ), 0)`,
     })
     .from(places)
-    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.id))
+    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.slug))
     .where(sql`${places.latitude} IS NOT NULL AND ${places.longitude} IS NOT NULL
       AND ${places.latitude}::double precision BETWEEN ${lat - latDelta} AND ${lat + latDelta}
       AND ${places.longitude}::double precision BETWEEN ${lng - lngDelta} AND ${lng + lngDelta}
@@ -57,7 +57,7 @@ export const GET = async ({ request }: { request: Request }) => {
       ...row,
       category: row.categoryId
         ? {
-            id: row.categoryId,
+            slug: row.categoryId,
             label: row.categoryLabel,
             emoji: row.categoryEmoji,
           }

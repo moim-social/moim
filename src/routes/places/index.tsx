@@ -141,7 +141,7 @@ function PlacesPage() {
     setCheckinLat(place.latitude);
     setCheckinLng(place.longitude);
     setCheckinName(place.name);
-    setCheckinCategoryId(place.category?.id ?? "");
+    setCheckinCategoryId(place.category?.slug ?? "");
   };
 
   const resetCheckinForm = () => {

@@ -1,13 +1,12 @@
 export type PlaceCategorySummary = {
-  id: string;
-  slug?: string | null;
+  slug: string;
   label: string | null;
   emoji: string | null;
   enabled?: boolean;
 };
 
 export type PlaceCategoryOption = {
-  id: string;
+  slug: string;
   label: string;
   emoji: string;
   depth: number;

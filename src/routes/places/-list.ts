@@ -1,7 +1,7 @@
 import { and, eq, ilike, inArray, sql, type SQL } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { placeCategories, places, placeTags, tags } from "~/server/db/schema";
-import { getDescendantCategoryIds, getPlaceCategories } from "~/server/places/categories";
+import { getDescendantCategorySlugs, getPlaceCategories } from "~/server/places/categories";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -30,7 +30,7 @@ export const GET = async ({ request }: { request: Request }) => {
       ), 0)`,
     })
     .from(places)
-    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.id))
+    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.slug))
     .$dynamic();
 
   const conditions: SQL[] = [];
@@ -49,8 +49,8 @@ export const GET = async ({ request }: { request: Request }) => {
 
   if (categoryId) {
     const categories = await getPlaceCategories(true);
-    const descendantIds = getDescendantCategoryIds(categoryId, categories);
-    conditions.push(inArray(places.categoryId, descendantIds));
+    const descendantSlugs = getDescendantCategorySlugs(categoryId, categories);
+    conditions.push(inArray(places.categoryId, descendantSlugs));
   }
 
   if (conditions.length > 0) {
@@ -87,7 +87,7 @@ export const GET = async ({ request }: { request: Request }) => {
     ...place,
     category: place.categoryId
       ? {
-          id: place.categoryId,
+          slug: place.categoryId,
           label: place.categoryLabel,
           emoji: place.categoryEmoji,
         }

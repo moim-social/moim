@@ -92,7 +92,7 @@ function AdminPlacesPage() {
     setEditingPlace(place);
     setError(null);
     setForm({
-      categoryId: place.category?.id ?? "",
+      categoryId: place.category?.slug ?? "",
       description: place.description ?? "",
       address: place.address ?? "",
       website: place.website ?? "",
