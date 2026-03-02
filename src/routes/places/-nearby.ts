@@ -1,6 +1,6 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { places } from "~/server/db/schema";
+import { placeCategories, places } from "~/server/db/schema";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -28,12 +28,15 @@ export const GET = async ({ request }: { request: Request }) => {
   const rows = await db
     .select({
       id: places.id,
+      categoryId: places.categoryId,
       name: places.name,
       description: places.description,
       latitude: places.latitude,
       longitude: places.longitude,
       address: places.address,
       website: places.website,
+      categoryLabel: placeCategories.label,
+      categoryEmoji: placeCategories.emoji,
       distance: distanceExpr,
       checkinCount: sql<number>`coalesce((
         SELECT count(*)::int FROM checkins c
@@ -41,6 +44,7 @@ export const GET = async ({ request }: { request: Request }) => {
       ), 0)`,
     })
     .from(places)
+    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.id))
     .where(sql`${places.latitude} IS NOT NULL AND ${places.longitude} IS NOT NULL
       AND ${places.latitude}::double precision BETWEEN ${lat - latDelta} AND ${lat + latDelta}
       AND ${places.longitude}::double precision BETWEEN ${lng - lngDelta} AND ${lng + lngDelta}
@@ -48,5 +52,16 @@ export const GET = async ({ request }: { request: Request }) => {
     .orderBy(distanceExpr)
     .limit(50);
 
-  return Response.json({ places: rows });
+  return Response.json({
+    places: rows.map((row) => ({
+      ...row,
+      category: row.categoryId
+        ? {
+            id: row.categoryId,
+            label: row.categoryLabel,
+            emoji: row.categoryEmoji,
+          }
+        : null,
+    })),
+  });
 };
