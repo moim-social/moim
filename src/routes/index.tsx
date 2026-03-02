@@ -37,6 +37,33 @@ type EventItem = {
   organizerActorUrl: string | null;
 };
 
+type BannerSlide = {
+  type: "banner";
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string;
+  altText: string | null;
+};
+
+type EventSlide = {
+  type: "event";
+  id: string;
+  title: string;
+  description: string | null;
+  categoryId: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  location: string | null;
+  groupHandle: string | null;
+  groupName: string | null;
+  organizerHandle: string | null;
+  organizerDisplayName: string | null;
+  organizerActorUrl: string | null;
+};
+
+type CarouselSlide = BannerSlide | EventSlide;
+
 type CheckinItem = {
   id: string;
   note: string | null;
@@ -61,11 +88,17 @@ function timeAgo(dateStr: string): string {
 
 function HomePage() {
   const { user } = useAuth();
+  const [slides, setSlides] = useState<CarouselSlide[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [checkins, setCheckins] = useState<CheckinItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchSlides = fetch("/carousel")
+      .then((r) => r.json())
+      .then((data) => setSlides(data.slides ?? []))
+      .catch(() => {});
+
     const fetchEvents = fetch("/events/list")
       .then((r) => r.json())
       .then((data) => setEvents(data.events ?? []))
@@ -76,10 +109,9 @@ function HomePage() {
       .then((data) => setCheckins(data.checkins ?? []))
       .catch(() => {});
 
-    Promise.all([fetchEvents, fetchCheckins]).finally(() => setLoading(false));
+    Promise.all([fetchSlides, fetchEvents, fetchCheckins]).finally(() => setLoading(false));
   }, []);
 
-  const carouselEvents = events.slice(0, 5);
   const gridEvents = events.slice(0, 6);
 
   return (
@@ -89,8 +121,8 @@ function HomePage() {
         <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen">
           <div className="h-64 bg-muted animate-pulse" />
         </div>
-      ) : carouselEvents.length > 0 ? (
-        <EventCarousel events={carouselEvents} />
+      ) : slides.length > 0 ? (
+        <HeroCarousel slides={slides} />
       ) : (
         <FallbackHero user={user} />
       )}
@@ -168,7 +200,7 @@ function HomePage() {
       )}
 
       {/* Show fallback feature cards when there's no content at all */}
-      {!loading && events.length === 0 && checkins.length === 0 && (
+      {!loading && slides.length === 0 && events.length === 0 && checkins.length === 0 && (
         <section className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardHeader>
@@ -200,18 +232,18 @@ function HomePage() {
   );
 }
 
-/* ─── Event Carousel ─── */
+/* ─── Hero Carousel (mixed banner + event slides) ─── */
 
-function EventCarousel({ events }: { events: EventItem[] }) {
+function HeroCarousel({ slides }: { slides: CarouselSlide[] }) {
   const [current, setCurrent] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const resetTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % events.length);
+      setCurrent((prev) => (prev + 1) % slides.length);
     }, 5000);
-  }, [events.length]);
+  }, [slides.length]);
 
   useEffect(() => {
     resetTimer();
@@ -225,12 +257,107 @@ function EventCarousel({ events }: { events: EventItem[] }) {
     resetTimer();
   };
 
-  const prev = () => goTo((current - 1 + events.length) % events.length);
-  const next = () => goTo((current + 1) % events.length);
+  const prev = () => goTo((current - 1 + slides.length) % slides.length);
+  const next = () => goTo((current + 1) % slides.length);
 
-  const event = events[current];
-  const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
-  const start = new Date(event.startsAt);
+  const slide = slides[current];
+
+  return (
+    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen">
+      <div className="relative h-[200px] md:h-[340px] transition-all duration-500 overflow-hidden">
+        {slide.type === "banner" ? (
+          <BannerSlideContent slide={slide} />
+        ) : (
+          <EventSlideContent slide={slide} />
+        )}
+      </div>
+
+      {/* Navigation arrows */}
+      {slides.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={prev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 size-10 flex items-center justify-center rounded-full bg-black/20 text-white hover:bg-black/40 transition-colors"
+            aria-label="Previous slide"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+              <path fillRule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={next}
+            className="absolute right-4 top-1/2 -translate-y-1/2 size-10 flex items-center justify-center rounded-full bg-black/20 text-white hover:bg-black/40 transition-colors"
+            aria-label="Next slide"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+              <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+            </svg>
+          </button>
+
+          {/* Dots */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            {slides.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => goTo(i)}
+                className={`size-2 rounded-full transition-colors ${i === current ? "bg-white" : "bg-white/40 hover:bg-white/60"}`}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─── Banner Slide Content ─── */
+
+function BannerSlideContent({ slide }: { slide: BannerSlide }) {
+  const handleClick = () => {
+    fetch("/banner-click", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bannerId: slide.id }),
+    }).catch(() => {});
+  };
+
+  return (
+    <a
+      href={slide.linkUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={handleClick}
+      className="block w-full h-full relative overflow-hidden"
+    >
+      <img
+        src={slide.imageUrl}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl"
+      />
+      <img
+        src={slide.imageUrl}
+        alt={slide.altText ?? slide.title}
+        className="relative w-full h-full object-contain"
+      />
+      <div className="absolute top-3 left-3 md:top-4 md:left-6">
+        <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wider bg-yellow-400 text-black shadow-sm">
+          AD
+        </span>
+      </div>
+    </a>
+  );
+}
+
+/* ─── Event Slide Content ─── */
+
+function EventSlideContent({ slide }: { slide: EventSlide }) {
+  const [gradFrom, gradTo] = pickGradient(slide.categoryId || slide.id);
+  const start = new Date(slide.startsAt);
   const dateStr = start.toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
@@ -241,93 +368,53 @@ function EventCarousel({ events }: { events: EventItem[] }) {
     minute: "2-digit",
   });
 
-  const hostLabel = event.groupHandle
-    ? (event.groupName ?? `@${event.groupHandle}`)
-    : event.organizerHandle
-      ? `@${event.organizerHandle}`
+  const hostLabel = slide.groupHandle
+    ? (slide.groupName ?? `@${slide.groupHandle}`)
+    : slide.organizerHandle
+      ? `@${slide.organizerHandle}`
       : null;
 
   return (
-    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen">
-      <div
-        className="relative px-6 py-12 md:py-16 transition-colors duration-500"
-        style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
-      >
-        <div className="mx-auto max-w-5xl" style={{ color: "white" }}>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>
+    <div
+      className="h-full px-6 py-6 md:py-0 flex items-center overflow-hidden"
+      style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
+    >
+      <div className="mx-auto max-w-5xl w-full" style={{ color: "white" }}>
+        <div className="flex items-center gap-3 mb-1 md:mb-2">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.6)" }}>
             Coming up next
           </p>
-
-          {event.categoryId && (
-            <Badge variant="secondary" className="mb-3 bg-white/20 border-white/30 hover:bg-white/30" style={{ color: "white" }}>
-              {categoryMap.get(event.categoryId) ?? event.categoryId}
+          {slide.categoryId && (
+            <Badge variant="secondary" className="bg-white/20 border-white/30 hover:bg-white/30" style={{ color: "white" }}>
+              {categoryMap.get(slide.categoryId) ?? slide.categoryId}
             </Badge>
           )}
+        </div>
 
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl mb-2" style={{ color: "white" }}>
-            {event.title}
-          </h1>
+        <h1 className="text-xl font-bold tracking-tight md:text-4xl mb-1 md:mb-2 line-clamp-1 md:line-clamp-2" style={{ color: "white" }}>
+          {slide.title}
+        </h1>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm mb-1" style={{ color: "rgba(255,255,255,0.8)" }}>
-            <span>{dateStr} · {timeStr}</span>
-            {event.location && <span>@ {event.location}</span>}
-          </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm mb-1" style={{ color: "rgba(255,255,255,0.8)" }}>
+          <span>{dateStr} · {timeStr}</span>
+          {slide.location && <span>@ {slide.location}</span>}
+        </div>
 
-          {hostLabel && (
-            <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.7)" }}>
-              Hosted by {hostLabel}
-            </p>
-          )}
+        {hostLabel && (
+          <p className="text-xs md:text-sm mb-3 md:mb-6" style={{ color: "rgba(255,255,255,0.7)" }}>
+            Hosted by {hostLabel}
+          </p>
+        )}
 
-          <div className="flex gap-3">
-            <Button asChild className="bg-white hover:bg-white/90" style={{ color: "#111827" }}>
-              <Link to="/events/$eventId" params={{ eventId: event.id }}>
-                View Event
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="bg-transparent hover:bg-white/20" style={{ color: "white", borderColor: "rgba(255,255,255,0.5)" }}>
-              <Link to="/events">Browse All Events</Link>
-            </Button>
-          </div>
-
-          {/* Navigation arrows */}
-          {events.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={prev}
-                className="absolute left-4 top-1/2 -translate-y-1/2 size-10 flex items-center justify-center rounded-full bg-black/20 text-white hover:bg-black/40 transition-colors"
-                aria-label="Previous event"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                  <path fillRule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={next}
-                className="absolute right-4 top-1/2 -translate-y-1/2 size-10 flex items-center justify-center rounded-full bg-black/20 text-white hover:bg-black/40 transition-colors"
-                aria-label="Next event"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                  <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
-                </svg>
-              </button>
-
-              {/* Dots */}
-              <div className="flex justify-center gap-2 mt-6">
-                {events.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => goTo(i)}
-                    className={`size-2 rounded-full transition-colors ${i === current ? "bg-white" : "bg-white/40 hover:bg-white/60"}`}
-                    aria-label={`Go to event ${i + 1}`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+        <div className="flex gap-3">
+          <Button asChild className="bg-white hover:bg-white/90 h-8 md:h-9 text-xs md:text-sm px-3 md:px-4" style={{ color: "#111827" }}>
+            <Link to="/events/$eventId" params={{ eventId: slide.id }}>
+              View Event
+            </Link>
+          </Button>
+          <Button variant="outline" asChild className="bg-transparent hover:bg-white/20 h-8 md:h-9 text-xs md:text-sm px-3 md:px-4" style={{ color: "white", borderColor: "rgba(255,255,255,0.5)" }}>
+            <Link to="/events">Browse All Events</Link>
+          </Button>
         </div>
       </div>
     </div>

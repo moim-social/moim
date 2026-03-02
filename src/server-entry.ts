@@ -34,6 +34,7 @@ import { GET as nearbyPlaces } from "./routes/places/-nearby";
 import { POST as findOrCreatePlace } from "./routes/places/-find-or-create";
 import { GET as serveMap } from "./routes/maps/-serve";
 import { GET as serveAvatar } from "./routes/avatars/-serve";
+import { GET as serveBanner } from "./routes/banners/-serve";
 import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
 import { GET as listBanners, POST as createBanner, PUT as updateBanner, PATCH as toggleBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
 import { GET as getCarouselSlides } from "./routes/-carousel";
@@ -190,6 +191,17 @@ app.use("/maps", defineEventHandler(async (event) => {
 app.use("/avatars", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return serveAvatar({ request });
+}));
+
+// Banner image routes
+app.use("/banners", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return serveBanner({ request });
+}));
+
+app.use("/admin/banner-upload", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return uploadBannerImage({ request });
 }));
 
 // Public carousel data
