@@ -27,6 +27,8 @@ function EditGroupPage() {
   const [summary, setSummary] = useState("");
   const [website, setWebsite] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/groups/detail?handle=${encodeURIComponent(handle)}`)
@@ -44,6 +46,7 @@ function EditGroupPage() {
         setSummary(g.summary ?? "");
         setWebsite(g.website ?? "");
         setSelectedCategories(g.categories ?? []);
+        if (g.avatarUrl) setAvatarPreview(g.avatarUrl);
         setLoading(false);
       })
       .catch(() => {
@@ -82,6 +85,18 @@ function EditGroupPage() {
         setSubmitting(false);
         return;
       }
+      // Upload avatar if a new file was selected
+      if (avatarFile) {
+        try {
+          const formData = new FormData();
+          formData.append("handle", handle);
+          formData.append("avatar", avatarFile);
+          await fetch("/groups/upload-avatar", { method: "POST", body: formData });
+        } catch {
+          // Avatar upload failure is non-blocking
+        }
+      }
+
       navigate({
         to: "/groups/$identifier/dashboard",
         params: { identifier },
@@ -159,6 +174,40 @@ function EditGroupPage() {
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="avatar">Profile Image</Label>
+              <div className="flex items-center gap-4">
+                {avatarPreview ? (
+                  <img
+                    src={avatarPreview}
+                    alt="Avatar preview"
+                    className="size-16 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="size-16 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xl font-semibold">
+                    {name ? name.charAt(0).toUpperCase() : "?"}
+                  </div>
+                )}
+                <div className="flex-1">
+                  <Input
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setAvatarFile(file);
+                      if (file) {
+                        setAvatarPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Max 5MB. Will be resized to 256x256.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Categories section with visual separator */}

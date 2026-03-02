@@ -202,6 +202,12 @@ federation
         following: ctx.getFollowingUri(identifier),
         followers: ctx.getFollowersUri(identifier),
         manuallyApprovesFollowers: actor.manuallyApprovesFollowers,
+        icon: actor.avatarUrl
+          ? new Image({
+              url: new URL(`/avatars/${actor.id}.webp`, env.baseUrl),
+              mediaType: "image/webp",
+            })
+          : undefined,
         publicKey: keys[0]?.cryptographicKey,
         assertionMethods: keys.map((k) => k.multikey),
         attachments,
