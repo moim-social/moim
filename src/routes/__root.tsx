@@ -21,7 +21,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import appCss from "~/styles/globals.css?url";
 
-type SessionUser = { handle: string; displayName: string; avatarUrl?: string | null } | null;
+type SessionUser = { handle: string; displayName: string; avatarUrl?: string | null; isAdmin?: boolean } | null;
 
 const AuthContext = createContext<{
   user: SessionUser;
@@ -150,6 +150,14 @@ function RootLayout() {
                           <DropdownMenuItem onClick={() => navigate({ to: "/events/create" })}>
                             Create Event
                           </DropdownMenuItem>
+                          {user.isAdmin && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
+                                Admin Panel
+                              </DropdownMenuItem>
+                            </>
+                          )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={handleSignOut}>
                             Sign out

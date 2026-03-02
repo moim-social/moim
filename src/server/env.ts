@@ -26,6 +26,12 @@ export const env = {
   s3SecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,
   s3Region: process.env.AWS_REGION ?? "auto",
 
+  // Admin (comma-separated @handle@domain notation, e.g. @alice@mastodon.social)
+  instanceAdminHandles: (process.env.INSTANCE_ADMIN_HANDLES ?? "")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean),
+
   // Map link providers (comma-separated: kakao,naver,google)
   mapLinkProviders: (process.env.MAP_LINK_PROVIDERS ?? "").split(",").map(s => s.trim()).filter(Boolean),
 
