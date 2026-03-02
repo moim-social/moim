@@ -1,3 +1,19 @@
+export type PlaceCategorySummary = {
+  id: string;
+  slug?: string | null;
+  label: string | null;
+  emoji: string | null;
+  enabled?: boolean;
+};
+
+export type PlaceCategoryOption = {
+  id: string;
+  label: string;
+  emoji: string;
+  depth: number;
+  enabled: boolean;
+};
+
 export type NearbyPlace = {
   id: string;
   name: string;
@@ -6,6 +22,7 @@ export type NearbyPlace = {
   longitude: string;
   distance: number;
   checkinCount: number;
+  category: PlaceCategorySummary | null;
 };
 
 export function formatDistance(km: number): string {
