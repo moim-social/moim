@@ -1,23 +1,28 @@
-import { and, eq, ilike, sql, type SQL } from "drizzle-orm";
+import { and, eq, ilike, inArray, sql, type SQL } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { places, placeTags, tags } from "~/server/db/schema";
+import { placeCategories, places, placeTags, tags } from "~/server/db/schema";
+import { getDescendantCategorySlugs, getPlaceCategories } from "~/server/places/categories";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
   const query = url.searchParams.get("q");
   const tag = url.searchParams.get("tag");
+  const categoryId = url.searchParams.get("categoryId");
   const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50", 10), 100);
   const offset = parseInt(url.searchParams.get("offset") ?? "0", 10);
 
   let baseQuery = db
     .select({
       id: places.id,
+      categoryId: places.categoryId,
       name: places.name,
       description: places.description,
       latitude: places.latitude,
       longitude: places.longitude,
       address: places.address,
       website: places.website,
+      categoryLabel: placeCategories.label,
+      categoryEmoji: placeCategories.emoji,
       createdAt: places.createdAt,
       checkinCount: sql<number>`coalesce((
         SELECT count(*)::int FROM checkins c
@@ -25,6 +30,7 @@ export const GET = async ({ request }: { request: Request }) => {
       ), 0)`,
     })
     .from(places)
+    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.slug))
     .$dynamic();
 
   const conditions: SQL[] = [];
@@ -39,6 +45,12 @@ export const GET = async ({ request }: { request: Request }) => {
       .innerJoin(placeTags, eq(placeTags.placeId, places.id))
       .innerJoin(tags, eq(tags.id, placeTags.tagId));
     conditions.push(eq(tags.slug, tag));
+  }
+
+  if (categoryId) {
+    const categories = await getPlaceCategories(true);
+    const descendantSlugs = getDescendantCategorySlugs(categoryId, categories);
+    conditions.push(inArray(places.categoryId, descendantSlugs));
   }
 
   if (conditions.length > 0) {
@@ -73,6 +85,13 @@ export const GET = async ({ request }: { request: Request }) => {
 
   const result = rows.map((place) => ({
     ...place,
+    category: place.categoryId
+      ? {
+          slug: place.categoryId,
+          label: place.categoryLabel,
+          emoji: place.categoryEmoji,
+        }
+      : null,
     tags: tagsByPlace.get(place.id) ?? [],
   }));
 

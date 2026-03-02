@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   boolean,
   integer,
   jsonb,
@@ -113,8 +114,20 @@ export const eventOrganizers = pgTable("event_organizers", {
   pk: primaryKey({ columns: [table.eventId, table.actorId] }),
 }));
 
+export const placeCategories = pgTable("place_categories", {
+  slug: varchar("slug", { length: 64 }).primaryKey(),
+  label: varchar("label", { length: 128 }).notNull(),
+  emoji: varchar("emoji", { length: 16 }).notNull(),
+  parentSlug: varchar("parent_slug", { length: 64 }).references((): AnyPgColumn => placeCategories.slug),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const places = pgTable("places", {
   id: uuid("id").defaultRandom().primaryKey(),
+  categoryId: varchar("category_id", { length: 64 }).references(() => placeCategories.slug),
   name: varchar("name", { length: 200 }).notNull(),
   description: text("description"),
   latitude: varchar("latitude", { length: 32 }),

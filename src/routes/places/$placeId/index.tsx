@@ -28,6 +28,7 @@ import { Separator } from "~/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { usePostHog } from "posthog-js/react";
 import { LeafletMap } from "~/components/LeafletMap";
+import type { PlaceCategorySummary } from "~/lib/place";
 
 const getPlaceMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ placeId: z.string() })))
@@ -88,7 +89,9 @@ type PlaceDetail = {
     longitude: string | null;
     address: string | null;
     website: string | null;
+    category: PlaceCategorySummary | null;
   };
+  categoryPath: PlaceCategorySummary[];
   tags: Array<{ slug: string; label: string }>;
   recentCheckins: Array<{
     id: string;
@@ -177,7 +180,7 @@ function PlaceDetailPage() {
 
   const { place, tags, recentCheckins, checkinCount, upcomingEvents, mapLinkProviders } = data;
   const hasCoords = place.latitude && place.longitude;
-
+  const categoryPath = data.categoryPath ?? [];
   const mapLinks = hasCoords
     ? mapLinkProviders
         .map((p) => MAP_LINK_BUILDERS[p]?.(place.name, parseFloat(place.latitude!), parseFloat(place.longitude!)))
@@ -189,7 +192,14 @@ function PlaceDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">{place.name}</h2>
+          {categoryPath.length > 0 && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {categoryPath.map((category) => category.label).join(" / ")}
+            </p>
+          )}
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight">
+            {`${place.category?.emoji ?? ""} ${place.name}`.trim()}
+          </h2>
           {place.address && (
             <p className="text-muted-foreground mt-1">{place.address}</p>
           )}
@@ -233,6 +243,7 @@ function PlaceDetailPage() {
             lng: parseFloat(place.longitude!),
             label: place.name,
             id: place.id,
+            glyph: place.category?.emoji ?? null,
           }]}
           height="300px"
         />

@@ -9,14 +9,16 @@ export async function findOrCreatePlace(opts: {
   longitude: number;
   name: string;
   createdById: string;
+  categoryId?: string | null;
 }): Promise<{
   id: string;
   name: string;
+  categoryId: string | null;
   latitude: string | null;
   longitude: string | null;
   created: boolean;
 }> {
-  const { latitude: lat, longitude: lng, name, createdById } = opts;
+  const { latitude: lat, longitude: lng, name, createdById, categoryId } = opts;
 
   const latDelta = NEARBY_THRESHOLD_KM / 111.0;
   const lngDelta =
@@ -34,6 +36,7 @@ export async function findOrCreatePlace(opts: {
     .select({
       id: places.id,
       name: places.name,
+      categoryId: places.categoryId,
       latitude: places.latitude,
       longitude: places.longitude,
     })
@@ -51,9 +54,14 @@ export async function findOrCreatePlace(opts: {
     return { ...nearbyPlace, created: false };
   }
 
+  if (!categoryId) {
+    throw new Error("categoryId is required for new places");
+  }
+
   const [newPlace] = await db
     .insert(places)
     .values({
+      categoryId,
       name: name.trim(),
       latitude: lat.toFixed(6),
       longitude: lng.toFixed(6),
@@ -62,6 +70,7 @@ export async function findOrCreatePlace(opts: {
     .returning({
       id: places.id,
       name: places.name,
+      categoryId: places.categoryId,
       latitude: places.latitude,
       longitude: places.longitude,
     });

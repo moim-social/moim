@@ -9,6 +9,7 @@ export type MapMarker = {
   label: string;
   id: string;
   color?: MarkerColor;
+  glyph?: string | null;
 };
 
 type LeafletMapProps = {
@@ -99,31 +100,55 @@ export function LeafletMap({
       }
 
       // Colored marker icon factory
-      const MARKER_COLORS: Record<MarkerColor, string> = {
-        blue: "#2563eb",
-        red: "#dc2626",
-        green: "#16a34a",
-        gold: "#eab308",
-        gray: "#6b7280",
+      const MARKER_COLORS: Record<MarkerColor, { text: string }> = {
+        blue: {
+          text: "#1e3a8a",
+        },
+        red: {
+          text: "#991b1b",
+        },
+        green: {
+          text: "#166534",
+        },
+        gold: {
+          text: "#92400e",
+        },
+        gray: {
+          text: "#374151",
+        },
       };
-      function makeIcon(color: MarkerColor) {
-        const fill = MARKER_COLORS[color];
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
-          <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 21.9 12.5 41 12.5 41S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="${fill}"/>
-          <circle cx="12.5" cy="12.5" r="6" fill="white"/>
+      const MARKER_BORDER = "#6b7280";
+      function makeIcon(color: MarkerColor, glyph?: string | null) {
+        const palette = MARKER_COLORS[color];
+        const glyphMarkup = glyph
+          ? `<text x="22" y="25.5" text-anchor="middle" font-size="18">${glyph}</text>`
+          : `<text x="22" y="24.5" text-anchor="middle" font-size="14" fill="${palette.text}">•</text>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="48" viewBox="0 0 44 48">
+          <defs>
+            <filter id="marker-shadow" x="-20%" y="-20%" width="140%" height="160%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.18"/>
+            </filter>
+          </defs>
+          <g filter="url(#marker-shadow)">
+            <rect x="4" y="4" width="36" height="30" rx="10" fill="#ffffff" stroke="${MARKER_BORDER}" stroke-width="1.5"/>
+            <path d="M18 34 L18 44 L26 34" fill="#ffffff" stroke="${MARKER_BORDER}" stroke-width="1.5" stroke-linejoin="round"/>
+          </g>
+          ${glyphMarkup}
         </svg>`;
         return L.divIcon({
           html: svg,
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
+          iconSize: [44, 48],
+          iconAnchor: [22, 48],
+          popupAnchor: [0, -42],
           className: "",
         });
       }
 
       // Add new markers
       for (const marker of markers) {
-        const icon = marker.color ? makeIcon(marker.color) : undefined;
+        const icon = marker.color || marker.glyph
+          ? makeIcon(marker.color ?? "blue", marker.glyph)
+          : undefined;
         const m = L.marker([marker.lat, marker.lng], icon ? { icon } : {})
           .addTo(mapRef.current)
           .bindTooltip(marker.label);

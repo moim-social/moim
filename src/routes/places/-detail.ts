@@ -1,7 +1,8 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { places, placeTags, tags, checkins, users, events } from "~/server/db/schema";
+import { checkins, events, placeCategories, places, placeTags, tags, users } from "~/server/db/schema";
 import { env } from "~/server/env";
+import { getCategoryPath, getPlaceCategories } from "~/server/places/categories";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -12,8 +13,26 @@ export const GET = async ({ request }: { request: Request }) => {
   }
 
   const [place] = await db
-    .select()
+    .select({
+      id: places.id,
+      categoryId: places.categoryId,
+      name: places.name,
+      description: places.description,
+      latitude: places.latitude,
+      longitude: places.longitude,
+      address: places.address,
+      website: places.website,
+      mapImageUrl: places.mapImageUrl,
+      createdById: places.createdById,
+      createdAt: places.createdAt,
+      updatedAt: places.updatedAt,
+      categoryLabel: placeCategories.label,
+      categoryEmoji: placeCategories.emoji,
+      categorySlug: placeCategories.slug,
+      categoryEnabled: placeCategories.enabled,
+    })
     .from(places)
+    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.slug))
     .where(eq(places.id, placeId))
     .limit(1);
 
@@ -62,8 +81,34 @@ export const GET = async ({ request }: { request: Request }) => {
         .limit(5),
     ]);
 
+  const categoryPath = place.categoryId
+    ? getCategoryPath(place.categoryId, await getPlaceCategories(true)).map((row) => ({
+        slug: row.slug,
+        label: row.label,
+        emoji: row.emoji,
+        enabled: row.enabled,
+      }))
+    : [];
+
   return Response.json({
-    place,
+    place: {
+      id: place.id,
+      name: place.name,
+      description: place.description,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      address: place.address,
+      website: place.website,
+      category: place.categoryId
+        ? {
+            slug: place.categorySlug,
+            label: place.categoryLabel,
+            emoji: place.categoryEmoji,
+            enabled: place.categoryEnabled,
+          }
+        : null,
+    },
+    categoryPath,
     tags: placeTags_,
     recentCheckins,
     checkinCount: checkinCountRow?.count ?? 0,
