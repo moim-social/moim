@@ -51,6 +51,7 @@ import { POST as regeneratePlaceSnapshot } from "./routes/admin/-place-snapshot"
 import { POST as bulkRegeneratePlaceSnapshots } from "./routes/admin/-place-snapshots-bulk";
 import { GET as listUsers } from "./routes/admin/users/-list";
 import { GET as userDetail } from "./routes/admin/users/-detail";
+import { GET as listAdminGroups, PATCH as toggleGroupVerified } from "./routes/admin/-groups";
 import { GET as getCarouselSlides } from "./routes/-carousel";
 import { POST as trackBannerClick } from "./routes/-banner-click";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
@@ -415,6 +416,14 @@ apiRouter.delete("/admin/banners/:bannerId", defineEventHandler(async (event) =>
 
 apiRouter.get("/admin/users", defineEventHandler(async (event) => {
   return listUsers({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/admin/groups", defineEventHandler(async (event) => {
+  return listAdminGroups({ request: toWebRequest(event) });
+}));
+
+apiRouter.patch("/admin/groups", defineEventHandler(async (event) => {
+  return toggleGroupVerified({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/admin/place-categories", defineEventHandler(async (event) => {
