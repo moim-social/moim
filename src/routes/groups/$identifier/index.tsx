@@ -76,6 +76,7 @@ type GroupData = {
     avatarUrl: string | null;
     categories: string[] | null;
     language: string | null;
+    verified: boolean;
     followersCount: number;
     createdAt: string;
   };
@@ -169,6 +170,9 @@ function ProfilePage() {
                   {group.name ?? `@${handle}`}
                 </h2>
                 <Badge variant="secondary" className="shrink-0">Group</Badge>
+                {group.verified && (
+                  <Badge variant="default" className="shrink-0 bg-blue-600 hover:bg-blue-700">Official</Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">@{handle}</p>
             </div>
