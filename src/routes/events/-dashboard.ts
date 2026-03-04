@@ -131,6 +131,23 @@ export const GET = async ({ request }: { request: Request }) => {
     .orderBy(sql`${activityLogs.createdAt} DESC`)
     .limit(20);
 
+  // Per-participant engagement breakdown
+  const participantEngagement = await db
+    .select({
+      actorId: activityLogs.actorId,
+      actorHandle: actors.handle,
+      actorName: actors.name,
+      reactionCount: sql<number>`count(*) filter (where ${activityLogs.type} in ('like', 'emoji_react'))::int`,
+      replyCount: sql<number>`count(*) filter (where ${activityLogs.type} in ('reply', 'quote'))::int`,
+      announceCount: sql<number>`count(*) filter (where ${activityLogs.type} = 'announce')::int`,
+      totalEngagement: sql<number>`count(*)::int`,
+    })
+    .from(activityLogs)
+    .innerJoin(actors, eq(activityLogs.actorId, actors.id))
+    .where(eq(activityLogs.eventId, eventId))
+    .groupBy(activityLogs.actorId, actors.handle, actors.name)
+    .orderBy(sql`count(*) DESC`);
+
   // Compute event status
   const now = new Date();
   const status =
@@ -146,5 +163,6 @@ export const GET = async ({ request }: { request: Request }) => {
     attendees,
     engagementCounts,
     recentActivity,
+    participantEngagement,
   });
 };

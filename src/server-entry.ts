@@ -56,6 +56,7 @@ import { POST as trackBannerClick } from "./routes/-banner-click";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
 import { GET as groupFeed } from "./routes/groups/-feed";
 import { GET as eventDashboard } from "./routes/events/-dashboard";
+import { GET as eventDashboardActivity } from "./routes/events/-dashboard-activity";
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -320,6 +321,14 @@ apiRouter.get("/events/:eventId/dashboard", defineEventHandler(async (event) => 
   const eventId = event.context.params?.eventId;
   return eventDashboard({
     request: forwardGet(request, `/api/events/${eventId}/dashboard`, { eventId }),
+  });
+}));
+
+apiRouter.get("/events/:eventId/dashboard/activity", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  return eventDashboardActivity({
+    request: forwardGet(request, `/api/events/${eventId}/dashboard/activity`, { eventId }),
   });
 }));
 
