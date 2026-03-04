@@ -175,6 +175,7 @@ export const GET = async ({ request }: { request: Request }) => {
       avatarUrl: group.avatarUrl,
       categories: group.categories,
       language: group.language,
+      verified: group.verified,
       followersCount: followers.length,
       createdAt: group.createdAt,
     },
