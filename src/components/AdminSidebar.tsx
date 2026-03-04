@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
+  UsersRound,
   Shield,
   BarChart3,
   ArrowLeft,
@@ -26,6 +27,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Management",
     items: [
       { to: "/admin/users", icon: Users, label: "Users" },
+      { to: "/admin/groups", icon: UsersRound, label: "Groups" },
       { to: "/admin/banners", icon: Image, label: "Banners" },
       { to: "/admin/places", icon: MapPinned, label: "Places" },
       { to: "/admin/place-categories", icon: Tags, label: "Place Categories" },
