@@ -438,6 +438,7 @@ function CreateEventPage() {
                 <PlacePicker
                   value={selectedPlace}
                   onChange={setSelectedPlace}
+                  groupActorId={groupActorId || undefined}
                 />
               </div>
 

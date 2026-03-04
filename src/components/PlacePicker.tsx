@@ -24,9 +24,10 @@ export type SelectedPlace = {
 type PlacePickerProps = {
   value: SelectedPlace | null;
   onChange: (place: SelectedPlace | null) => void;
+  groupActorId?: string;
 };
 
-export function PlacePicker({ value, onChange }: PlacePickerProps) {
+export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps) {
   const [placeCategories, setPlaceCategories] = useState<PlaceCategoryOption[]>([]);
   useEffect(() => {
     fetch("/api/place-categories")
@@ -52,6 +53,32 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
       { enableHighAccuracy: false, timeout: 5000 },
     );
   }, []);
+
+  // Group places
+  const [groupPlaces, setGroupPlaces] = useState<NearbyPlace[]>([]);
+  useEffect(() => {
+    if (!groupActorId) {
+      setGroupPlaces([]);
+      return;
+    }
+    fetch(`/api/groups/${groupActorId}/places`)
+      .then((r) => r.json())
+      .then((data) =>
+        setGroupPlaces(
+          (data.places ?? []).map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            address: p.address,
+            latitude: p.latitude ?? "0",
+            longitude: p.longitude ?? "0",
+            distance: null,
+            checkinCount: 0,
+            category: p.category ?? null,
+          })),
+        ),
+      )
+      .catch(() => setGroupPlaces([]));
+  }, [groupActorId]);
 
   // Nearby places
   const [nearby, setNearby] = useState<NearbyPlace[]>([]);
@@ -210,7 +237,16 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
   }
 
   // Determine which places to show in the list
-  const displayPlaces = query.length >= 2 ? searchResults : nearby;
+  const groupPlaceIds = new Set(groupPlaces.map((p) => p.id));
+  const displayPlaces = query.length >= 2
+    ? [
+        ...searchResults.filter((p) => groupPlaceIds.has(p.id)),
+        ...searchResults.filter((p) => !groupPlaceIds.has(p.id)),
+      ]
+    : [
+        ...groupPlaces,
+        ...nearby.filter((p) => !groupPlaceIds.has(p.id)),
+      ];
 
   // Memoize map markers to avoid unnecessary LeafletMap re-renders
   const mapMarkers = useMemo(() => {
@@ -242,12 +278,25 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
   // -- Render --
 
   // Selected state — show chip with map preview
+  const isGroupPlace = value ? groupPlaceIds.has(value.id) : false;
+
   if (value) {
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2 rounded-md border-2 border-primary bg-primary/5 p-3">
+        <div className={`flex items-center gap-2 rounded-md border-2 p-3 ${
+          isGroupPlace
+            ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 border-l-4 border-l-emerald-500"
+            : "border-primary bg-primary/5"
+        }`}>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold">{value.name}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-semibold">{value.name}</p>
+              {isGroupPlace && (
+                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold">
+                  Group venue
+                </Badge>
+              )}
+            </div>
             {value.address && (
               <p className="text-xs text-muted-foreground truncate">{value.address}</p>
             )}
@@ -379,28 +428,55 @@ export function PlacePicker({ value, onChange }: PlacePickerProps) {
       )}
 
       {displayPlaces.length > 0 ? (
-        <ul className="border rounded-md max-h-[200px] overflow-auto">
-          {displayPlaces.map((place) => (
-            <li
-              key={place.id}
-              onClick={() => selectPlace(place)}
-              className="px-3 py-2 cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-primary/10 hover:ring-1 hover:ring-inset hover:ring-primary/30"
-            >
-              <div className="font-medium text-sm">{place.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {place.distance != null && formatDistance(place.distance)}
-                {place.address && <>{place.distance != null ? " · " : ""}{place.address}</>}
-                {place.checkinCount > 0 && (
-                  <> · {place.checkinCount} check-in{place.checkinCount !== 1 ? "s" : ""}</>
+        <ul className="border rounded-md max-h-[240px] overflow-auto">
+          {displayPlaces.map((place, idx) => {
+            const isGroup = groupPlaceIds.has(place.id);
+            const prevIsGroup = idx > 0 && groupPlaceIds.has(displayPlaces[idx - 1].id);
+            const showGroupHeader = isGroup && !prevIsGroup;
+            const nextIsGroup = idx < displayPlaces.length - 1 && groupPlaceIds.has(displayPlaces[idx + 1].id);
+            const showDivider = isGroup && !nextIsGroup && idx < displayPlaces.length - 1;
+            return (
+              <li key={place.id}>
+                {showGroupHeader && (
+                  <div className="px-3 py-1.5 bg-emerald-600 dark:bg-emerald-700 text-white text-[11px] font-semibold uppercase tracking-wider">
+                    Group Venues
+                  </div>
                 )}
-              </div>
-              {place.category?.label && (
-                <div className="mt-1 text-[11px] text-muted-foreground">
-                  {`${place.category.emoji ?? ""} ${place.category.label}`.trim()}
+                <div
+                  onClick={() => selectPlace(place)}
+                  className={`px-3 py-2.5 cursor-pointer transition-colors ${
+                    isGroup
+                      ? "border-l-4 border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                      : "border-b border-border last:border-b-0 hover:bg-primary/10"
+                  }`}
+                >
+                  <div className="font-medium text-sm flex items-center gap-1.5">
+                    {place.name}
+                    {isGroup && (
+                      <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] py-0 px-1.5 font-semibold">
+                        Group
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {place.distance != null && formatDistance(place.distance)}
+                    {place.address && <>{place.distance != null ? " · " : ""}{place.address}</>}
+                    {place.checkinCount > 0 && (
+                      <> · {place.checkinCount} check-in{place.checkinCount !== 1 ? "s" : ""}</>
+                    )}
+                  </div>
+                  {place.category?.label && (
+                    <div className="mt-1 text-[11px] text-muted-foreground">
+                      {`${place.category.emoji ?? ""} ${place.category.label}`.trim()}
+                    </div>
+                  )}
                 </div>
-              )}
-            </li>
-          ))}
+                {showDivider && (
+                  <div className="border-b-2 border-emerald-300 dark:border-emerald-700" />
+                )}
+              </li>
+            );
+          })}
         </ul>
       ) : !gpsLoading && !nearbyLoading && !searching && query.length < 2 && nearby.length === 0 ? (
         <p className="text-xs text-muted-foreground">
