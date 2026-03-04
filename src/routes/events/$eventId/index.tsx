@@ -471,7 +471,7 @@ function EventDetailPage() {
             </p>
           ) : null}
           {data.canEdit && (
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2">
               <Button
                 variant="secondary"
                 size="sm"
@@ -480,6 +480,16 @@ function EventDetailPage() {
               >
                 <Link to="/events/$eventId/edit" params={{ eventId }}>
                   Edit Event
+                </Link>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+                asChild
+              >
+                <Link to="/events/$eventId/dashboard" params={{ eventId }}>
+                  Dashboard
                 </Link>
               </Button>
             </div>

@@ -55,6 +55,7 @@ import { GET as getCarouselSlides } from "./routes/-carousel";
 import { POST as trackBannerClick } from "./routes/-banner-click";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
 import { GET as groupFeed } from "./routes/groups/-feed";
+import { GET as eventDashboard } from "./routes/events/-dashboard";
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -311,6 +312,14 @@ apiRouter.get("/events/:eventId/attendees", defineEventHandler(async (event) => 
   const eventId = event.context.params?.eventId;
   return eventAttendees({
     request: forwardGet(request, `/api/events/${eventId}/attendees`, { eventId }),
+  });
+}));
+
+apiRouter.get("/events/:eventId/dashboard", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  return eventDashboard({
+    request: forwardGet(request, `/api/events/${eventId}/dashboard`, { eventId }),
   });
 }));
 

@@ -1,6 +1,6 @@
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql, inArray } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, groupMembers, events, follows, posts, groupPlaces, places, placeCategories } from "~/server/db/schema";
+import { actors, groupMembers, events, follows, posts, groupPlaces, places, placeCategories, activityLogs } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
 export const GET = async ({ request }: { request: Request }) => {
@@ -93,6 +93,59 @@ export const GET = async ({ request }: { request: Request }) => {
     .leftJoin(placeCategories, eq(places.categoryId, placeCategories.slug))
     .where(eq(groupPlaces.groupActorId, group.id));
 
+  // Engagement across all group events
+  const eventIds = groupEvents.map((e) => e.id);
+  let engagementCounts = { reactions: 0, announces: 0, replies: 0, quotes: 0 };
+  let recentActivity: Array<{
+    id: string;
+    type: string;
+    emoji: string | null;
+    content: string | null;
+    createdAt: Date;
+    actorHandle: string;
+    actorName: string | null;
+    eventId: string | null;
+    eventTitle: string | null;
+  }> = [];
+
+  if (eventIds.length > 0) {
+    const engagementRows = await db
+      .select({
+        type: activityLogs.type,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(activityLogs)
+      .where(inArray(activityLogs.eventId, eventIds))
+      .groupBy(activityLogs.type);
+
+    engagementCounts = {
+      reactions: (engagementRows.find((r) => r.type === "like")?.count ?? 0) +
+        (engagementRows.find((r) => r.type === "emoji_react")?.count ?? 0),
+      announces: engagementRows.find((r) => r.type === "announce")?.count ?? 0,
+      replies: engagementRows.find((r) => r.type === "reply")?.count ?? 0,
+      quotes: engagementRows.find((r) => r.type === "quote")?.count ?? 0,
+    };
+
+    recentActivity = await db
+      .select({
+        id: activityLogs.id,
+        type: activityLogs.type,
+        emoji: activityLogs.emoji,
+        content: activityLogs.content,
+        createdAt: activityLogs.createdAt,
+        actorHandle: actors.handle,
+        actorName: actors.name,
+        eventId: activityLogs.eventId,
+        eventTitle: events.title,
+      })
+      .from(activityLogs)
+      .innerJoin(actors, eq(activityLogs.actorId, actors.id))
+      .leftJoin(events, eq(activityLogs.eventId, events.id))
+      .where(inArray(activityLogs.eventId, eventIds))
+      .orderBy(sql`${activityLogs.createdAt} DESC`)
+      .limit(20);
+  }
+
   // Check if the current user is a member (join through actors to match any actor for this user)
   let currentUserRole: string | null = null;
   const user = await getSessionUser(request);
@@ -140,6 +193,8 @@ export const GET = async ({ request }: { request: Request }) => {
         ? { slug: p.categorySlug, label: p.categoryLabel, emoji: p.categoryEmoji }
         : null,
     })),
+    engagementCounts,
+    recentActivity,
     currentUserRole,
   });
 };
