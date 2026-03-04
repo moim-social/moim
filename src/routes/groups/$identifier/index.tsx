@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
-import { Calendar } from "lucide-react";
+import { Calendar, BadgeCheck } from "lucide-react";
 
 const getGroupMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ handle: z.string() })))
@@ -169,10 +169,10 @@ function ProfilePage() {
                 <h2 className="text-xl font-semibold tracking-tight truncate">
                   {group.name ?? `@${handle}`}
                 </h2>
-                <Badge variant="secondary" className="shrink-0">Group</Badge>
                 {group.verified && (
-                  <Badge variant="default" className="shrink-0 bg-blue-600 hover:bg-blue-700">Official</Badge>
+                  <BadgeCheck className="size-5 text-primary shrink-0" />
                 )}
+                <Badge variant="secondary" className="shrink-0">Group</Badge>
               </div>
               <p className="text-sm text-muted-foreground">@{handle}</p>
             </div>

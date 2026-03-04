@@ -164,9 +164,9 @@ function AdminGroupsPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       {group.verified ? (
-                        <Badge variant="default" className="bg-blue-600">Official</Badge>
+                        <Badge variant="default">Official</Badge>
                       ) : (
-                        <Badge variant="outline">Unverified</Badge>
+                        <Badge variant="secondary">Unverified</Badge>
                       )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
@@ -176,7 +176,6 @@ function AdminGroupsPage() {
                       <Button
                         variant={group.verified ? "outline" : "default"}
                         size="sm"
-                        className={!group.verified ? "bg-blue-600 hover:bg-blue-700" : ""}
                         disabled={toggling === group.id}
                         onClick={() => toggleVerified(group)}
                       >
