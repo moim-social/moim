@@ -44,6 +44,7 @@ import { GET as listBanners, POST as createBanner, PUT as updateBanner, DELETE a
 import { GET as getUserSettings, PATCH as updateUserSettings } from "./routes/users/-settings";
 import { GET as listAdminPlaceCategories, POST as createAdminPlaceCategory, PATCH as updateAdminPlaceCategory, PUT as importAdminPlaceCategories } from "./routes/admin/-place-categories";
 import { GET as listAdminPlaces, PATCH as updateAdminPlace } from "./routes/admin/-places";
+import { GET as listAdminGroupPlaces, POST as assignGroupPlace, DELETE as unassignGroupPlace } from "./routes/admin/-group-places";
 import { POST as regeneratePlaceSnapshot } from "./routes/admin/-place-snapshot";
 import { POST as bulkRegeneratePlaceSnapshots } from "./routes/admin/-place-snapshots-bulk";
 import { GET as listUsers } from "./routes/admin/users/-list";
@@ -419,6 +420,18 @@ apiRouter.post("/admin/places/:placeId/regenerate-snapshot", defineEventHandler(
 
 apiRouter.post("/admin/places/regenerate-snapshots", defineEventHandler(async (event) => {
   return bulkRegeneratePlaceSnapshots({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/admin/group-places", defineEventHandler(async (event) => {
+  return listAdminGroupPlaces({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/admin/group-places", defineEventHandler(async (event) => {
+  return assignGroupPlace({ request: toWebRequest(event) });
+}));
+
+apiRouter.delete("/admin/group-places", defineEventHandler(async (event) => {
+  return unassignGroupPlace({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/admin/users/:userId", defineEventHandler(async (event) => {

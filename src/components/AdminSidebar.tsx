@@ -9,6 +9,7 @@ import {
   Image,
   MapPinned,
   Tags,
+  Building2,
 } from "lucide-react";
 
 type NavItem = { to: string; icon: LucideIcon; label: string; exact?: boolean };
@@ -28,6 +29,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: "/admin/banners", icon: Image, label: "Banners" },
       { to: "/admin/places", icon: MapPinned, label: "Places" },
       { to: "/admin/place-categories", icon: Tags, label: "Place Categories" },
+      { to: "/admin/group-places", icon: Building2, label: "Group Places" },
     ],
   },
   {
