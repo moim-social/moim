@@ -3,6 +3,7 @@ name: Build and Push
 on:
   push:
     branches: [main]
+    tags: ["v*"]
 
 env:
   REGISTRY: ghcr.io
@@ -29,6 +30,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=
             type=raw,value=latest
 
