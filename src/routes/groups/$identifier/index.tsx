@@ -7,6 +7,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors } from "~/server/db/schema";
 import { CATEGORIES } from "~/shared/categories";
+import { languageLabel } from "~/shared/languages";
 import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -65,6 +66,7 @@ type GroupData = {
     website: string | null;
     avatarUrl: string | null;
     categories: string[] | null;
+    language: string | null;
     followersCount: number;
     createdAt: string;
   };
@@ -206,6 +208,9 @@ function ProfilePage() {
             <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
               <span>{group.followersCount} follower{group.followersCount !== 1 ? "s" : ""}</span>
               <span>{events.length} event{events.length !== 1 ? "s" : ""}</span>
+              {languageLabel(group.language) && (
+                <span>{languageLabel(group.language)}</span>
+              )}
             </div>
           </CardContent>
         </Card>

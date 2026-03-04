@@ -41,6 +41,7 @@ import { GET as serveAvatar } from "./routes/avatars/-serve";
 import { GET as serveBanner } from "./routes/banners/-serve";
 import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
 import { GET as listBanners, POST as createBanner, PUT as updateBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
+import { GET as getUserSettings, PATCH as updateUserSettings } from "./routes/users/-settings";
 import { GET as listAdminPlaceCategories, POST as createAdminPlaceCategory, PATCH as updateAdminPlaceCategory, PUT as importAdminPlaceCategories } from "./routes/admin/-place-categories";
 import { GET as listAdminPlaces, PATCH as updateAdminPlace } from "./routes/admin/-places";
 import { POST as regeneratePlaceSnapshot } from "./routes/admin/-place-snapshot";
@@ -142,6 +143,14 @@ apiRouter.get("/session", defineEventHandler(async (event) => {
 
 apiRouter.delete("/session", defineEventHandler(async (event) => {
   return signout({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/users/settings", defineEventHandler(async (event) => {
+  return getUserSettings({ request: toWebRequest(event) });
+}));
+
+apiRouter.patch("/users/settings", defineEventHandler(async (event) => {
+  return updateUserSettings({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/users", defineEventHandler(async (event) => {

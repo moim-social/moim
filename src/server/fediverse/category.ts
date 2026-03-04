@@ -1,8 +1,9 @@
-import { Announce, Create, Mention, Note, PUBLIC_COLLECTION } from "@fedify/fedify";
+import { Announce, Create, LanguageString, Mention, Note, PUBLIC_COLLECTION } from "@fedify/fedify";
 import { Temporal } from "@js-temporal/polyfill";
 import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, posts } from "~/server/db/schema";
+import { getI18n, resolveLocale } from "~/server/i18n";
 import { CATEGORIES } from "~/shared/categories";
 import { getFederationContext } from "./federation";
 
@@ -33,6 +34,7 @@ export async function ensureCategoryActor(
     .limit(1);
   if (existing) return existing;
 
+  const defaultI18n = getI18n();
   const [actor] = await db
     .insert(actors)
     .values({
@@ -40,8 +42,8 @@ export async function ensureCategoryActor(
       type: "Service",
       actorUrl: ctx.getActorUri(handle).href,
       iri: ctx.getActorUri(handle).href,
-      name: `${category.label} Events`,
-      summary: `Event feed for the ${category.label} category on Moim.`,
+      name: defaultI18n._("{categoryLabel} Events", { categoryLabel: category.label }),
+      summary: defaultI18n._("Event feed for the {categoryLabel} category on Moim.", { categoryLabel: category.label }),
       inboxUrl: ctx.getInboxUri(handle).href,
       outboxUrl: ctx.getOutboxUri(handle).href,
       sharedInboxUrl: ctx.getInboxUri().href,
@@ -99,6 +101,9 @@ export async function announceEvent(
   if (!hostActor) throw new Error(`Host actor not found: ${hostActorId}`);
 
   const hostHandle = hostActor.handle;
+  const locale = hostActor.language;
+  const i18n = getI18n(locale);
+  const resolvedLocale = resolveLocale(locale);
 
   // Build HTML content
   const startStr = event.startsAt.toISOString();
@@ -114,14 +119,15 @@ export async function announceEvent(
   if (options?.creatorMention) {
     // Personal event: casual format with visible creator mention
     const cm = options.creatorMention;
+    const hostingMsg = i18n._('<a href="{actorUrl}" class="u-url mention">@{handle}</a> is hosting an event!', { actorUrl: cm.actorUrl, handle: cm.handle });
     content = [
-      `<p><a href="${cm.actorUrl}" class="u-url mention">@${cm.handle}</a> is hosting an event!</p>`,
+      `<p>${hostingMsg}</p>`,
       `<p><strong><a href="${eventUrl}">${event.title}</a></strong></p>`,
       descHtml,
       `<p>📅 ${startStr}${endStr}</p>`,
       event.externalUrl
-        ? `<p><a href="${event.externalUrl}">Register here</a> · <a href="${eventUrl}">Details</a></p>`
-        : `<p><a href="${eventUrl}">RSVP here</a></p>`,
+        ? `<p><a href="${event.externalUrl}">${i18n._("Register here")}</a> · <a href="${eventUrl}">${i18n._("Details")}</a></p>`
+        : `<p><a href="${eventUrl}">${i18n._("RSVP here")}</a></p>`,
     ]
       .filter(Boolean)
       .join("\n");
@@ -146,11 +152,11 @@ export async function announceEvent(
       descHtml,
       `<p>📅 ${startStr}${endStr}</p>`,
       organizers.length > 0
-        ? `<p>Organized by: ${orgMentions}</p>`
+        ? `<p>${i18n._("Organized by: {organizers}", { organizers: orgMentions })}</p>`
         : "",
       event.externalUrl
-        ? `<p><a href="${event.externalUrl}">Register here</a> · <a href="${eventUrl}">Details</a></p>`
-        : `<p><a href="${eventUrl}">View event details</a></p>`,
+        ? `<p><a href="${event.externalUrl}">${i18n._("Register here")}</a> · <a href="${eventUrl}">${i18n._("Details")}</a></p>`
+        : `<p><a href="${eventUrl}">${i18n._("View event details")}</a></p>`,
     ]
       .filter(Boolean)
       .join("\n");
@@ -184,7 +190,7 @@ export async function announceEvent(
   const note = new Note({
     id: noteUri,
     attribution: ctx.getActorUri(hostHandle),
-    content,
+    content: new LanguageString(content, resolvedLocale),
     url: new URL(`/notes/${post.id}`, ctx.canonicalOrigin),
     tags,
     published,

@@ -103,6 +103,7 @@ export const GET = async ({ request }: { request: Request }) => {
       website: group.website,
       avatarUrl: group.avatarUrl,
       categories: group.categories,
+      language: group.language,
       followersCount: followers.length,
       createdAt: group.createdAt,
     },

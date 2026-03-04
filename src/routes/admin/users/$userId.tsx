@@ -11,6 +11,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ArrowLeft } from "lucide-react";
+import { languageLabel } from "~/shared/languages";
 
 export const Route = createFileRoute("/admin/users/$userId")({
   component: AdminUserDetailPage,
@@ -23,6 +24,7 @@ type UserDetail = {
   displayName: string;
   summary: string | null;
   avatarUrl: string | null;
+  language: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -37,6 +39,7 @@ type GroupRow = {
   groupActorId: string;
   groupName: string | null;
   groupHandle: string;
+  groupLanguage: string | null;
   role: string;
   joinedAt: string;
 };
@@ -162,6 +165,9 @@ function AdminUserDetailPage() {
           <div className="flex gap-6 text-xs text-muted-foreground">
             <span>Joined {formatDate(user.createdAt)}</span>
             <span>Updated {formatDate(user.updatedAt)}</span>
+            {languageLabel(user.language) && (
+              <span>Language: {languageLabel(user.language)}</span>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -254,6 +260,7 @@ function AdminUserDetailPage() {
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="px-4 py-3 text-left font-medium">Group</th>
+                    <th className="px-4 py-3 text-left font-medium">Language</th>
                     <th className="px-4 py-3 text-center font-medium">Role</th>
                     <th className="px-4 py-3 text-left font-medium">Joined</th>
                   </tr>
@@ -272,6 +279,9 @@ function AdminUserDetailPage() {
                         >
                           {group.groupName ?? `@${group.groupHandle}`}
                         </Link>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">
+                        {languageLabel(group.groupLanguage) ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant="secondary">{group.role}</Badge>

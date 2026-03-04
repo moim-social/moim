@@ -1,4 +1,5 @@
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { lingui } from "@lingui/vite-plugin";
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
@@ -18,6 +19,7 @@ export default defineConfig({
     }),
     tsconfigPaths(),
     tailwindcss(),
+    lingui(),
   ],
   esbuild: {
     jsx: "automatic",

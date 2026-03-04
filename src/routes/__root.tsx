@@ -143,6 +143,9 @@ function RootLayout() {
                           <DropdownMenuItem onClick={() => navigate({ to: "/groups/my" })}>
                             My Groups
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
+                            Settings
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => navigate({ to: "/groups/create" })}>
                             Create Group

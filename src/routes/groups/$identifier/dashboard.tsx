@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { CATEGORIES } from "~/shared/categories";
+import { languageLabel } from "~/shared/languages";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
@@ -37,6 +38,7 @@ type GroupData = {
     website: string | null;
     avatarUrl: string | null;
     categories: string[] | null;
+    language: string | null;
     followersCount: number;
     createdAt: string;
   };
@@ -349,6 +351,11 @@ function GroupDashboard() {
                   </Badge>
                 ))}
               </div>
+            )}
+            {languageLabel(group.language) && (
+              <p className="text-sm text-muted-foreground">
+                Default language: {languageLabel(group.language)}
+              </p>
             )}
           </CardContent>
         </Card>

@@ -1,8 +1,9 @@
-import { Create, Image, Mention, Note, Place, PUBLIC_COLLECTION } from "@fedify/fedify";
+import { Create, Image, LanguageString, Mention, Note, Place, PUBLIC_COLLECTION } from "@fedify/fedify";
 import { Temporal } from "@js-temporal/polyfill";
 import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, places as placesTable, posts, users } from "~/server/db/schema";
+import { getI18n, resolveLocale } from "~/server/i18n";
 import { getFederationContext } from "./federation";
 
 /**
@@ -40,6 +41,8 @@ export async function postCheckin(
   const user = userRows[0];
 
   const proxyHandle = personActor.handle;
+  const locale = personActor.language;
+  const i18n = getI18n(locale);
   const placeUrl = new URL(`/places/${place.id}`, ctx.canonicalOrigin).href;
 
   // Build mention tag for the user's original remote actor
@@ -49,9 +52,10 @@ export async function postCheckin(
     : "";
 
   // Build HTML content
-  const content = checkin.note
-    ? `<p>Checked in at <a href="${placeUrl}">${place.name}</a>${mentionHtml}</p><p>${checkin.note}</p>`
-    : `<p>Checked in at <a href="${placeUrl}">${place.name}</a>${mentionHtml}</p>`;
+  const checkinMsg = checkin.note
+    ? i18n._("Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}</p><p>{note}", { placeUrl, placeName: place.name, mentionHtml, note: checkin.note })
+    : i18n._("Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}", { placeUrl, placeName: place.name, mentionHtml });
+  const content = `<p>${checkinMsg}</p>`;
 
   // Build Mention tags array
   const tags: Mention[] = [];
@@ -106,15 +110,16 @@ export async function postCheckin(
       new Image({
         url: new URL(mapImageUrl),
         mediaType: "image/png",
-        name: `Map of ${place.name}`,
+        name: i18n._("Map of {placeName}", { placeName: place.name }),
       }),
     );
   }
 
+  const resolvedLocale = resolveLocale(locale);
   const note = new Note({
     id: noteUri,
     attribution: ctx.getActorUri(proxyHandle),
-    content,
+    content: new LanguageString(content, resolvedLocale),
     location: apPlace,
     attachments,
     tags,

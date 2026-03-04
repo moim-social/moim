@@ -18,6 +18,7 @@ export const POST = async ({ request }: { request: Request }) => {
     summary?: string;
     website?: string;
     categories?: string[];
+    language?: string;
   } | null;
 
   if (!body?.handle || !body?.name?.trim() || !body?.summary?.trim()) {
@@ -61,6 +62,7 @@ export const POST = async ({ request }: { request: Request }) => {
   );
 
   try {
+    const language = body.language?.trim() || null;
     await db
       .update(actors)
       .set({
@@ -68,6 +70,7 @@ export const POST = async ({ request }: { request: Request }) => {
         summary: body.summary.trim(),
         website: body.website?.trim() || null,
         categories: categories.length > 0 ? categories : null,
+        language,
         updatedAt: new Date(),
       })
       .where(eq(actors.id, group.id));

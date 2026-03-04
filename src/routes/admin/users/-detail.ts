@@ -30,6 +30,15 @@ export const GET = async ({ request }: { request: Request }) => {
     return Response.json({ error: "User not found" }, { status: 404 });
   }
 
+  // Fetch proxy actor language
+  const [proxyActor] = await db
+    .select({ language: actors.language })
+    .from(actors)
+    .where(
+      sql`${actors.userId} = ${userId} AND ${actors.type} = 'Person' AND ${actors.isLocal} = true`,
+    )
+    .limit(1);
+
   const [userSessions, userGroups, userEvents, userCheckins, [sessionCountRow]] =
     await Promise.all([
       // Active sessions
@@ -50,6 +59,7 @@ export const GET = async ({ request }: { request: Request }) => {
           groupActorId: actors.id,
           groupName: actors.name,
           groupHandle: actors.handle,
+          groupLanguage: actors.language,
           role: groupMembers.role,
           joinedAt: groupMembers.createdAt,
         })
@@ -100,7 +110,7 @@ export const GET = async ({ request }: { request: Request }) => {
     ]);
 
   return Response.json({
-    user: userRow,
+    user: { ...userRow, language: proxyActor?.language ?? null },
     sessions: userSessions,
     groups: userGroups,
     events: userEvents,

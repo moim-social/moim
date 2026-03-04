@@ -19,6 +19,7 @@
     "@fedify/fedify": "^1.9.0",
     "@fedify/h3": "^1.9.0",
     "@js-temporal/polyfill": "^0.5.1",
+    "@lingui/core": "^5.9.2",
     "@tailwindcss/vite": "^4.2.0",
     "@tanstack/react-query": "^5.90.0",
     "@tanstack/react-router": "1.157.16",
@@ -50,6 +51,8 @@
     ]
   },
   "devDependencies": {
+    "@lingui/cli": "^5.9.2",
+    "@lingui/vite-plugin": "^5.9.2",
     "@tanstack/router-devtools": "1.157.16",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22",

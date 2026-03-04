@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
 } from "~/components/ui/dropdown-menu";
 import { Search, ChevronLeft, ChevronRight, MoreHorizontal, Eye, Copy } from "lucide-react";
+import { languageLabel } from "~/shared/languages";
 
 export const Route = createFileRoute("/admin/users/")({
   component: AdminUsersPage,
@@ -23,6 +24,7 @@ type UserRow = {
   displayName: string;
   avatarUrl: string | null;
   createdAt: string;
+  language: string | null;
   groupCount: number;
   eventCount: number;
   checkinCount: number;
@@ -120,6 +122,7 @@ function AdminUsersPage() {
                   <th className="px-4 py-3 text-left font-medium">
                     Fediverse Handle
                   </th>
+                  <th className="px-4 py-3 text-left font-medium">Language</th>
                   <th className="px-4 py-3 text-center font-medium">Groups</th>
                   <th className="px-4 py-3 text-center font-medium">Events</th>
                   <th className="px-4 py-3 text-center font-medium">
@@ -163,6 +166,9 @@ function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
                       {user.fediverseHandle || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {languageLabel(user.language) ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Badge variant="secondary">{user.groupCount}</Badge>

@@ -1,0 +1,48 @@
+msgid ""
+msgstr ""
+"Language: ja\n"
+
+msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}"
+msgstr "<a href=\"{placeUrl}\">{placeName}</a>にチェックイン{mentionHtml}"
+
+msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}</p><p>{note}"
+msgstr "<a href=\"{placeUrl}\">{placeName}</a>にチェックイン{mentionHtml}</p><p>{note}"
+
+msgid "Map of {placeName}"
+msgstr "{placeName}の地図"
+
+msgid "{categoryLabel} Events"
+msgstr "{categoryLabel} イベント"
+
+msgid "Event feed for the {categoryLabel} category on Moim."
+msgstr "Moimの{categoryLabel}カテゴリのイベントフィードです。"
+
+msgid "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
+msgstr "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> さんがイベントを開催します！"
+
+msgid "Register here"
+msgstr "参加登録"
+
+msgid "Details"
+msgstr "詳細"
+
+msgid "RSVP here"
+msgstr "参加する"
+
+msgid "Organized by: {organizers}"
+msgstr "主催: {organizers}"
+
+msgid "View event details"
+msgstr "イベント詳細を見る"
+
+msgid "An instance actor for Moim."
+msgstr "Moimのインスタンスアクターです。"
+
+msgid "page"
+msgstr "ページ"
+
+msgid "website"
+msgstr "ウェブサイト"
+
+msgid "moderators"
+msgstr "モデレーター"

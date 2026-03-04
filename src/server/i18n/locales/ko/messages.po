@@ -1,0 +1,48 @@
+msgid ""
+msgstr ""
+"Language: ko\n"
+
+msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}"
+msgstr "<a href=\"{placeUrl}\">{placeName}</a>에 체크인{mentionHtml}"
+
+msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}</p><p>{note}"
+msgstr "<a href=\"{placeUrl}\">{placeName}</a>에 체크인{mentionHtml}</p><p>{note}"
+
+msgid "Map of {placeName}"
+msgstr "{placeName} 지도"
+
+msgid "{categoryLabel} Events"
+msgstr "{categoryLabel} 이벤트"
+
+msgid "Event feed for the {categoryLabel} category on Moim."
+msgstr "Moim의 {categoryLabel} 카테고리 이벤트 피드입니다."
+
+msgid "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
+msgstr "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> 님이 이벤트를 개최합니다!"
+
+msgid "Register here"
+msgstr "참가 신청"
+
+msgid "Details"
+msgstr "자세히 보기"
+
+msgid "RSVP here"
+msgstr "참가 신청하기"
+
+msgid "Organized by: {organizers}"
+msgstr "주최: {organizers}"
+
+msgid "View event details"
+msgstr "이벤트 상세 보기"
+
+msgid "An instance actor for Moim."
+msgstr "Moim의 인스턴스 액터입니다."
+
+msgid "page"
+msgstr "페이지"
+
+msgid "website"
+msgstr "웹사이트"
+
+msgid "moderators"
+msgstr "운영진"

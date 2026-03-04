@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
+import { languageLabel } from "~/shared/languages";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import {
   Card,
@@ -21,6 +22,7 @@ type GroupSummary = {
   name: string | null;
   summary: string | null;
   categories: string[] | null;
+  language: string | null;
   avatarUrl: string | null;
   role: string;
   followersCount: number;
@@ -112,6 +114,9 @@ function MyGroupsPage() {
                       <p className="text-xs text-muted-foreground">@{group.handle}</p>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+                      {languageLabel(group.language) && (
+                        <span>{languageLabel(group.language)}</span>
+                      )}
                       <span>{group.followersCount} follower{group.followersCount !== 1 ? "s" : ""}</span>
                       <span>{group.membersCount} member{group.membersCount !== 1 ? "s" : ""}</span>
                       <span>

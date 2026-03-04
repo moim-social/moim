@@ -32,6 +32,9 @@ export const env = {
     .map(s => s.trim())
     .filter(Boolean),
 
+  // i18n
+  defaultLocale: process.env.DEFAULT_LOCALE ?? "en",
+
   // Map link providers (comma-separated: kakao,naver,google)
   mapLinkProviders: (process.env.MAP_LINK_PROVIDERS ?? "").split(",").map(s => s.trim()).filter(Boolean),
 

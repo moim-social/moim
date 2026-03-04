@@ -18,6 +18,7 @@ export const GET = async ({ request }: { request: Request }) => {
       name: actors.name,
       summary: actors.summary,
       categories: actors.categories,
+      language: actors.language,
       avatarUrl: actors.avatarUrl,
       role: groupMembers.role,
     })
@@ -57,6 +58,7 @@ export const GET = async ({ request }: { request: Request }) => {
         name: row.name,
         summary: row.summary,
         categories: row.categories,
+        language: row.language,
         avatarUrl: row.avatarUrl,
         role: row.role,
         followersCount: followerCount.count,

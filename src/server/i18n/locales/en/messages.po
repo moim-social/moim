@@ -1,0 +1,48 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+
+msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}"
+msgstr "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}"
+
+msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}</p><p>{note}"
+msgstr "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}</p><p>{note}"
+
+msgid "Map of {placeName}"
+msgstr "Map of {placeName}"
+
+msgid "{categoryLabel} Events"
+msgstr "{categoryLabel} Events"
+
+msgid "Event feed for the {categoryLabel} category on Moim."
+msgstr "Event feed for the {categoryLabel} category on Moim."
+
+msgid "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
+msgstr "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
+
+msgid "Register here"
+msgstr "Register here"
+
+msgid "Details"
+msgstr "Details"
+
+msgid "RSVP here"
+msgstr "RSVP here"
+
+msgid "Organized by: {organizers}"
+msgstr "Organized by: {organizers}"
+
+msgid "View event details"
+msgstr "View event details"
+
+msgid "An instance actor for Moim."
+msgstr "An instance actor for Moim."
+
+msgid "page"
+msgstr "page"
+
+msgid "website"
+msgstr "website"
+
+msgid "moderators"
+msgstr "moderators"

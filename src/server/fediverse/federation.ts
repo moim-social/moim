@@ -29,6 +29,7 @@ import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, follows, groupMembers, keypairs, otpChallenges, otpVotes, places, posts, users } from "~/server/db/schema";
 import { env } from "~/server/env";
+import { getI18n } from "~/server/i18n";
 import { EMOJI_SET } from "~/server/fediverse/otp";
 
 // --- Instance actor key (parsed once at startup) ---
@@ -84,7 +85,7 @@ async function ensureInstanceActor(ctx: Context<void>): Promise<void> {
       domain: hostname,
       isLocal: true,
       name: "Moim",
-      summary: "An instance actor for Moim.",
+      summary: getI18n()._("An instance actor for Moim."),
     })
     .onConflictDoNothing();
 }
@@ -118,11 +119,12 @@ federation
     if (identifier === getInstanceHostname()) {
       await ensureInstanceActor(ctx);
       const keys = await ctx.getActorKeyPairs(identifier);
+      const instanceI18n = getI18n();
       return new Application({
         id: ctx.getActorUri(identifier),
         preferredUsername: identifier,
         name: "Moim",
-        summary: "An instance actor for Moim.",
+        summary: instanceI18n._("An instance actor for Moim."),
         icon: new Image({
           url: new URL("/logo.png", ctx.canonicalOrigin),
           mediaType: "image/png",
@@ -148,6 +150,7 @@ federation
     // Group actor
     if (actor?.type === "Group") {
       const keys = await ctx.getActorKeyPairs(identifier);
+      const groupI18n = getI18n(actor.language);
 
       // Build PropertyValue attachments
       const attachments: PropertyValue[] = [];
@@ -156,7 +159,7 @@ federation
       const pageUrl = new URL(`/groups/@${identifier}`, ctx.canonicalOrigin).href;
       attachments.push(
         new PropertyValue({
-          name: "page",
+          name: groupI18n._("page"),
           value: `<a href="${pageUrl}" rel="nofollow noopener noreferrer" target="_blank">${pageUrl}</a>`,
         }),
       );
@@ -165,7 +168,7 @@ federation
       if (actor.website) {
         attachments.push(
           new PropertyValue({
-            name: "website",
+            name: groupI18n._("website"),
             value: `<a href="${actor.website}" rel="nofollow noopener noreferrer" target="_blank">${actor.website}</a>`,
           }),
         );
@@ -186,7 +189,7 @@ federation
           .map((m) => `<a href="${m.actorUrl}" rel="nofollow noopener noreferrer" target="_blank">@${m.handle}</a>`)
           .join(", ");
         attachments.push(
-          new PropertyValue({ name: "moderators", value: moderatorLinks }),
+          new PropertyValue({ name: groupI18n._("moderators"), value: moderatorLinks }),
         );
       }
 

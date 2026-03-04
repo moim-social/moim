@@ -34,6 +34,11 @@ export const GET = async ({ request }: { request: Request }) => {
         SELECT count(*)::int FROM checkins c
         WHERE c.user_id = "users"."id"
       ), 0)`,
+      language: sql<string | null>`(
+        SELECT a.language FROM actors a
+        WHERE a.user_id = "users"."id" AND a.type = 'Person' AND a.is_local = true
+        LIMIT 1
+      )`,
     })
     .from(users)
     .$dynamic();
