@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, groupMembers, events, follows, posts } from "~/server/db/schema";
+import { actors, groupMembers, events, follows, posts, groupPlaces, places, placeCategories } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
 export const GET = async ({ request }: { request: Request }) => {
@@ -75,6 +75,23 @@ export const GET = async ({ request }: { request: Request }) => {
     .where(eq(posts.actorId, group.id))
     .orderBy(posts.published);
 
+  // Get places assigned to this group
+  const groupPlaceRows = await db
+    .select({
+      id: places.id,
+      name: places.name,
+      address: places.address,
+      latitude: places.latitude,
+      longitude: places.longitude,
+      categorySlug: placeCategories.slug,
+      categoryLabel: placeCategories.label,
+      categoryEmoji: placeCategories.emoji,
+    })
+    .from(groupPlaces)
+    .innerJoin(places, eq(groupPlaces.placeId, places.id))
+    .leftJoin(placeCategories, eq(places.categoryId, placeCategories.slug))
+    .where(eq(groupPlaces.groupActorId, group.id));
+
   // Check if the current user is a member (join through actors to match any actor for this user)
   let currentUserRole: string | null = null;
   const user = await getSessionUser(request);
@@ -111,6 +128,16 @@ export const GET = async ({ request }: { request: Request }) => {
     followers,
     events: groupEvents,
     posts: groupPosts,
+    places: groupPlaceRows.map((p) => ({
+      id: p.id,
+      name: p.name,
+      address: p.address,
+      latitude: p.latitude,
+      longitude: p.longitude,
+      category: p.categorySlug
+        ? { slug: p.categorySlug, label: p.categoryLabel, emoji: p.categoryEmoji }
+        : null,
+    })),
     currentUserRole,
   });
 };
