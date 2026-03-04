@@ -28,6 +28,7 @@ import { Separator } from "~/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { usePostHog } from "posthog-js/react";
 import { LeafletMap } from "~/components/LeafletMap";
+import { Calendar } from "lucide-react";
 import type { PlaceCategorySummary } from "~/lib/place";
 
 const getPlaceMeta = createServerFn({ method: "GET" })
@@ -107,6 +108,7 @@ type PlaceDetail = {
     title: string;
     startsAt: string;
   }>;
+  managedByGroup: boolean;
   mapLinkProviders: string[];
 };
 
@@ -178,7 +180,7 @@ function PlaceDetailPage() {
     );
   }
 
-  const { place, tags, recentCheckins, checkinCount, upcomingEvents, mapLinkProviders } = data;
+  const { place, tags, recentCheckins, checkinCount, upcomingEvents, managedByGroup, mapLinkProviders } = data;
   const hasCoords = place.latitude && place.longitude;
   const categoryPath = data.categoryPath ?? [];
   const mapLinks = hasCoords
@@ -219,9 +221,19 @@ function PlaceDetailPage() {
             </div>
           )}
         </div>
-        {user && (
-          <Button onClick={() => setCheckinOpen(true)}>Check In</Button>
-        )}
+        <div className="flex gap-2">
+          {managedByGroup && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/places/$placeId/events" params={{ placeId: place.id }}>
+                <Calendar className="size-4" />
+                Events
+              </Link>
+            </Button>
+          )}
+          {user && (
+            <Button onClick={() => setCheckinOpen(true)}>Check In</Button>
+          )}
+        </div>
       </div>
 
       {/* Tags */}

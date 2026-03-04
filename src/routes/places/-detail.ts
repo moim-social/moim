@@ -1,6 +1,6 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { checkins, events, placeCategories, places, placeTags, tags, users } from "~/server/db/schema";
+import { checkins, events, groupPlaces, placeCategories, places, placeTags, tags, users } from "~/server/db/schema";
 import { env } from "~/server/env";
 import { getCategoryPath, getPlaceCategories } from "~/server/places/categories";
 
@@ -41,7 +41,7 @@ export const GET = async ({ request }: { request: Request }) => {
   }
 
   // Run independent queries in parallel
-  const [placeTags_, recentCheckins, [checkinCountRow], upcomingEvents] =
+  const [placeTags_, recentCheckins, [checkinCountRow], upcomingEvents, [groupPlaceRow]] =
     await Promise.all([
       db
         .select({
@@ -79,6 +79,10 @@ export const GET = async ({ request }: { request: Request }) => {
         .where(and(eq(events.placeId, placeId), gte(events.startsAt, new Date())))
         .orderBy(events.startsAt)
         .limit(5),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(groupPlaces)
+        .where(eq(groupPlaces.placeId, placeId)),
     ]);
 
   const categoryPath = place.categoryId
@@ -113,6 +117,7 @@ export const GET = async ({ request }: { request: Request }) => {
     recentCheckins,
     checkinCount: checkinCountRow?.count ?? 0,
     upcomingEvents,
+    managedByGroup: (groupPlaceRow?.count ?? 0) > 0,
     mapLinkProviders: env.mapLinkProviders,
   });
 };

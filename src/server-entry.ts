@@ -36,6 +36,7 @@ import { GET as placeCheckins } from "./routes/places/-checkins";
 import { GET as nearbyPlaces } from "./routes/places/-nearby";
 import { POST as findOrCreatePlace } from "./routes/places/-find-or-create";
 import { GET as listPlaceCategories } from "./routes/places/-categories";
+import { GET as placeEvents } from "./routes/places/-events";
 import { GET as serveMap } from "./routes/maps/-serve";
 import { GET as serveAvatar } from "./routes/avatars/-serve";
 import { GET as serveBanner } from "./routes/banners/-serve";
@@ -341,6 +342,14 @@ apiRouter.get("/places/:placeId", defineEventHandler(async (event) => {
   const placeId = event.context.params?.placeId;
   return placeDetail({
     request: forwardGet(request, `/api/places/${placeId}`, { id: placeId }),
+  });
+}));
+
+apiRouter.get("/places/:placeId/events", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const placeId = event.context.params?.placeId;
+  return placeEvents({
+    request: forwardGet(request, `/api/places/${placeId}/events`, { placeId }),
   });
 }));
 
