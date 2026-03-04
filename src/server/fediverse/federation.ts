@@ -1,8 +1,10 @@
 import {
   Accept,
+  Announce,
   Application,
   Create,
   createFederation,
+  EmojiReact,
   Endpoints,
   exportJwk,
   Follow,
@@ -11,6 +13,7 @@ import {
   Image,
   importJwk,
   InProcessMessageQueue,
+  Like,
   MemoryKvStore,
   Note,
   Place,
@@ -27,7 +30,8 @@ import type { Context, RequestContext } from "@fedify/fedify";
 import { Temporal } from "@js-temporal/polyfill";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, follows, groupMembers, keypairs, otpChallenges, otpVotes, places, posts, users } from "~/server/db/schema";
+import { actors, activityLogs, follows, groupMembers, keypairs, otpChallenges, otpVotes, places, posts, users } from "~/server/db/schema";
+import { ensureRemoteActor } from "~/server/fediverse/actor-cache";
 import { env } from "~/server/env";
 import { getI18n } from "~/server/i18n";
 import { EMOJI_SET } from "~/server/fediverse/otp";
@@ -505,6 +509,17 @@ federation.setNodeInfoDispatcher("/nodeinfo/2.1", async () => {
   };
 });
 
+/** Extract a local note ID from an AP object URI. */
+function extractNoteId(ctx: Context<void>, objectId: URL): string | null {
+  const parsed = ctx.parseUri(objectId);
+  if (parsed?.type === "object" && "noteId" in parsed.values) {
+    return parsed.values.noteId as string;
+  }
+  // Regex fallback for direct URL matching
+  const match = objectId.pathname.match(/\/ap\/notes\/([0-9a-f-]{36})$/);
+  return match?.[1] ?? null;
+}
+
 // --- Inbox listeners ---
 federation
   .setInboxListeners("/ap/actors/{identifier}/inbox", "/ap/inbox")
@@ -529,34 +544,7 @@ federation
     if (!targetActor) return;
 
     // Persist remote follower as actor if not exists
-    let [followerActor] = await db
-      .select()
-      .from(actors)
-      .where(eq(actors.actorUrl, follower.id.href))
-      .limit(1);
-
-    if (!followerActor) {
-      const [inserted] = await db
-        .insert(actors)
-        .values({
-          handle: `${follower.preferredUsername}@${follower.id.hostname}`,
-          type: "Person",
-          actorUrl: follower.id.href,
-          iri: follower.id.href,
-          url: follower.url instanceof URL ? follower.url.href : null,
-          name: follower.name?.toString() ?? null,
-          summary: follower.summary?.toString() ?? null,
-          inboxUrl: follower.inboxId?.href ?? null,
-          outboxUrl: follower.outboxId?.href ?? null,
-          sharedInboxUrl: follower.endpoints?.sharedInbox instanceof URL
-            ? follower.endpoints.sharedInbox.href
-            : null,
-          domain: follower.id.hostname,
-          isLocal: false,
-        })
-        .returning();
-      followerActor = inserted;
-    }
+    const followerActor = await ensureRemoteActor(follower);
 
     // Create follow relationship
     const [existingFollow] = await db
@@ -659,6 +647,56 @@ federation
             ),
           );
       }
+    } else if (object instanceof Like || object instanceof EmojiReact) {
+      // Undo Like / EmojiReact
+      if (undo.actorId == null || object.objectId == null) return;
+
+      const [actor] = await db
+        .select({ id: actors.id })
+        .from(actors)
+        .where(eq(actors.actorUrl, undo.actorId.href))
+        .limit(1);
+      if (!actor) return;
+
+      const noteId = extractNoteId(ctx, object.objectId);
+      if (!noteId) return;
+
+      const type = object instanceof Like ? "like" : "emoji_react";
+      const conditions = [
+        eq(activityLogs.actorId, actor.id),
+        eq(activityLogs.postId, noteId),
+        eq(activityLogs.type, type),
+      ];
+
+      if (object instanceof EmojiReact) {
+        const emoji = object.content?.toString();
+        if (emoji) conditions.push(eq(activityLogs.emoji, emoji));
+      }
+
+      await db.delete(activityLogs).where(and(...conditions));
+    } else if (object instanceof Announce) {
+      // Undo Announce
+      if (undo.actorId == null || object.objectId == null) return;
+
+      const [actor] = await db
+        .select({ id: actors.id })
+        .from(actors)
+        .where(eq(actors.actorUrl, undo.actorId.href))
+        .limit(1);
+      if (!actor) return;
+
+      const noteId = extractNoteId(ctx, object.objectId);
+      if (!noteId) return;
+
+      await db
+        .delete(activityLogs)
+        .where(
+          and(
+            eq(activityLogs.actorId, actor.id),
+            eq(activityLogs.postId, noteId),
+            eq(activityLogs.type, "announce"),
+          ),
+        );
     }
   })
   .on(Accept, async (ctx, accept) => {
@@ -721,55 +759,235 @@ federation
     }
   })
   .on(Create, async (ctx, create) => {
-    // Handle poll votes (Create(Note) with inReplyTo pointing to our Question)
     const object = await create.getObject();
     if (!(object instanceof Note)) return;
 
     const replyTo = object.replyTargetId;
-    if (!replyTo) return;
 
-    const name = object.name?.toString();
-    if (!name || !(EMOJI_SET as readonly string[]).includes(name)) return;
+    // --- OTP poll vote handling ---
+    if (replyTo) {
+      const name = object.name?.toString();
+      if (name && (EMOJI_SET as readonly string[]).includes(name)) {
+        // Extract questionId from the replyTo URI
+        let questionId: string | null = null;
+        const parsed = ctx.parseUri(replyTo);
+        if (parsed?.type === "object" && "questionId" in parsed.values) {
+          questionId = parsed.values.questionId as string;
+        } else {
+          // Regex fallback
+          const match = replyTo.pathname?.match(/\/ap\/questions\/(.+)$/);
+          if (match) questionId = match[1];
+        }
+        if (!questionId) return;
 
-    // Extract questionId from the replyTo URI
-    let questionId: string | null = null;
-    const parsed = ctx.parseUri(replyTo);
-    if (parsed?.type === "object" && "questionId" in parsed.values) {
-      questionId = parsed.values.questionId as string;
-    } else {
-      // Regex fallback
-      const match = replyTo.pathname?.match(/\/ap\/questions\/(.+)$/);
-      if (match) questionId = match[1];
+        // Find the pending challenge
+        const [challenge] = await db
+          .select()
+          .from(otpChallenges)
+          .where(
+            and(
+              eq(otpChallenges.questionId, questionId),
+              eq(otpChallenges.status, "pending"),
+            ),
+          )
+          .limit(1);
+        if (!challenge) return;
+
+        // Check expiry
+        if (new Date(challenge.expiresAt).getTime() < Date.now()) return;
+
+        // Verify voter identity
+        const voterActorUrl = create.actorId?.href;
+        if (!voterActorUrl || voterActorUrl !== challenge.actorUrl) return;
+
+        // Record the vote
+        await db
+          .insert(otpVotes)
+          .values({
+            challengeId: challenge.id,
+            emoji: name,
+            voterActorUrl,
+          })
+          .onConflictDoNothing();
+        return;
+      }
     }
-    if (!questionId) return;
 
-    // Find the pending challenge
-    const [challenge] = await db
-      .select()
-      .from(otpChallenges)
-      .where(
-        and(
-          eq(otpChallenges.questionId, questionId),
-          eq(otpChallenges.status, "pending"),
-        ),
-      )
+    // --- Reply handling: inReplyTo pointing to one of our notes ---
+    if (replyTo) {
+      const noteId = extractNoteId(ctx, replyTo);
+      if (noteId) {
+        const [parentPost] = await db
+          .select({ id: posts.id })
+          .from(posts)
+          .where(eq(posts.id, noteId))
+          .limit(1);
+
+        if (parentPost) {
+          const replyActor = await create.getActor();
+          if (!replyActor?.id) return;
+          const actor = await ensureRemoteActor(replyActor);
+
+          // Store reply as a new post
+          const replyContent = object.content?.toString() ?? "";
+          const [replyPost] = await db
+            .insert(posts)
+            .values({
+              actorId: actor.id,
+              content: replyContent,
+              inReplyTo: replyTo.href,
+              published: new Date(),
+            })
+            .returning();
+
+          await db
+            .insert(activityLogs)
+            .values({
+              type: "reply",
+              actorId: actor.id,
+              postId: parentPost.id,
+              content: replyContent,
+              replyPostId: replyPost.id,
+              activityUrl: create.id?.href ?? null,
+              raw: null,
+            })
+            .onConflictDoNothing();
+          return;
+        }
+      }
+    }
+
+    // --- Quote handling: quoteUrl pointing to one of our notes ---
+    // quoteUrl is set by Misskey/Firefish/etc. Also check tags for
+    // Link with application/activity+json media type (Mastodon-style quotes).
+    const quoteUrl = object.quoteUrl;
+    if (!quoteUrl) return;
+
+    const quotedNoteId = extractNoteId(ctx, quoteUrl);
+    if (!quotedNoteId) return;
+
+    const [quotedPost] = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(eq(posts.id, quotedNoteId))
       .limit(1);
-    if (!challenge) return;
+    if (!quotedPost) return;
 
-    // Check expiry
-    if (new Date(challenge.expiresAt).getTime() < Date.now()) return;
+    const quoteActor = await create.getActor();
+    if (!quoteActor?.id) return;
+    const actor = await ensureRemoteActor(quoteActor);
 
-    // Verify voter identity
-    const voterActorUrl = create.actorId?.href;
-    if (!voterActorUrl || voterActorUrl !== challenge.actorUrl) return;
-
-    // Record the vote
-    await db
-      .insert(otpVotes)
+    // Store quote as a new post
+    const quoteContent = object.content?.toString() ?? "";
+    const [quotePost] = await db
+      .insert(posts)
       .values({
-        challengeId: challenge.id,
-        emoji: name,
-        voterActorUrl,
+        actorId: actor.id,
+        content: quoteContent,
+        published: new Date(),
+      })
+      .returning();
+
+    await db
+      .insert(activityLogs)
+      .values({
+        type: "quote",
+        actorId: actor.id,
+        postId: quotedPost.id,
+        content: quoteContent,
+        replyPostId: quotePost.id,
+        activityUrl: create.id?.href ?? null,
+        raw: null,
+      })
+      .onConflictDoNothing();
+  })
+  .on(Like, async (ctx, like) => {
+    if (like.actorId == null || like.objectId == null) return;
+
+    const noteId = extractNoteId(ctx, like.objectId);
+    if (!noteId) return;
+
+    // Verify the post exists
+    const [post] = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(eq(posts.id, noteId))
+      .limit(1);
+    if (!post) return;
+
+    const likeActor = await like.getActor();
+    if (!likeActor?.id) return;
+    const actor = await ensureRemoteActor(likeActor);
+
+    await db
+      .insert(activityLogs)
+      .values({
+        type: "like",
+        actorId: actor.id,
+        postId: post.id,
+        emoji: "\u2B50",
+        activityUrl: like.id?.href ?? null,
+        raw: null,
+      })
+      .onConflictDoNothing();
+  })
+  .on(EmojiReact, async (ctx, react) => {
+    if (react.actorId == null || react.objectId == null) return;
+
+    const noteId = extractNoteId(ctx, react.objectId);
+    if (!noteId) return;
+
+    const [post] = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(eq(posts.id, noteId))
+      .limit(1);
+    if (!post) return;
+
+    const emoji = react.content?.toString();
+    if (!emoji) return;
+
+    const reactActor = await react.getActor();
+    if (!reactActor?.id) return;
+    const actor = await ensureRemoteActor(reactActor);
+
+    await db
+      .insert(activityLogs)
+      .values({
+        type: "emoji_react",
+        actorId: actor.id,
+        postId: post.id,
+        emoji,
+        activityUrl: react.id?.href ?? null,
+        raw: null,
+      })
+      .onConflictDoNothing();
+  })
+  .on(Announce, async (ctx, announce) => {
+    if (announce.actorId == null || announce.objectId == null) return;
+
+    const noteId = extractNoteId(ctx, announce.objectId);
+    if (!noteId) return;
+
+    const [post] = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(eq(posts.id, noteId))
+      .limit(1);
+    if (!post) return;
+
+    const announceActor = await announce.getActor();
+    if (!announceActor?.id) return;
+    const actor = await ensureRemoteActor(announceActor);
+
+    await db
+      .insert(activityLogs)
+      .values({
+        type: "announce",
+        actorId: actor.id,
+        postId: post.id,
+        activityUrl: announce.id?.href ?? null,
+        raw: null,
       })
       .onConflictDoNothing();
   });
