@@ -50,6 +50,14 @@ export const Route = createFileRoute("/groups/$identifier/")({
         { property: "og:type", content: "profile" },
         { property: "fediverse:creator", content: fullHandle },
       ],
+      links: [
+        {
+          rel: "alternate",
+          type: "application/rss+xml",
+          title: `${loaderData.name ?? loaderData.handle} — RSS`,
+          href: `/groups/@${loaderData.handle}/feed.xml`,
+        },
+      ],
     };
   },
 });

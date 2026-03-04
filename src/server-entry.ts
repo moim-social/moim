@@ -54,6 +54,7 @@ import { GET as userDetail } from "./routes/admin/users/-detail";
 import { GET as getCarouselSlides } from "./routes/-carousel";
 import { POST as trackBannerClick } from "./routes/-banner-click";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
+import { GET as groupFeed } from "./routes/groups/-feed";
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -509,8 +510,18 @@ app.use("/banners", defineEventHandler(async (event) => {
 
 app.use(
   fromWebHandler(async (request) => {
-    // Content negotiation: serve AP object directly for /notes/{uuid} and /places/{uuid}
     const url = new URL(request.url);
+
+    // RSS feed for groups
+    const feedMatch = url.pathname.match(/^\/groups\/@([^/]+)\/feed\.xml$/);
+    if (feedMatch) {
+      const handle = decodeURIComponent(feedMatch[1]);
+      return groupFeed({
+        request: forwardGet(request, "/groups/feed", { handle }),
+      });
+    }
+
+    // Content negotiation: serve AP object directly for /notes/{uuid} and /places/{uuid}
     const noteMatch = url.pathname.match(/^\/notes\/([0-9a-f-]{36})$/);
     if (noteMatch) {
       const ctx = federation.createContext(request, undefined);
