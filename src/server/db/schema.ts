@@ -80,11 +80,28 @@ export const posts = pgTable("posts", {
   id: uuid("id").defaultRandom().primaryKey(),
   actorId: uuid("actor_id").references(() => actors.id).notNull(),
   eventId: uuid("event_id").references(() => events.id),
+  inReplyTo: text("in_reply_to"), // AP URI of the post this is replying to
   content: text("content").notNull(), // HTML
   imageUrl: text("image_url"), // attached image (e.g. map snapshot)
   published: timestamp("published", { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const activityLogs = pgTable("activity_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  type: varchar("type", { length: 32 }).notNull(), // 'like', 'emoji_react', 'announce', 'reply', 'quote'
+  actorId: uuid("actor_id").references(() => actors.id).notNull(),
+  postId: uuid("post_id").references(() => posts.id).notNull(),
+  eventId: uuid("event_id").references(() => events.id), // denormalized for direct dashboard queries
+  emoji: varchar("emoji", { length: 64 }), // '⭐' for Like, actual emoji for EmojiReact, null for announce/reply
+  activityUrl: text("activity_url"), // AP activity URI for dedup and Undo matching
+  content: text("content"), // reply/quote text content for display
+  replyPostId: uuid("reply_post_id").references(() => posts.id), // for type='reply'/'quote', the stored post
+  raw: jsonb("raw"), // full AP activity JSON (includes custom emoji icon URLs in tags)
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueEngagement: unique().on(table.actorId, table.postId, table.type, table.emoji),
+}));
 
 export const groupMembers = pgTable("group_members", {
   id: uuid("id").defaultRandom().primaryKey(),

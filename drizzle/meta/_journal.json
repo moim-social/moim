@@ -141,6 +141,13 @@
       "when": 1772608223854,
       "tag": "0019_amused_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1772611759106,
+      "tag": "0020_jittery_silver_sable",
+      "breakpoints": true
     }
   ]
 }
