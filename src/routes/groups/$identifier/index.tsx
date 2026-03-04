@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
+import { Calendar } from "lucide-react";
 
 const getGroupMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ handle: z.string() })))
@@ -174,6 +175,12 @@ function ProfilePage() {
                   </Link>
                 </Button>
               )}
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/groups/$identifier/events" params={{ identifier }}>
+                  <Calendar className="size-4" />
+                  Events
+                </Link>
+              </Button>
               <RemoteFollowDialog actorHandle={handle} />
             </div>
           </div>
