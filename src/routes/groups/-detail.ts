@@ -80,6 +80,7 @@ export const GET = async ({ request }: { request: Request }) => {
     .select({
       id: places.id,
       name: places.name,
+      description: places.description,
       address: places.address,
       latitude: places.latitude,
       longitude: places.longitude,
@@ -131,6 +132,7 @@ export const GET = async ({ request }: { request: Request }) => {
     places: groupPlaceRows.map((p) => ({
       id: p.id,
       name: p.name,
+      description: p.description,
       address: p.address,
       latitude: p.latitude,
       longitude: p.longitude,

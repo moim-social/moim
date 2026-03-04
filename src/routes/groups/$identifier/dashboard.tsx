@@ -73,6 +73,7 @@ type GroupData = {
   places: {
     id: string;
     name: string;
+    description: string | null;
     address: string | null;
     latitude: string | null;
     longitude: string | null;
@@ -500,6 +501,7 @@ function MemberRow({
 }
 
 type PlaceFormState = {
+  name: string;
   categoryId: string;
   description: string;
   address: string;
@@ -513,8 +515,9 @@ function PlacesCard({
   groupId: string;
   places: GroupData["places"];
 }) {
+  const navigate = useNavigate();
   const [editingPlace, setEditingPlace] = useState<GroupData["places"][number] | null>(null);
-  const [form, setForm] = useState<PlaceFormState>({ categoryId: "", description: "", address: "", website: "" });
+  const [form, setForm] = useState<PlaceFormState>({ name: "", categoryId: "", description: "", address: "", website: "" });
   const [options, setOptions] = useState<PlaceCategoryOption[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -523,8 +526,9 @@ function PlacesCard({
     setEditingPlace(place);
     setError(null);
     setForm({
+      name: place.name,
       categoryId: place.category?.slug ?? "",
-      description: "",
+      description: place.description ?? "",
       address: place.address ?? "",
       website: "",
     });
@@ -545,6 +549,7 @@ function PlacesCard({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        name: form.name || undefined,
         categoryId: form.categoryId || null,
         description: form.description || undefined,
         address: form.address || undefined,
@@ -561,8 +566,7 @@ function PlacesCard({
 
     setSaving(false);
     setEditingPlace(null);
-    // Reload page to reflect changes
-    window.location.reload();
+    navigate({ to: "/places/$placeId", params: { placeId: editingPlace.id } });
   };
 
   return (
@@ -594,6 +598,9 @@ function PlacesCard({
                     {place.address && (
                       <span className="text-xs text-muted-foreground ml-2">{place.address}</span>
                     )}
+                    {place.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{place.description}</p>
+                    )}
                   </div>
                   {place.category && (
                     <Badge variant="secondary" className="text-xs shrink-0">
@@ -620,6 +627,15 @@ function PlacesCard({
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="place-name">Name</Label>
+              <Input
+                id="place-name"
+                value={form.name}
+                onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="place-category">Category</Label>
               <PlaceCategorySelect
                 id="place-category"
@@ -627,6 +643,16 @@ function PlacesCard({
                 onChange={(value) => setForm((c) => ({ ...c, categoryId: value }))}
                 options={options}
                 emptyLabel="Uncategorized"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="place-description">Description</Label>
+              <Textarea
+                id="place-description"
+                value={form.description}
+                onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}
+                rows={3}
+                placeholder="About this place..."
               />
             </div>
             <div className="space-y-2">
@@ -643,6 +669,7 @@ function PlacesCard({
                 id="place-website"
                 value={form.website}
                 onChange={(e) => setForm((c) => ({ ...c, website: e.target.value }))}
+                placeholder="https://example.com"
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}

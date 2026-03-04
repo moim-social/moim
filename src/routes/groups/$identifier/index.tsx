@@ -88,6 +88,7 @@ type GroupData = {
   places: {
     id: string;
     name: string;
+    description: string | null;
     address: string | null;
     latitude: string | null;
     longitude: string | null;
@@ -243,6 +244,9 @@ function ProfilePage() {
                     <span className="text-sm font-medium">{place.name}</span>
                     {place.address && (
                       <span className="text-xs text-muted-foreground ml-2">{place.address}</span>
+                    )}
+                    {place.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{place.description}</p>
                     )}
                   </div>
                   {place.category && (

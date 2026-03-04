@@ -23,6 +23,7 @@ export const GET = async ({ request }: { request: Request }) => {
     .select({
       id: places.id,
       name: places.name,
+      description: places.description,
       address: places.address,
       latitude: places.latitude,
       longitude: places.longitude,
@@ -39,6 +40,7 @@ export const GET = async ({ request }: { request: Request }) => {
     places: rows.map((row) => ({
       id: row.id,
       name: row.name,
+      description: row.description,
       address: row.address,
       latitude: row.latitude,
       longitude: row.longitude,
@@ -53,6 +55,7 @@ export const PATCH = async ({ request }: { request: Request }) => {
   const body = (await request.json().catch(() => null)) as {
     groupActorId?: string;
     placeId?: string;
+    name?: string;
     categoryId?: string;
     description?: string;
     address?: string;
@@ -92,6 +95,14 @@ export const PATCH = async ({ request }: { request: Request }) => {
   };
   const changes: Record<string, { old: unknown; new: unknown }> = {};
 
+  if ("name" in body) {
+    const name = body.name?.trim();
+    if (!name) {
+      return Response.json({ error: "Name cannot be empty" }, { status: 400 });
+    }
+    updates.name = name;
+    changes.name = { old: currentPlace.name, new: name };
+  }
   if ("categoryId" in body) {
     const categoryId = normalizeOptionalString(body.categoryId);
     if (categoryId) {
