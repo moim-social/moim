@@ -1,0 +1,1 @@
+ALTER TABLE "actors" ADD COLUMN "language" varchar(16);
