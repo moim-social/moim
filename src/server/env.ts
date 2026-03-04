@@ -41,4 +41,7 @@ export const env = {
   // PostHog (optional)
   posthogKey: process.env.POSTHOG_KEY || undefined,
   posthogHost: process.env.POSTHOG_HOST || undefined,
+
+  // Place audit log (optional)
+  enablePlaceAuditLog: process.env.ENABLE_PLACE_AUDIT_LOG === "true" || process.env.ENABLE_PLACE_AUDIT_LOG === "1",
 };

@@ -44,6 +44,8 @@ import { GET as listBanners, POST as createBanner, PUT as updateBanner, DELETE a
 import { GET as getUserSettings, PATCH as updateUserSettings } from "./routes/users/-settings";
 import { GET as listAdminPlaceCategories, POST as createAdminPlaceCategory, PATCH as updateAdminPlaceCategory, PUT as importAdminPlaceCategories } from "./routes/admin/-place-categories";
 import { GET as listAdminPlaces, PATCH as updateAdminPlace } from "./routes/admin/-places";
+import { GET as listAdminGroupPlaces, POST as assignGroupPlace, DELETE as unassignGroupPlace } from "./routes/admin/-group-places";
+import { GET as listGroupPlaces, PATCH as updateGroupPlace } from "./routes/groups/-places";
 import { POST as regeneratePlaceSnapshot } from "./routes/admin/-place-snapshot";
 import { POST as bulkRegeneratePlaceSnapshots } from "./routes/admin/-place-snapshots-bulk";
 import { GET as listUsers } from "./routes/admin/users/-list";
@@ -225,6 +227,29 @@ apiRouter.post("/groups/:groupId/posts", defineEventHandler(async (event) => {
     request: await forwardJson(request, `/api/groups/${groupId}/posts`, "POST", (body) => ({
       groupHandle: handle,
       content: typeof body?.content === "string" ? body.content : "",
+    })),
+  });
+}));
+
+apiRouter.get("/groups/:groupId/places", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const groupId = event.context.params?.groupId;
+  if (!groupId) return Response.json({ error: "groupId is required" }, { status: 400 });
+  return listGroupPlaces({
+    request: forwardGet(request, `/api/groups/${groupId}/places`, { groupActorId: groupId }),
+  });
+}));
+
+apiRouter.patch("/groups/:groupId/places/:placeId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const groupId = event.context.params?.groupId;
+  const placeId = event.context.params?.placeId;
+  if (!groupId || !placeId) return Response.json({ error: "groupId and placeId are required" }, { status: 400 });
+  return updateGroupPlace({
+    request: await forwardJson(request, `/api/groups/${groupId}/places/${placeId}`, "PATCH", (body) => ({
+      ...(body ?? {}),
+      groupActorId: groupId,
+      placeId,
     })),
   });
 }));
@@ -419,6 +444,18 @@ apiRouter.post("/admin/places/:placeId/regenerate-snapshot", defineEventHandler(
 
 apiRouter.post("/admin/places/regenerate-snapshots", defineEventHandler(async (event) => {
   return bulkRegeneratePlaceSnapshots({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/admin/group-places", defineEventHandler(async (event) => {
+  return listAdminGroupPlaces({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/admin/group-places", defineEventHandler(async (event) => {
+  return assignGroupPlace({ request: toWebRequest(event) });
+}));
+
+apiRouter.delete("/admin/group-places", defineEventHandler(async (event) => {
+  return unassignGroupPlace({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/admin/users/:userId", defineEventHandler(async (event) => {

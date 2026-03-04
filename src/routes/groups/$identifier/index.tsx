@@ -85,6 +85,15 @@ type GroupData = {
     content: string;
     published: string;
   }[];
+  places: {
+    id: string;
+    name: string;
+    description: string | null;
+    address: string | null;
+    latitude: string | null;
+    longitude: string | null;
+    category: { slug: string; label: string | null; emoji: string | null } | null;
+  }[];
   currentUserRole: string | null;
 };
 
@@ -211,6 +220,42 @@ function ProfilePage() {
               {languageLabel(group.language) && (
                 <span>{languageLabel(group.language)}</span>
               )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Places */}
+      {data.places && data.places.length > 0 && (
+        <Card className="rounded-lg">
+          <CardHeader>
+            <CardTitle className="text-base">Places ({data.places.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1.5">
+              {data.places.map((place) => (
+                <Link
+                  key={place.id}
+                  to="/places/$placeId"
+                  params={{ placeId: place.id }}
+                  className="flex items-center gap-3 rounded-md p-2 hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium">{place.name}</span>
+                    {place.address && (
+                      <span className="text-xs text-muted-foreground ml-2">{place.address}</span>
+                    )}
+                    {place.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{place.description}</p>
+                    )}
+                  </div>
+                  {place.category && (
+                    <Badge variant="secondary" className="text-xs shrink-0">
+                      {`${place.category.emoji ?? ""} ${place.category.label}`.trim()}
+                    </Badge>
+                  )}
+                </Link>
+              ))}
             </div>
           </CardContent>
         </Card>
