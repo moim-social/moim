@@ -49,6 +49,7 @@ export const actors = pgTable("actors", {
   avatarUrl: text("avatar_url"),
   language: varchar("language", { length: 16 }), // BCP 47 tag e.g. "en", "ko", "ja"
   categories: jsonb("categories"), // string[] of category IDs (for Group actors)
+  verified: boolean("verified").default(false).notNull(),
   raw: jsonb("raw"),
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
