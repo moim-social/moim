@@ -488,7 +488,7 @@ federation.setNodeInfoDispatcher("/nodeinfo/2.1", async () => {
   return {
     software: {
       name: "moim",
-      version: parseSemVer("0.1.0"),
+      version: parseSemVer(__APP_VERSION__),
     },
     protocols: ["activitypub"] as const,
     services: { inbound: [], outbound: [] },
