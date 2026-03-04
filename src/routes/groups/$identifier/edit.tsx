@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { CATEGORIES } from "~/shared/categories";
+import { LANGUAGES } from "~/shared/languages";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -27,6 +28,7 @@ function EditGroupPage() {
   const [summary, setSummary] = useState("");
   const [website, setWebsite] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [language, setLanguage] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [groupId, setGroupId] = useState("");
@@ -48,6 +50,7 @@ function EditGroupPage() {
         setSummary(g.summary ?? "");
         setWebsite(g.website ?? "");
         setSelectedCategories(g.categories ?? []);
+        setLanguage(g.language ?? "");
         if (g.avatarUrl) setAvatarPreview(g.avatarUrl);
         setLoading(false);
       })
@@ -78,6 +81,7 @@ function EditGroupPage() {
           summary: summary.trim(),
           website: website.trim() || undefined,
           categories: selectedCategories,
+          language: language || undefined,
         }),
       });
       const data = await res.json();
@@ -175,6 +179,24 @@ function EditGroupPage() {
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="language">Default Language</Label>
+              <select
+                id="language"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">Auto (instance default)</option>
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>{l.label}</option>
+                ))}
+              </select>
+              <p className="text-sm text-muted-foreground">
+                Language used for federated posts from this group.
+              </p>
             </div>
 
             <div className="space-y-1.5">
