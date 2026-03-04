@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, groupMembers, events, follows, posts, groupPlaces, places, placeCategories } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
@@ -72,7 +72,7 @@ export const GET = async ({ request }: { request: Request }) => {
       published: posts.published,
     })
     .from(posts)
-    .where(eq(posts.actorId, group.id))
+    .where(and(eq(posts.actorId, group.id), isNull(posts.eventId)))
     .orderBy(posts.published);
 
   // Get places assigned to this group

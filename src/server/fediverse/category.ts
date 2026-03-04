@@ -178,6 +178,7 @@ export async function announceEvent(
     .insert(posts)
     .values({
       actorId: hostActor.id,
+      eventId: event.id,
       content,
       published: now,
     })
