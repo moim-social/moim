@@ -68,6 +68,7 @@ function EventDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activityFilter, setActivityFilter] = useState<"all" | "reactions" | "reposts" | "reply">("all");
 
   useEffect(() => {
     fetch(`/api/events/${eventId}/dashboard`)
@@ -95,6 +96,14 @@ function EventDashboard() {
 
   const { event, rsvpCounts, attendees, engagementCounts, recentActivity } =
     data;
+
+  const filteredActivity = recentActivity.filter((a) => {
+    if (activityFilter === "all") return true;
+    if (activityFilter === "reactions") return a.type === "like" || a.type === "emoji_react";
+    if (activityFilter === "reposts") return a.type === "announce";
+    if (activityFilter === "reply") return a.type === "reply" || a.type === "quote";
+    return true;
+  });
 
   const statusVariant = {
     upcoming: "default" as const,
@@ -262,16 +271,31 @@ function EventDashboard() {
       {/* Recent Activity */}
       <Card className="rounded-lg">
         <CardHeader>
-          <CardTitle className="text-base">Recent Activity</CardTitle>
+          <div className="flex items-center justify-between gap-4">
+            <CardTitle className="text-base">Recent Activity</CardTitle>
+            <div className="flex gap-1">
+              {(["all", "reply", "reactions", "reposts"] as const).map((f) => (
+                <Button
+                  key={f}
+                  variant={activityFilter === f ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-7 px-2.5"
+                  onClick={() => setActivityFilter(f)}
+                >
+                  {f === "all" ? "All" : f === "reply" ? "Replies" : f === "reactions" ? "Reactions" : "Reposts"}
+                </Button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {recentActivity.length === 0 ? (
+          {filteredActivity.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
               No fediverse engagement yet.
             </p>
           ) : (
             <ul className="space-y-2">
-              {recentActivity.map((a) => (
+              {filteredActivity.map((a) => (
                 <li
                   key={a.id}
                   className="flex items-center gap-3 py-2 border-b last:border-b-0"
