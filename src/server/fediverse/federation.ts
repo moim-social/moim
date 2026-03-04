@@ -818,7 +818,7 @@ federation
       const noteId = extractNoteId(ctx, replyTo);
       if (noteId) {
         const [parentPost] = await db
-          .select({ id: posts.id })
+          .select({ id: posts.id, eventId: posts.eventId })
           .from(posts)
           .where(eq(posts.id, noteId))
           .limit(1);
@@ -846,6 +846,7 @@ federation
               type: "reply",
               actorId: actor.id,
               postId: parentPost.id,
+              eventId: parentPost.eventId,
               content: replyContent,
               replyPostId: replyPost.id,
               activityUrl: create.id?.href ?? null,
@@ -867,7 +868,7 @@ federation
     if (!quotedNoteId) return;
 
     const [quotedPost] = await db
-      .select({ id: posts.id })
+      .select({ id: posts.id, eventId: posts.eventId })
       .from(posts)
       .where(eq(posts.id, quotedNoteId))
       .limit(1);
@@ -894,6 +895,7 @@ federation
         type: "quote",
         actorId: actor.id,
         postId: quotedPost.id,
+        eventId: quotedPost.eventId,
         content: quoteContent,
         replyPostId: quotePost.id,
         activityUrl: create.id?.href ?? null,
@@ -909,7 +911,7 @@ federation
 
     // Verify the post exists
     const [post] = await db
-      .select({ id: posts.id })
+      .select({ id: posts.id, eventId: posts.eventId })
       .from(posts)
       .where(eq(posts.id, noteId))
       .limit(1);
@@ -925,6 +927,7 @@ federation
         type: "like",
         actorId: actor.id,
         postId: post.id,
+        eventId: post.eventId,
         emoji: "\u2B50",
         activityUrl: like.id?.href ?? null,
         raw: null,
@@ -938,7 +941,7 @@ federation
     if (!noteId) return;
 
     const [post] = await db
-      .select({ id: posts.id })
+      .select({ id: posts.id, eventId: posts.eventId })
       .from(posts)
       .where(eq(posts.id, noteId))
       .limit(1);
@@ -957,6 +960,7 @@ federation
         type: "emoji_react",
         actorId: actor.id,
         postId: post.id,
+        eventId: post.eventId,
         emoji,
         activityUrl: react.id?.href ?? null,
         raw: null,
@@ -970,7 +974,7 @@ federation
     if (!noteId) return;
 
     const [post] = await db
-      .select({ id: posts.id })
+      .select({ id: posts.id, eventId: posts.eventId })
       .from(posts)
       .where(eq(posts.id, noteId))
       .limit(1);
@@ -986,6 +990,7 @@ federation
         type: "announce",
         actorId: actor.id,
         postId: post.id,
+        eventId: post.eventId,
         activityUrl: announce.id?.href ?? null,
         raw: null,
       })

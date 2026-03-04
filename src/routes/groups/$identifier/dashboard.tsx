@@ -79,6 +79,23 @@ type GroupData = {
     longitude: string | null;
     category: PlaceCategorySummary | null;
   }[];
+  engagementCounts: {
+    reactions: number;
+    announces: number;
+    replies: number;
+    quotes: number;
+  };
+  recentActivity: {
+    id: string;
+    type: string;
+    emoji: string | null;
+    content: string | null;
+    createdAt: string;
+    actorHandle: string;
+    actorName: string | null;
+    eventId: string | null;
+    eventTitle: string | null;
+  }[];
   currentUserRole: string | null;
 };
 
@@ -90,6 +107,8 @@ function GroupDashboard() {
   const [data, setData] = useState<GroupData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [activityFilter, setActivityFilter] = useState<"all" | "reactions" | "reposts" | "reply">("all");
 
   // Post Note dialog
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
@@ -158,7 +177,15 @@ function GroupDashboard() {
     );
   }
 
-  const { group, members, followers, events } = data;
+  const { group, members, followers, events, engagementCounts, recentActivity } = data;
+
+  const filteredActivity = recentActivity.filter((a) => {
+    if (activityFilter === "all") return true;
+    if (activityFilter === "reactions") return a.type === "like" || a.type === "emoji_react";
+    if (activityFilter === "reposts") return a.type === "announce";
+    if (activityFilter === "reply") return a.type === "reply" || a.type === "quote";
+    return true;
+  });
   const hosts = members.filter((m) => m.role === "host");
   const moderators = members.filter((m) => m.role === "moderator");
 
@@ -240,6 +267,33 @@ function GroupDashboard() {
             <div className="rounded-lg border p-4 space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Past</p>
               <p className="text-3xl font-bold">{pastEvents.length}<span className="text-base font-normal text-muted-foreground ml-1">events</span></p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Engagement */}
+      <Card className="rounded-lg">
+        <CardHeader>
+          <CardTitle className="text-base">Engagement</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="rounded-lg border p-4 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Reactions</p>
+              <p className="text-3xl font-bold">{engagementCounts.reactions}</p>
+            </div>
+            <div className="rounded-lg border p-4 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Boosts</p>
+              <p className="text-3xl font-bold">{engagementCounts.announces}</p>
+            </div>
+            <div className="rounded-lg border p-4 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Replies</p>
+              <p className="text-3xl font-bold">{engagementCounts.replies}</p>
+            </div>
+            <div className="rounded-lg border p-4 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Quotes</p>
+              <p className="text-3xl font-bold">{engagementCounts.quotes}</p>
             </div>
           </div>
         </CardContent>
@@ -427,6 +481,94 @@ function GroupDashboard() {
             <ul className="space-y-1.5">
               {followers.map((f) => (
                 <FollowerRow key={f.actorUrl} follower={f} />
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity */}
+      <Card className="rounded-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <CardTitle className="text-base">Recent Activity</CardTitle>
+            <div className="flex gap-1">
+              {(["all", "reply", "reactions", "reposts"] as const).map((f) => (
+                <Button
+                  key={f}
+                  variant={activityFilter === f ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-7 px-2.5"
+                  onClick={() => setActivityFilter(f)}
+                >
+                  {f === "all" ? "All" : f === "reply" ? "Replies" : f === "reactions" ? "Reactions" : "Reposts"}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {filteredActivity.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              No fediverse engagement yet.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {filteredActivity.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex items-center gap-3 py-2 border-b last:border-b-0"
+                >
+                  <span className="text-lg">
+                    {a.type === "like"
+                      ? "\u2B50"
+                      : a.type === "emoji_react"
+                        ? a.emoji ?? "\u{1F600}"
+                        : a.type === "announce"
+                          ? "\u{1F501}"
+                          : a.type === "quote"
+                            ? "\u{1F4DD}"
+                            : "\u{1F4AC}"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium">
+                      {a.actorName ?? a.actorHandle}
+                    </span>
+                    <span className="text-sm text-muted-foreground ml-1.5">
+                      {a.type === "like"
+                        ? "liked"
+                        : a.type === "emoji_react"
+                          ? `reacted with ${a.emoji}`
+                          : a.type === "announce"
+                            ? "boosted"
+                            : a.type === "quote"
+                              ? "quoted"
+                              : "replied to"}
+                    </span>
+                    {a.eventTitle && a.eventId && (
+                      <Link
+                        to="/events/$eventId"
+                        params={{ eventId: a.eventId }}
+                        className="text-sm text-primary hover:underline ml-1"
+                      >
+                        {a.eventTitle}
+                      </Link>
+                    )}
+                    {a.content && (a.type === "reply" || a.type === "quote") && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2"
+                        dangerouslySetInnerHTML={{ __html: a.content }}
+                      />
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {new Date(a.createdAt).toLocaleString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </li>
               ))}
             </ul>
           )}

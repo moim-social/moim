@@ -1,4 +1,4 @@
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import {
   events,
@@ -7,7 +7,6 @@ import {
   actors,
   groupMembers,
   activityLogs,
-  posts,
 } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
@@ -98,59 +97,39 @@ export const GET = async ({ request }: { request: Request }) => {
     .innerJoin(users, eq(rsvps.userId, users.id))
     .where(eq(rsvps.eventId, eventId));
 
-  // Engagement counts from activity_logs for posts linked to this event
-  const eventPosts = await db
-    .select({ id: posts.id })
-    .from(posts)
-    .where(eq(posts.eventId, eventId));
+  // Engagement counts from activity_logs directly by eventId
+  const engagementRows = await db
+    .select({
+      type: activityLogs.type,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(activityLogs)
+    .where(eq(activityLogs.eventId, eventId))
+    .groupBy(activityLogs.type);
 
-  const postIds = eventPosts.map((p) => p.id);
+  const engagementCounts = {
+    reactions: (engagementRows.find((r) => r.type === "like")?.count ?? 0) +
+      (engagementRows.find((r) => r.type === "emoji_react")?.count ?? 0),
+    announces: engagementRows.find((r) => r.type === "announce")?.count ?? 0,
+    replies: engagementRows.find((r) => r.type === "reply")?.count ?? 0,
+    quotes: engagementRows.find((r) => r.type === "quote")?.count ?? 0,
+  };
 
-  let engagementCounts = { reactions: 0, announces: 0, replies: 0, quotes: 0 };
-  let recentActivity: Array<{
-    id: string;
-    type: string;
-    emoji: string | null;
-    content: string | null;
-    createdAt: Date;
-    actorHandle: string;
-    actorName: string | null;
-  }> = [];
-
-  if (postIds.length > 0) {
-    const engagementRows = await db
-      .select({
-        type: activityLogs.type,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(activityLogs)
-      .where(inArray(activityLogs.postId, postIds))
-      .groupBy(activityLogs.type);
-
-    engagementCounts = {
-      reactions: (engagementRows.find((r) => r.type === "like")?.count ?? 0) +
-        (engagementRows.find((r) => r.type === "emoji_react")?.count ?? 0),
-      announces: engagementRows.find((r) => r.type === "announce")?.count ?? 0,
-      replies: engagementRows.find((r) => r.type === "reply")?.count ?? 0,
-      quotes: engagementRows.find((r) => r.type === "quote")?.count ?? 0,
-    };
-
-    recentActivity = await db
-      .select({
-        id: activityLogs.id,
-        type: activityLogs.type,
-        emoji: activityLogs.emoji,
-        content: activityLogs.content,
-        createdAt: activityLogs.createdAt,
-        actorHandle: actors.handle,
-        actorName: actors.name,
-      })
-      .from(activityLogs)
-      .innerJoin(actors, eq(activityLogs.actorId, actors.id))
-      .where(inArray(activityLogs.postId, postIds))
-      .orderBy(sql`${activityLogs.createdAt} DESC`)
-      .limit(20);
-  }
+  const recentActivity = await db
+    .select({
+      id: activityLogs.id,
+      type: activityLogs.type,
+      emoji: activityLogs.emoji,
+      content: activityLogs.content,
+      createdAt: activityLogs.createdAt,
+      actorHandle: actors.handle,
+      actorName: actors.name,
+    })
+    .from(activityLogs)
+    .innerJoin(actors, eq(activityLogs.actorId, actors.id))
+    .where(eq(activityLogs.eventId, eventId))
+    .orderBy(sql`${activityLogs.createdAt} DESC`)
+    .limit(20);
 
   // Compute event status
   const now = new Date();
