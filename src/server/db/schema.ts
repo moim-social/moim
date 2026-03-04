@@ -198,6 +198,26 @@ export const placeTags = pgTable("place_tags", {
   pk: primaryKey({ columns: [table.placeId, table.tagId] }),
 }));
 
+export const groupPlaces = pgTable("group_places", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  groupActorId: uuid("group_actor_id").references(() => actors.id).notNull(),
+  placeId: uuid("place_id").references(() => places.id).notNull(),
+  assignedByUserId: uuid("assigned_by_user_id").references(() => users.id).notNull(),
+  assignedAt: timestamp("assigned_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueGroupPlace: unique().on(table.groupActorId, table.placeId),
+}));
+
+export const placeAuditLog = pgTable("place_audit_log", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  placeId: uuid("place_id").references(() => places.id).notNull(),
+  groupActorId: uuid("group_actor_id").references(() => actors.id),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  changes: jsonb("changes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const otpChallenges = pgTable("otp_challenges", {
   id: uuid("id").defaultRandom().primaryKey(),
   handle: varchar("handle", { length: 128 }).notNull(),
