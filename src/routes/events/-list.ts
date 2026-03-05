@@ -32,7 +32,7 @@ export const GET = async ({ request }: { request: Request }) => {
       eq(userFediverseAccounts.isPrimary, true),
     ))
     .leftJoin(organizerActors, and(
-      eq(organizerActors.userId, users.id),
+      eq(organizerActors.handle, userFediverseAccounts.fediverseHandle),
       eq(organizerActors.isLocal, false),
     ))
     .where(past ? lt(events.startsAt, now) : gte(events.startsAt, now))

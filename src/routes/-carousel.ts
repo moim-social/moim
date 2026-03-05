@@ -81,7 +81,7 @@ export const GET = async () => {
       .leftJoin(
         organizerActors,
         and(
-          eq(organizerActors.userId, users.id),
+          eq(organizerActors.handle, userFediverseAccounts.fediverseHandle),
           eq(organizerActors.isLocal, false),
         ),
       )
@@ -117,7 +117,7 @@ export const GET = async () => {
         .leftJoin(
           organizerActors,
           and(
-            eq(organizerActors.userId, users.id),
+            eq(organizerActors.handle, userFediverseAccounts.fediverseHandle),
             eq(organizerActors.isLocal, false),
           ),
         )
