@@ -85,11 +85,9 @@ export function LeafletMap({
           maxZoom: 19,
         }).addTo(mapRef.current);
 
-        if (onMapClick) {
-          mapRef.current.on("click", (e: any) => {
-            onMapClick(e.latlng.lat, e.latlng.lng);
-          });
-        }
+        mapRef.current.on("click", (e: any) => {
+          onMapClickRef.current?.(e.latlng.lat, e.latlng.lng);
+        });
       }
 
       // Clear existing markers (including GPS marker when real markers arrive)
@@ -233,7 +231,17 @@ export function LeafletMap({
     return () => {
       cancelled = true;
     };
-  }, [isClient, markers, center, zoom, fitToMarkers, onMapClick]);
+  }, [isClient, markers, center, zoom, fitToMarkers]);
+
+  // Invalidate map size when container resizes (e.g. body style changes from modals)
+  useEffect(() => {
+    if (!containerRef.current || !mapRef.current) return;
+    const ro = new ResizeObserver(() => {
+      mapRef.current?.invalidateSize();
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [isClient]);
 
   // Cleanup on unmount
   useEffect(() => {

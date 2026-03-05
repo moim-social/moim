@@ -22,6 +22,11 @@ export type NearbyPlace = {
   distance: number;
   checkinCount: number;
   category: PlaceCategorySummary | null;
+  latestCheckin: {
+    userDisplayName: string;
+    userAvatarUrl: string | null;
+    createdAt: string;
+  } | null;
 };
 
 export function formatDistance(km: number): string {

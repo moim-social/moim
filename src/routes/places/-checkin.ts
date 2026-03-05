@@ -89,13 +89,25 @@ export const POST = async ({ request }: { request: Request }) => {
       console.error("Failed to federate check-in:", err);
     }
 
+    // Fetch the latest place data (including mapImageUrl which may have just been generated)
+    const [updatedPlace] = await db
+      .select({
+        mapImageUrl: places.mapImageUrl,
+      })
+      .from(places)
+      .where(eq(places.id, place.id))
+      .limit(1);
+
     return Response.json({
-      checkin: { id: checkin.id, placeId: checkin.placeId, note: checkin.note },
+      checkin: { id: checkin.id, placeId: checkin.placeId, note: checkin.note, createdAt: checkin.createdAt },
       place: {
         id: place.id,
         name: place.name,
         created: place.created,
         category: await getPlaceCategorySummary(place.categoryId),
+        latitude: place.latitude,
+        longitude: place.longitude,
+        mapImageUrl: updatedPlace?.mapImageUrl ?? null,
       },
     });
   } catch (err: unknown) {

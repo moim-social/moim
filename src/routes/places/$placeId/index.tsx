@@ -174,7 +174,7 @@ function PlaceDetailPage() {
       <div className="space-y-4">
         <h2 className="text-2xl font-semibold">Place not found</h2>
         <Button asChild variant="outline">
-          <Link to="/places">Back to Places</Link>
+          <Link to="/places">Back to Check-ins</Link>
         </Button>
       </div>
     );

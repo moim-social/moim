@@ -42,6 +42,23 @@ export const GET = async ({ request }: { request: Request }) => {
         SELECT count(*)::int FROM checkins c
         WHERE c.place_id = "places"."id"
       ), 0)`,
+      latestCheckinUserName: sql<string | null>`(
+        SELECT u.display_name FROM checkins c
+        JOIN users u ON c.user_id = u.id
+        WHERE c.place_id = "places"."id"
+        ORDER BY c.created_at DESC LIMIT 1
+      )`,
+      latestCheckinUserAvatar: sql<string | null>`(
+        SELECT u.avatar_url FROM checkins c
+        JOIN users u ON c.user_id = u.id
+        WHERE c.place_id = "places"."id"
+        ORDER BY c.created_at DESC LIMIT 1
+      )`,
+      latestCheckinAt: sql<string | null>`(
+        SELECT c.created_at::text FROM checkins c
+        WHERE c.place_id = "places"."id"
+        ORDER BY c.created_at DESC LIMIT 1
+      )`,
     })
     .from(places)
     .leftJoin(placeCategories, eq(places.categoryId, placeCategories.slug))
@@ -60,6 +77,13 @@ export const GET = async ({ request }: { request: Request }) => {
             slug: row.categoryId,
             label: row.categoryLabel,
             emoji: row.categoryEmoji,
+          }
+        : null,
+      latestCheckin: row.latestCheckinUserName
+        ? {
+            userDisplayName: row.latestCheckinUserName,
+            userAvatarUrl: row.latestCheckinUserAvatar,
+            createdAt: row.latestCheckinAt,
           }
         : null,
     })),
