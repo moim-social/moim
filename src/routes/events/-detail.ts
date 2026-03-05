@@ -43,7 +43,7 @@ export const GET = async ({ request }: { request: Request }) => {
       eq(userFediverseAccounts.isPrimary, true),
     ))
     .leftJoin(organizerActors, and(
-      eq(organizerActors.userId, users.id),
+      eq(organizerActors.handle, userFediverseAccounts.fediverseHandle),
       eq(organizerActors.isLocal, false),
     ))
     .leftJoin(places, eq(events.placeId, places.id))
