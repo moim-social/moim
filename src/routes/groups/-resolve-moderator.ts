@@ -1,13 +1,5 @@
 import { getSessionUser } from "~/server/auth";
-import { resolveActorUrl } from "~/server/fediverse/resolve";
-
-type ActorProfile = {
-  id: string;
-  preferredUsername?: string;
-  name?: string;
-  summary?: string;
-  url?: string;
-};
+import { resolveActorUrl, fetchActorProfile } from "~/server/fediverse/resolve";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -27,17 +19,7 @@ export const POST = async ({ request }: { request: Request }) => {
 
   try {
     const actorUrl = await resolveActorUrl(handle);
-
-    const response = await fetch(actorUrl, {
-      headers: { Accept: "application/activity+json" },
-    });
-    if (!response.ok) {
-      return Response.json(
-        { error: `Failed to fetch actor profile: ${response.status}` },
-        { status: 422 },
-      );
-    }
-    const data = (await response.json()) as ActorProfile;
+    const data = await fetchActorProfile(actorUrl);
 
     return Response.json({
       actor: {
