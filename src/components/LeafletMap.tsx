@@ -13,13 +13,20 @@ export type MapMarker = {
   highlighted?: boolean;
 };
 
+type CircleOverlay = {
+  center: [number, number];
+  radiusKm: number;
+};
+
 type LeafletMapProps = {
   center?: [number, number];
   zoom?: number;
   markers?: MapMarker[];
+  circle?: CircleOverlay;
   fitToMarkers?: boolean;
   onMapClick?: (lat: number, lng: number) => void;
   onMarkerClick?: (marker: MapMarker) => void;
+  onZoomEnd?: (zoom: number) => void;
   height?: string;
   className?: string;
 };
@@ -31,18 +38,23 @@ export function LeafletMap({
   fitToMarkers = true,
   onMapClick,
   onMarkerClick,
+  onZoomEnd,
+  circle,
   height = "300px",
   className,
 }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const circleRef = useRef<any>(null);
   const gpsMarkerRef = useRef<any>(null);
   const gpsRequestedRef = useRef(false);
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
   const onMarkerClickRef = useRef(onMarkerClick);
   onMarkerClickRef.current = onMarkerClick;
+  const onZoomEndRef = useRef(onZoomEnd);
+  onZoomEndRef.current = onZoomEnd;
   const prevViewRef = useRef<{ center?: [number, number]; zoom?: number }>({});
   const [isClient, setIsClient] = useState(false);
 
@@ -88,6 +100,10 @@ export function LeafletMap({
 
         mapRef.current.on("click", (e: any) => {
           onMapClickRef.current?.(e.latlng.lat, e.latlng.lng);
+        });
+
+        mapRef.current.on("zoomend", () => {
+          onZoomEndRef.current?.(mapRef.current.getZoom());
         });
       }
 
@@ -193,6 +209,22 @@ export function LeafletMap({
         markersRef.current.push(m);
       }
 
+      // Update circle overlay
+      if (circleRef.current) {
+        circleRef.current.remove();
+        circleRef.current = null;
+      }
+      if (circle) {
+        circleRef.current = L.circle(circle.center, {
+          radius: circle.radiusKm * 1000,
+          color: "#3b82f6",
+          fillColor: "#3b82f6",
+          fillOpacity: 0.06,
+          weight: 1.5,
+          dashArray: "6 4",
+        }).addTo(mapRef.current);
+      }
+
       // Fit bounds if multiple markers
       if (fitToMarkers && markers.length > 1) {
         const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng]));
@@ -236,7 +268,7 @@ export function LeafletMap({
     return () => {
       cancelled = true;
     };
-  }, [isClient, markers, center, zoom, fitToMarkers]);
+  }, [isClient, markers, center, zoom, fitToMarkers, circle]);
 
   // Invalidate map size when container resizes (e.g. body style changes from modals)
   useEffect(() => {

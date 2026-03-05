@@ -58,6 +58,15 @@ function formatRelativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
+function zoomToRadius(zoom: number): number {
+  if (zoom >= 18) return 0.2;
+  if (zoom >= 16) return 0.5;
+  if (zoom >= 14) return 1;
+  if (zoom >= 12) return 2;
+  if (zoom >= 10) return 5;
+  return 10;
+}
+
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -85,6 +94,7 @@ function CheckinsPage() {
   const [user, setUser] = useState<{ handle: string } | null>(null);
   const [placeCategories, setPlaceCategories] = useState<PlaceCategoryOption[]>([]);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [mapZoom, setMapZoom] = useState(13);
   const [gpsLoading, setGpsLoading] = useState(true);
 
   // Nearby places
@@ -175,10 +185,10 @@ function CheckinsPage() {
     );
   }, []);
 
-  // Fetch nearby places when map center changes
-  const fetchNearby = useCallback((lat: number, lng: number) => {
+  // Fetch nearby places when map center or zoom changes
+  const fetchNearby = useCallback((lat: number, lng: number, radius: number) => {
     setNearbyLoading(true);
-    fetch(`/api/places/nearby?lat=${lat}&lng=${lng}&radius=2`)
+    fetch(`/api/places/nearby?lat=${lat}&lng=${lng}&radius=${radius}`)
       .then((r) => r.json())
       .then((data) => setNearbyPlaces(data.places ?? []))
       .catch(() => setNearbyPlaces([]))
@@ -186,8 +196,8 @@ function CheckinsPage() {
   }, []);
 
   useEffect(() => {
-    if (mapCenter) fetchNearby(mapCenter[0], mapCenter[1]);
-  }, [mapCenter, fetchNearby]);
+    if (mapCenter) fetchNearby(mapCenter[0], mapCenter[1], zoomToRadius(mapZoom));
+  }, [mapCenter, mapZoom, fetchNearby]);
 
   // Select a nearby place (sets pin, fetches recent check-ins, does NOT open dialog)
   const selectPlace = (place: NearbyPlace) => {
@@ -218,7 +228,7 @@ function CheckinsPage() {
     setSelectedPlace(null);
     setCheckinError("");
     setPinnedLocation({ lat: lat.toFixed(6), lng: lng.toFixed(6) });
-    fetchNearby(lat, lng);
+    fetchNearby(lat, lng, zoomToRadius(mapZoom));
   };
 
   // Map marker click
@@ -290,7 +300,7 @@ function CheckinsPage() {
       setPinnedLocation(null);
 
       // Re-fetch nearby to update counts
-      if (mapCenter) fetchNearby(mapCenter[0], mapCenter[1]);
+      if (mapCenter) fetchNearby(mapCenter[0], mapCenter[1], zoomToRadius(mapZoom));
     } catch {
       setCheckinError("Failed to check in");
     } finally {
@@ -430,9 +440,11 @@ function CheckinsPage() {
       <LeafletMap
         center={mapCenter ?? undefined}
         markers={[...nearbyMarkers, ...pickedMarker]}
+        circle={pinnedLocation ? { center: [parseFloat(pinnedLocation.lat), parseFloat(pinnedLocation.lng)], radiusKm: zoomToRadius(mapZoom) } : undefined}
         fitToMarkers={false}
         onMapClick={handleMapClick}
         onMarkerClick={handleMarkerClick}
+        onZoomEnd={setMapZoom}
         height={isMobile ? "350px" : "500px"}
       />
 
