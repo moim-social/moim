@@ -1,6 +1,6 @@
-import { desc, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { users } from "~/server/db/schema";
+import { users, userFediverseAccounts } from "~/server/db/schema";
 import { requireAdmin } from "~/server/admin";
 
 export const GET = async ({ request }: { request: Request }) => {
@@ -17,7 +17,7 @@ export const GET = async ({ request }: { request: Request }) => {
     .select({
       id: users.id,
       handle: users.handle,
-      fediverseHandle: users.fediverseHandle,
+      fediverseHandle: userFediverseAccounts.fediverseHandle,
       displayName: users.displayName,
       avatarUrl: users.avatarUrl,
       createdAt: users.createdAt,
@@ -41,6 +41,10 @@ export const GET = async ({ request }: { request: Request }) => {
       )`,
     })
     .from(users)
+    .leftJoin(userFediverseAccounts, and(
+      eq(userFediverseAccounts.userId, users.id),
+      eq(userFediverseAccounts.isPrimary, true),
+    ))
     .$dynamic();
 
   let countQuery = db
@@ -50,10 +54,16 @@ export const GET = async ({ request }: { request: Request }) => {
 
   if (query) {
     const escaped = query.replace(/[%_\\]/g, "\\$&");
+    // Search across all linked handles (not just primary)
+    const userIdsWithMatchingHandle = db
+      .select({ userId: userFediverseAccounts.userId })
+      .from(userFediverseAccounts)
+      .where(ilike(userFediverseAccounts.fediverseHandle, `%${escaped}%`));
+
     const searchCondition = or(
       ilike(users.handle, `%${escaped}%`),
       ilike(users.displayName, `%${escaped}%`),
-      ilike(users.fediverseHandle, `%${escaped}%`),
+      sql`${users.id} IN (${userIdsWithMatchingHandle})`,
     );
     baseQuery = baseQuery.where(searchCondition!);
     countQuery = countQuery.where(searchCondition!);
