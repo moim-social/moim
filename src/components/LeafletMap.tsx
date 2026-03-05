@@ -43,6 +43,7 @@ export function LeafletMap({
   onMapClickRef.current = onMapClick;
   const onMarkerClickRef = useRef(onMarkerClick);
   onMarkerClickRef.current = onMarkerClick;
+  const prevViewRef = useRef<{ center?: [number, number]; zoom?: number }>({});
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -200,7 +201,11 @@ export function LeafletMap({
         const currentZoom = mapRef.current.getZoom();
         mapRef.current.setView([markers[0].lat, markers[0].lng], Math.max(currentZoom, zoom));
       } else if (!fitToMarkers) {
-        mapRef.current.setView(center, zoom);
+        const prev = prevViewRef.current;
+        if (!prev.center || prev.center[0] !== center[0] || prev.center[1] !== center[1] || prev.zoom !== zoom) {
+          mapRef.current.setView(center, zoom);
+          prevViewRef.current = { center, zoom };
+        }
       } else if (markers.length === 0 && !gpsRequestedRef.current) {
         // No markers — try to center on user's GPS location and place a marker
         gpsRequestedRef.current = true;
