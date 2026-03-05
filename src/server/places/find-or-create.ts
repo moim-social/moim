@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { places } from "~/server/db/schema";
 
-const NEARBY_THRESHOLD_KM = 0.1; // 100 meters
+const NEARBY_THRESHOLD_KM = 0.02; // 20 meters
 
 export async function findOrCreatePlace(opts: {
   latitude: number;
@@ -45,7 +45,8 @@ export async function findOrCreatePlace(opts: {
       sql`${places.latitude} IS NOT NULL AND ${places.longitude} IS NOT NULL
         AND ${places.latitude}::double precision BETWEEN ${lat - latDelta} AND ${lat + latDelta}
         AND ${places.longitude}::double precision BETWEEN ${lng - lngDelta} AND ${lng + lngDelta}
-        AND ${distanceExpr} <= ${NEARBY_THRESHOLD_KM}`,
+        AND ${distanceExpr} <= ${NEARBY_THRESHOLD_KM}
+        AND lower(${places.name}) = lower(${name.trim()})`,
     )
     .orderBy(distanceExpr)
     .limit(1);
