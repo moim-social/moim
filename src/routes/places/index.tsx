@@ -124,7 +124,11 @@ function CheckinsPage() {
 
   // Open dialog for new place check-in
   const openNewCheckin = () => {
-    if (mapCenter) {
+    // Use pinned location if user already clicked the map, otherwise fall back to GPS
+    if (pinnedLocation) {
+      setCheckinLat(pinnedLocation.lat);
+      setCheckinLng(pinnedLocation.lng);
+    } else if (mapCenter) {
       setCheckinLat(mapCenter[0].toFixed(6));
       setCheckinLng(mapCenter[1].toFixed(6));
     }
