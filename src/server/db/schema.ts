@@ -15,13 +15,22 @@ import {
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   handle: varchar("handle", { length: 128 }).notNull().unique(), // proxy format: alice.mastodon.social
-  fediverseHandle: varchar("fediverse_handle", { length: 128 }).unique(), // original: alice@mastodon.social
+  fediverseHandle: varchar("fediverse_handle", { length: 128 }), // original: alice@mastodon.social (kept for backward compat, canonical source is userFediverseAccounts)
   displayName: varchar("display_name", { length: 200 }).notNull(),
   summary: text("summary"),
   avatarUrl: text("avatar_url"),
   avatarSourceHash: text("avatar_source_hash"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const userFediverseAccounts = pgTable("user_fediverse_accounts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  fediverseHandle: varchar("fediverse_handle", { length: 128 }).notNull().unique(),
+  proxyHandle: varchar("proxy_handle", { length: 128 }).notNull().unique(),
+  isPrimary: boolean("is_primary").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const actors = pgTable("actors", {

@@ -1,6 +1,6 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { checkins, events, groupPlaces, placeCategories, places, placeTags, tags, users } from "~/server/db/schema";
+import { checkins, events, groupPlaces, placeCategories, places, placeTags, tags, users, userFediverseAccounts } from "~/server/db/schema";
 import { env } from "~/server/env";
 import { getCategoryPath, getPlaceCategories } from "~/server/places/categories";
 
@@ -57,11 +57,15 @@ export const GET = async ({ request }: { request: Request }) => {
           note: checkins.note,
           createdAt: checkins.createdAt,
           userDisplayName: users.displayName,
-          userHandle: users.fediverseHandle,
+          userHandle: userFediverseAccounts.fediverseHandle,
           userAvatarUrl: users.avatarUrl,
         })
         .from(checkins)
         .innerJoin(users, eq(checkins.userId, users.id))
+        .leftJoin(userFediverseAccounts, and(
+          eq(userFediverseAccounts.userId, users.id),
+          eq(userFediverseAccounts.isPrimary, true),
+        ))
         .where(eq(checkins.placeId, placeId))
         .orderBy(sql`${checkins.createdAt} DESC`)
         .limit(10),

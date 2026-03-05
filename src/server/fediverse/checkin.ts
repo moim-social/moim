@@ -2,7 +2,7 @@ import { Create, Image, LanguageString, Mention, Note, Place, PUBLIC_COLLECTION 
 import { Temporal } from "@js-temporal/polyfill";
 import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, places as placesTable, posts, users } from "~/server/db/schema";
+import { actors, places as placesTable, posts, userFediverseAccounts } from "~/server/db/schema";
 import { getI18n, resolveLocale } from "~/server/i18n";
 import { getFederationContext } from "./federation";
 
@@ -30,9 +30,9 @@ export async function postCheckin(
       .where(and(eq(actors.userId, userId), eq(actors.type, "Person"), eq(actors.isLocal, false)))
       .limit(1),
     db
-      .select({ fediverseHandle: users.fediverseHandle })
-      .from(users)
-      .where(eq(users.id, userId))
+      .select({ fediverseHandle: userFediverseAccounts.fediverseHandle })
+      .from(userFediverseAccounts)
+      .where(and(eq(userFediverseAccounts.userId, userId), eq(userFediverseAccounts.isPrimary, true)))
       .limit(1),
   ]);
   const personActor = proxyRows[0];

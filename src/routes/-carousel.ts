@@ -1,6 +1,6 @@
 import { aliasedTable, and, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { banners, events, actors, users } from "~/server/db/schema";
+import { banners, events, actors, users, userFediverseAccounts } from "~/server/db/schema";
 
 const TOTAL_SLOTS = 5;
 
@@ -67,13 +67,17 @@ export const GET = async () => {
         location: events.location,
         groupHandle: actors.handle,
         groupName: actors.name,
-        organizerHandle: users.fediverseHandle,
+        organizerHandle: userFediverseAccounts.fediverseHandle,
         organizerDisplayName: users.displayName,
         organizerActorUrl: organizerActors.url,
       })
       .from(events)
       .innerJoin(actors, eq(events.groupActorId, actors.id))
       .innerJoin(users, eq(events.organizerId, users.id))
+      .leftJoin(userFediverseAccounts, and(
+        eq(userFediverseAccounts.userId, users.id),
+        eq(userFediverseAccounts.isPrimary, true),
+      ))
       .leftJoin(
         organizerActors,
         and(
@@ -100,12 +104,16 @@ export const GET = async () => {
           location: events.location,
           groupHandle: sql<null>`NULL`.as("group_handle"),
           groupName: sql<null>`NULL`.as("group_name"),
-          organizerHandle: users.fediverseHandle,
+          organizerHandle: userFediverseAccounts.fediverseHandle,
           organizerDisplayName: users.displayName,
           organizerActorUrl: organizerActors.url,
         })
         .from(events)
         .innerJoin(users, eq(events.organizerId, users.id))
+        .leftJoin(userFediverseAccounts, and(
+          eq(userFediverseAccounts.userId, users.id),
+          eq(userFediverseAccounts.isPrimary, true),
+        ))
         .leftJoin(
           organizerActors,
           and(

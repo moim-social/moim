@@ -4,9 +4,9 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { LeafletMap } from "~/components/LeafletMap";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { events, actors, users } from "~/server/db/schema";
+import { events, actors, users, userFediverseAccounts } from "~/server/db/schema";
 import { CATEGORIES } from "~/shared/categories";
 import { pickGradient } from "~/shared/gradients";
 import { Badge } from "~/components/ui/badge";
@@ -40,13 +40,17 @@ const getEventMeta = createServerFn({ method: "GET" })
         description: events.description,
         startsAt: events.startsAt,
         location: events.location,
-        organizerHandle: users.fediverseHandle,
+        organizerHandle: userFediverseAccounts.fediverseHandle,
         groupHandle: actors.handle,
         groupName: actors.name,
         groupDomain: actors.domain,
       })
       .from(events)
       .innerJoin(users, eq(events.organizerId, users.id))
+      .leftJoin(userFediverseAccounts, and(
+        eq(userFediverseAccounts.userId, users.id),
+        eq(userFediverseAccounts.isPrimary, true),
+      ))
       .leftJoin(actors, eq(events.groupActorId, actors.id))
       .where(eq(events.id, data.eventId))
       .limit(1);

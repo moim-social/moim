@@ -8,6 +8,7 @@ import {
   users,
   actors,
   groupMembers,
+  userFediverseAccounts,
 } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
@@ -72,12 +73,16 @@ export const GET = async ({ request }: { request: Request }) => {
       userId: rsvps.userId,
       status: rsvps.status,
       createdAt: rsvps.createdAt,
-      handle: users.fediverseHandle,
+      handle: userFediverseAccounts.fediverseHandle,
       displayName: users.displayName,
       avatarUrl: users.avatarUrl,
     })
     .from(rsvps)
     .innerJoin(users, eq(rsvps.userId, users.id))
+    .leftJoin(userFediverseAccounts, and(
+      eq(userFediverseAccounts.userId, users.id),
+      eq(userFediverseAccounts.isPrimary, true),
+    ))
     .where(eq(rsvps.eventId, eventId));
 
   // Get all answers for this event

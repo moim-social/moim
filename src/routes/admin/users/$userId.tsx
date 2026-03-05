@@ -60,6 +60,13 @@ type CheckinRow = {
   createdAt: string;
 };
 
+type LinkedAccountRow = {
+  id: string;
+  fediverseHandle: string;
+  isPrimary: boolean;
+  createdAt: string;
+};
+
 function AdminUserDetailPage() {
   const { userId } = Route.useParams();
   const [user, setUser] = useState<UserDetail | null>(null);
@@ -67,6 +74,7 @@ function AdminUserDetailPage() {
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [checkins, setCheckins] = useState<CheckinRow[]>([]);
+  const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccountRow[]>([]);
   const [sessionCount, setSessionCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -80,6 +88,7 @@ function AdminUserDetailPage() {
         setGroups(data.groups ?? []);
         setEvents(data.events ?? []);
         setCheckins(data.checkins ?? []);
+        setLinkedAccounts(data.linkedAccounts ?? []);
         setSessionCount(data.sessionCount ?? 0);
       })
       .catch(() => {})
@@ -150,10 +159,18 @@ function AdminUserDetailPage() {
               <p className="text-sm text-muted-foreground mt-1">
                 {user.handle}
               </p>
-              {user.fediverseHandle && (
-                <p className="text-sm text-muted-foreground">
-                  {user.fediverseHandle}
-                </p>
+              {linkedAccounts.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {linkedAccounts.map((acct) => (
+                    <Badge
+                      key={acct.id}
+                      variant={acct.isPrimary ? "default" : "secondary"}
+                    >
+                      @{acct.fediverseHandle}
+                      {acct.isPrimary && " (primary)"}
+                    </Badge>
+                  ))}
+                </div>
               )}
             </div>
           </div>

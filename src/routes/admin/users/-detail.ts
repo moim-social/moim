@@ -8,6 +8,7 @@ import {
   events,
   checkins,
   places,
+  userFediverseAccounts,
 } from "~/server/db/schema";
 import { requireAdmin } from "~/server/admin";
 
@@ -39,7 +40,7 @@ export const GET = async ({ request }: { request: Request }) => {
     )
     .limit(1);
 
-  const [userSessions, userGroups, userEvents, userCheckins, [sessionCountRow]] =
+  const [userSessions, userGroups, userEvents, userCheckins, [sessionCountRow], linkedAccounts] =
     await Promise.all([
       // Active sessions
       db
@@ -107,6 +108,17 @@ export const GET = async ({ request }: { request: Request }) => {
         .select({ count: sql<number>`count(*)::int` })
         .from(sessions)
         .where(eq(sessions.userId, userId)),
+
+      // Linked fediverse accounts
+      db
+        .select({
+          id: userFediverseAccounts.id,
+          fediverseHandle: userFediverseAccounts.fediverseHandle,
+          isPrimary: userFediverseAccounts.isPrimary,
+          createdAt: userFediverseAccounts.createdAt,
+        })
+        .from(userFediverseAccounts)
+        .where(eq(userFediverseAccounts.userId, userId)),
     ]);
 
   return Response.json({
@@ -116,5 +128,6 @@ export const GET = async ({ request }: { request: Request }) => {
     events: userEvents,
     checkins: userCheckins,
     sessionCount: sessionCountRow?.count ?? 0,
+    linkedAccounts,
   });
 };
