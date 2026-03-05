@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, useCallback } from "react";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
@@ -12,10 +12,12 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "~/components/ui/card";
+import { Textarea } from "~/components/ui/textarea";
+import { Label } from "~/components/ui/label";
+import { LeafletMap, type MapMarker } from "~/components/LeafletMap";
+import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -24,150 +26,217 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Textarea } from "~/components/ui/textarea";
-import { Label } from "~/components/ui/label";
-import { LeafletMap, type MapMarker } from "~/components/LeafletMap";
-import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
+import { X, Copy, Check, MapPin, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/places/")({
-  component: PlacesPage,
+  component: CheckinsPage,
   head: () => ({
     meta: [
-      { title: "Places — Moim" },
-      { name: "description", content: "Find venues, spaces, and locations where communities gather." },
-      { property: "og:title", content: "Places — Moim" },
-      { property: "og:description", content: "Find venues, spaces, and locations where communities gather." },
+      { title: "Check-ins — Moim" },
+      { name: "description", content: "See where people are hanging out nearby." },
+      { property: "og:title", content: "Check-ins — Moim" },
+      { property: "og:description", content: "See where people are hanging out nearby." },
       { property: "og:type", content: "website" },
     ],
   }),
 });
-
-type PlaceItem = {
-  id: string;
-  name: string;
-  description: string | null;
-  latitude: string | null;
-  longitude: string | null;
-  address: string | null;
-  website: string | null;
-  checkinCount: number;
-  category: PlaceCategorySummary | null;
-  tags: Array<{ slug: string; label: string }>;
-};
 
 function formatCategory(category: PlaceCategorySummary | null | undefined): string | null {
   if (!category || !category.label) return null;
   return `${category.emoji ?? ""} ${category.label}`.trim();
 }
 
-function PlacesPage() {
+function formatRelativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
+
+type CheckinConfirmation = {
+  placeName: string;
+  placeEmoji: string | null;
+  placeId: string;
+  note: string | null;
+  createdAt: string;
+  mapImageUrl: string | null;
+};
+
+function CheckinsPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [user, setUser] = useState<{ handle: string } | null>(null);
-  const [places, setPlaces] = useState<PlaceItem[]>([]);
   const [placeCategories, setPlaceCategories] = useState<PlaceCategoryOption[]>([]);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
-  const [view, setView] = useState<"list" | "map">("list");
+  const [gpsLoading, setGpsLoading] = useState(true);
 
-  const [checkinOpen, setCheckinOpen] = useState(false);
+  // Nearby places
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+
+  // Recent check-ins for selected place
+  const [placeCheckins, setPlaceCheckins] = useState<{
+    id: string;
+    note: string | null;
+    createdAt: string;
+    userDisplayName: string;
+    userHandle: string | null;
+    userAvatarUrl: string | null;
+  }[]>([]);
+  const [placeCheckinsLoading, setPlaceCheckinsLoading] = useState(false);
+
+  // Check-in form state
+  const [selectedPlace, setSelectedPlace] = useState<NearbyPlace | null>(null);
   const [checkinName, setCheckinName] = useState("");
   const [checkinNote, setCheckinNote] = useState("");
   const [checkinLat, setCheckinLat] = useState("");
   const [checkinLng, setCheckinLng] = useState("");
   const [checkinCategoryId, setCheckinCategoryId] = useState("");
-  const [selectedNearbyPlace, setSelectedNearbyPlace] = useState<NearbyPlace | null>(null);
   const [checkinSubmitting, setCheckinSubmitting] = useState(false);
   const [checkinError, setCheckinError] = useState("");
 
-  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
-  const [nearbyLoading, setNearbyLoading] = useState(false);
+  // Pinned location (persists on map after dialog/form closes)
+  const [pinnedLocation, setPinnedLocation] = useState<{ lat: string; lng: string; placeId?: string } | null>(null);
 
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Confirmation card
+  const [confirmation, setConfirmation] = useState<CheckinConfirmation | null>(null);
+  const [copied, setCopied] = useState(false);
 
+  // Check-in dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Open dialog for new place check-in
+  const openNewCheckin = () => {
+    if (mapCenter) {
+      setCheckinLat(mapCenter[0].toFixed(6));
+      setCheckinLng(mapCenter[1].toFixed(6));
+    }
+    setSelectedPlace(null);
+    setCheckinName("");
+    setCheckinCategoryId("");
+    setCheckinError("");
+    setDialogOpen(true);
+  };
+
+  const isCreatingNewPlace = !!checkinLat && !!checkinLng && selectedPlace == null;
+
+  // Init: fetch session + categories
   useEffect(() => {
     fetch("/api/session")
-      .then((response) => response.json())
+      .then((r) => r.json())
       .then((data) => setUser(data.user))
       .catch(() => {});
 
     fetch("/api/place-categories")
-      .then((response) => response.json())
+      .then((r) => r.json())
       .then((data) => setPlaceCategories(data.options ?? []))
       .catch(() => {});
   }, []);
 
+  // GPS auto-detect
   useEffect(() => {
-    if (!navigator.geolocation) return;
-
+    if (!navigator.geolocation) {
+      setGpsLoading(false);
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setMapCenter([position.coords.latitude, position.coords.longitude]);
+      (pos) => {
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
+        setMapCenter([pos.coords.latitude, pos.coords.longitude]);
+        setPinnedLocation({ lat, lng });
+        setCheckinLat(lat);
+        setCheckinLng(lng);
+        setGpsLoading(false);
       },
-      () => {},
+      () => setGpsLoading(false),
       { enableHighAccuracy: false, timeout: 5000 },
     );
   }, []);
 
-  const fetchPlaces = () => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (query) params.set("q", query);
-    fetch(`/api/places?${params}`)
-      .then((response) => response.json())
-      .then((data) => setPlaces(data.places ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(fetchPlaces, query ? 300 : 0);
-    return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    };
-  }, [query]);
-
-  useEffect(() => {
-    if (!checkinLat || !checkinLng) {
-      setNearbyPlaces([]);
-      return;
-    }
+  // Fetch nearby places when map center changes
+  const fetchNearby = useCallback((lat: number, lng: number) => {
     setNearbyLoading(true);
-    fetch(`/api/places/nearby?lat=${checkinLat}&lng=${checkinLng}&radius=2`)
-      .then((response) => response.json())
+    fetch(`/api/places/nearby?lat=${lat}&lng=${lng}&radius=2`)
+      .then((r) => r.json())
       .then((data) => setNearbyPlaces(data.places ?? []))
       .catch(() => setNearbyPlaces([]))
       .finally(() => setNearbyLoading(false));
-  }, [checkinLat, checkinLng]);
+  }, []);
 
-  const handleCheckinMapClick = (lat: number, lng: number) => {
-    setCheckinLat(lat.toFixed(6));
-    setCheckinLng(lng.toFixed(6));
-    setCheckinName("");
-    setCheckinCategoryId("");
-    setSelectedNearbyPlace(null);
-  };
+  useEffect(() => {
+    if (mapCenter) fetchNearby(mapCenter[0], mapCenter[1]);
+  }, [mapCenter, fetchNearby]);
 
-  const selectNearbyPlace = (place: NearbyPlace) => {
-    setSelectedNearbyPlace(place);
+  // Select a nearby place (sets pin, fetches recent check-ins, does NOT open dialog)
+  const selectPlace = (place: NearbyPlace) => {
+    setSelectedPlace(place);
     setCheckinLat(place.latitude);
     setCheckinLng(place.longitude);
     setCheckinName(place.name);
     setCheckinCategoryId(place.category?.slug ?? "");
+    setCheckinError("");
+    setPinnedLocation({ lat: place.latitude, lng: place.longitude, placeId: place.id });
+
+    // Fetch recent check-ins for this place
+    setPlaceCheckinsLoading(true);
+    setPlaceCheckins([]);
+    fetch(`/api/check-ins?placeId=${place.id}&limit=5`)
+      .then((r) => r.json())
+      .then((data) => setPlaceCheckins(data.checkins ?? []))
+      .catch(() => setPlaceCheckins([]))
+      .finally(() => setPlaceCheckinsLoading(false));
   };
 
-  const resetCheckinForm = () => {
-    setCheckinOpen(false);
+  // Map click: pick a new location (sets pin, does NOT open dialog)
+  const handleMapClick = (lat: number, lng: number) => {
+    setCheckinLat(lat.toFixed(6));
+    setCheckinLng(lng.toFixed(6));
+    setCheckinName("");
+    setCheckinCategoryId("");
+    setSelectedPlace(null);
+    setCheckinError("");
+    setPinnedLocation({ lat: lat.toFixed(6), lng: lng.toFixed(6) });
+    fetchNearby(lat, lng);
+  };
+
+  // Map marker click
+  const handleMarkerClick = (marker: MapMarker) => {
+    const place = nearbyPlaces.find((p) => p.id === marker.id);
+    if (place) selectPlace(place);
+    else navigate({ to: "/places/$placeId", params: { placeId: marker.id } });
+  };
+
+  const resetForm = () => {
+    setSelectedPlace(null);
     setCheckinName("");
     setCheckinNote("");
     setCheckinLat("");
     setCheckinLng("");
     setCheckinCategoryId("");
-    setSelectedNearbyPlace(null);
     setCheckinError("");
+    setDialogOpen(false);
+    // pinnedLocation is intentionally NOT cleared — red pin stays on map
   };
 
+  // Submit check-in
   const handleCheckin = async () => {
     if (!checkinName.trim()) {
       setCheckinError("Place name is required");
@@ -177,7 +246,7 @@ function PlacesPage() {
       setCheckinError("Pick a location on the map");
       return;
     }
-    if (!selectedNearbyPlace && !checkinCategoryId) {
+    if (!selectedPlace && !checkinCategoryId) {
       setCheckinError("Select a category for the new place");
       return;
     }
@@ -194,7 +263,7 @@ function PlacesPage() {
           longitude: checkinLng,
           name: checkinName.trim(),
           note: checkinNote.trim() || undefined,
-          categoryId: selectedNearbyPlace ? undefined : checkinCategoryId,
+          categoryId: selectedPlace ? undefined : checkinCategoryId,
         }),
       });
 
@@ -204,8 +273,20 @@ function PlacesPage() {
         return;
       }
 
-      resetCheckinForm();
-      fetchPlaces();
+      const result = await response.json();
+      setConfirmation({
+        placeName: result.place.name,
+        placeEmoji: result.place.category?.emoji ?? null,
+        placeId: result.place.id,
+        note: result.checkin.note,
+        createdAt: result.checkin.createdAt,
+        mapImageUrl: result.place.mapImageUrl,
+      });
+      resetForm();
+      setPinnedLocation(null);
+
+      // Re-fetch nearby to update counts
+      if (mapCenter) fetchNearby(mapCenter[0], mapCenter[1]);
     } catch {
       setCheckinError("Failed to check in");
     } finally {
@@ -213,291 +294,412 @@ function PlacesPage() {
     }
   };
 
-  const markers: MapMarker[] = places
-    .filter((place) => place.latitude && place.longitude)
-    .map((place) => ({
-      lat: parseFloat(place.latitude!),
-      lng: parseFloat(place.longitude!),
-      label: place.name,
-      id: place.id,
-      glyph: place.category?.emoji ?? null,
-    }));
-
-  const nearbyMapMarkers: MapMarker[] = nearbyPlaces
-    .filter((place) => place.id !== selectedNearbyPlace?.id)
-    .filter((place) => place.latitude && place.longitude)
-    .map((place) => ({
-      lat: parseFloat(place.latitude),
-      lng: parseFloat(place.longitude),
-      label: place.name,
-      id: place.id,
-      color: "blue" as const,
-      glyph: place.category?.emoji ?? null,
-    }));
-
-  const pickedCheckinMarker: MapMarker[] = checkinLat && checkinLng
-    ? [{
-        lat: parseFloat(checkinLat),
-        lng: parseFloat(checkinLng),
-        label: checkinName || "Check-in",
-        id: selectedNearbyPlace?.id ?? "new",
-        color: "red" as const,
-        highlighted: true,
-        glyph: selectedNearbyPlace?.category?.emoji
-          ?? placeCategories.find((category) => category.slug === checkinCategoryId)?.emoji
-          ?? null,
-      }]
-    : [];
-
-  const handleCheckinMarkerClick = (marker: MapMarker) => {
-    const place = nearbyPlaces.find((candidate) => candidate.id === marker.id);
-    if (place) selectNearbyPlace(place);
+  const handleCopyLink = async (placeId: string) => {
+    const url = `${window.location.origin}/places/${placeId}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const isCreatingNewPlace = !!checkinLat && !!checkinLng && selectedNearbyPlace == null;
-  const selectedNearbyCategory = formatCategory(selectedNearbyPlace?.category);
+  // Map markers
+  const nearbyMarkers: MapMarker[] = nearbyPlaces
+    .filter((p) => p.latitude && p.longitude)
+    .map((p) => ({
+      lat: parseFloat(p.latitude),
+      lng: parseFloat(p.longitude),
+      label: p.name,
+      id: p.id,
+      color: (pinnedLocation?.placeId === p.id || selectedPlace?.id === p.id) ? "red" as const : "blue" as const,
+      highlighted: pinnedLocation?.placeId === p.id || selectedPlace?.id === p.id,
+      glyph: p.category?.emoji ?? null,
+    }));
+
+  const pickedMarker: MapMarker[] =
+    pinnedLocation && !pinnedLocation.placeId
+      ? [{
+          lat: parseFloat(pinnedLocation.lat),
+          lng: parseFloat(pinnedLocation.lng),
+          label: checkinName || "New place",
+          id: "new",
+          color: "red" as const,
+          highlighted: true,
+          glyph: placeCategories.find((c) => c.slug === checkinCategoryId)?.emoji ?? null,
+        }]
+      : [];
+
+  // Check-in form fields (shared between inline and drawer)
+  const checkinFormFields = (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="checkin-name">Place name *</Label>
+        <Input
+          id="checkin-name"
+          placeholder="e.g. Tokyo Community Center"
+          value={checkinName}
+          onChange={(e) => {
+            setCheckinName(e.target.value);
+            if (selectedPlace && e.target.value !== selectedPlace.name) {
+              setSelectedPlace(null);
+              setCheckinCategoryId("");
+            }
+          }}
+        />
+      </div>
+
+      {selectedPlace ? (
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            {formatCategory(selectedPlace.category) ?? "Uncategorized"}
+          </div>
+        </div>
+      ) : checkinLat && checkinLng ? (
+        <div className="space-y-2">
+          <Label htmlFor="checkin-category">Category *</Label>
+          <PlaceCategorySelect
+            id="checkin-category"
+            value={checkinCategoryId}
+            onChange={setCheckinCategoryId}
+            options={placeCategories}
+          />
+        </div>
+      ) : null}
+
+      <div className="space-y-2">
+        <Label htmlFor="checkin-note">Note (optional)</Label>
+        <Textarea
+          id="checkin-note"
+          placeholder="What are you up to?"
+          value={checkinNote}
+          onChange={(e) => setCheckinNote(e.target.value)}
+          rows={2}
+        />
+      </div>
+
+      {isCreatingNewPlace && (
+        <p className="text-xs text-muted-foreground">
+          This location will be added as a new place.
+        </p>
+      )}
+
+      {checkinError && <p className="text-sm text-destructive">{checkinError}</p>}
+    </div>
+  );
+
+  const checkinFormActions = (
+    <div className="flex gap-2 justify-end">
+      <Button variant="outline" size="sm" onClick={resetForm}>
+        Cancel
+      </Button>
+      <Button size="sm" onClick={handleCheckin} disabled={checkinSubmitting}>
+        {checkinSubmitting ? "Checking in..." : "Check In"}
+      </Button>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Places</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Check-ins</h2>
           <p className="mt-1 text-muted-foreground">
-            Find venues, spaces, and locations where communities gather.
+            See where people are hanging out nearby.
           </p>
         </div>
-        {user && <Button onClick={() => setCheckinOpen(true)}>Check In</Button>}
+        {user && (
+          <Button onClick={openNewCheckin} className="hidden md:inline-flex">
+            <MapPin className="size-4" />
+            Check In
+          </Button>
+        )}
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <Input
-          placeholder="Search places..."
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          className="max-w-sm"
-        />
-        <div className="ml-auto flex gap-1">
-          <Button
-            variant={view === "list" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setView("list")}
-          >
-            List
-          </Button>
-          <Button
-            variant={view === "map" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setView("map")}
-          >
-            Map
-          </Button>
-        </div>
-      </div>
-
-      {loading ? (
-        <p className="text-muted-foreground">Loading...</p>
-      ) : places.length === 0 ? (
-        <Card className="flex items-center justify-center py-16">
-          <CardHeader className="text-center">
-            <CardTitle className="text-base text-muted-foreground">
-              No places found
-            </CardTitle>
-            <CardDescription>
-              Try a different search query.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      ) : view === "map" ? (
-        <LeafletMap
-          center={mapCenter ?? undefined}
-          markers={markers}
-          fitToMarkers={false}
-          height="500px"
-          onMarkerClick={(marker) => navigate({ to: "/places/$placeId", params: { placeId: marker.id } })}
-        />
-      ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {places.map((place) => (
-            <PlaceCard key={place.id} place={place} />
-          ))}
-        </div>
+      {user && (
+        <Button onClick={openNewCheckin} className="w-full md:hidden">
+          <MapPin className="size-4" />
+          Check In
+        </Button>
       )}
 
-      <Dialog open={checkinOpen} onOpenChange={(open) => {
-        if (!open) {
-          resetCheckinForm();
-          return;
-        }
-        setCheckinOpen(true);
-      }}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Check In</DialogTitle>
-            <DialogDescription>
-              Pick a location on the map. New places need a category before they can be added.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <LeafletMap
-              markers={[...nearbyMapMarkers, ...pickedCheckinMarker]}
-              onMapClick={handleCheckinMapClick}
-              onMarkerClick={handleCheckinMarkerClick}
-              height="250px"
-            />
+      {/* Map */}
+      <LeafletMap
+        center={mapCenter ?? undefined}
+        markers={[...nearbyMarkers, ...pickedMarker]}
+        fitToMarkers={false}
+        onMapClick={handleMapClick}
+        onMarkerClick={handleMarkerClick}
+        height={isMobile ? "350px" : "500px"}
+      />
 
-            {checkinLat && checkinLng && (
-              <p className="text-xs text-muted-foreground">
-                {checkinLat}, {checkinLng}
-              </p>
-            )}
-
-            {checkinLat && checkinLng && (nearbyLoading ? (
-              <p className="text-xs text-muted-foreground">Finding nearby places...</p>
-            ) : nearbyPlaces.length > 0 ? (
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground">Nearby places</p>
-                <ul className="max-h-[150px] overflow-auto rounded-md border">
-                  {nearbyPlaces.map((place) => (
-                    <li
-                      key={place.id}
-                      onClick={() => selectNearbyPlace(place)}
-                      className={`cursor-pointer border-b border-border px-3 py-2 transition-colors last:border-b-0 ${
-                        selectedNearbyPlace?.id === place.id
-                          ? "bg-primary/10 ring-1 ring-inset ring-primary/30"
-                          : "hover:bg-accent"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{place.name}</span>
-                        {place.category?.label && (
-                          <Badge variant="secondary" className="text-[10px]">
-                            {formatCategory(place.category)}
-                          </Badge>
-                        )}
-                      </div>
-                      <span className="ml-0 text-xs text-muted-foreground">
-                        {formatDistance(place.distance)}
-                        {place.checkinCount > 0 && ` · ${place.checkinCount} check-in${place.checkinCount !== 1 ? "s" : ""}`}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null)}
-
-            <div className="space-y-2">
-              <Label htmlFor="checkin-name">Place name *</Label>
-              <Input
-                id="checkin-name"
-                placeholder="e.g. Tokyo Community Center"
-                value={checkinName}
-                onChange={(event) => {
-                  const nextName = event.target.value;
-                  setCheckinName(nextName);
-                  if (selectedNearbyPlace && nextName !== selectedNearbyPlace.name) {
-                    setSelectedNearbyPlace(null);
-                    setCheckinCategoryId("");
-                  }
-                }}
+      {/* Nearby places — horizontal scroll */}
+      {gpsLoading ? (
+        <p className="text-sm text-muted-foreground">Getting your location...</p>
+      ) : nearbyLoading ? (
+        <p className="text-sm text-muted-foreground">Finding nearby places...</p>
+      ) : nearbyPlaces.length > 0 ? (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground">Nearby</h3>
+          <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
+            {nearbyPlaces.map((place) => (
+              <NearbyPlaceCard
+                key={place.id}
+                place={place}
+                selected={pinnedLocation?.placeId === place.id}
+                onSelect={() => selectPlace(place)}
               />
-            </div>
+            ))}
+          </div>
+        </div>
+      ) : mapCenter ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <MapPin className="size-4" />
+          <span>No places nearby yet. Tap the map to check in somewhere new!</span>
+        </div>
+      ) : null}
 
-            {selectedNearbyPlace ? (
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                  {selectedNearbyCategory ?? "Uncategorized"}
+      {/* Recent check-ins for selected place */}
+      {selectedPlace && (
+        <Card>
+          <CardContent className="pt-5 pb-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {selectedPlace.category?.emoji && (
+                  <span className="text-xl">{selectedPlace.category.emoji}</span>
+                )}
+                <div>
+                  <h3 className="text-sm font-semibold leading-tight">{selectedPlace.name}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDistance(selectedPlace.distance)} away
+                    {selectedPlace.checkinCount > 0 && ` · ${selectedPlace.checkinCount} check-in${selectedPlace.checkinCount !== 1 ? "s" : ""}`}
+                  </p>
                 </div>
               </div>
-            ) : checkinLat && checkinLng ? (
-              <div className="space-y-2">
-                <Label htmlFor="checkin-category">Category *</Label>
-                <PlaceCategorySelect
-                  id="checkin-category"
-                  value={checkinCategoryId}
-                  onChange={setCheckinCategoryId}
-                  options={placeCategories}
-                />
-              </div>
-            ) : null}
-
-            <div className="space-y-2">
-              <Label htmlFor="checkin-note">Note (optional)</Label>
-              <Textarea
-                id="checkin-note"
-                placeholder="What are you up to?"
-                value={checkinNote}
-                onChange={(event) => setCheckinNote(event.target.value)}
-                rows={2}
-              />
+              <Link
+                to="/places/$placeId"
+                params={{ placeId: selectedPlace.id }}
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline shrink-0"
+              >
+                View details
+                <ExternalLink className="size-3" />
+              </Link>
             </div>
 
-            {isCreatingNewPlace && (
-              <p className="text-xs text-muted-foreground">
-                This location will be added as a new place.
-              </p>
+            {placeCheckinsLoading ? (
+              <div className="flex items-center gap-2 py-3">
+                <div className="size-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Loading check-ins...</span>
+              </div>
+            ) : placeCheckins.length > 0 ? (
+              <div className="divide-y">
+                {placeCheckins.map((c) => (
+                  <div key={c.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <Avatar className="size-8 shrink-0 mt-0.5">
+                      {c.userAvatarUrl && <AvatarImage src={c.userAvatarUrl} alt={c.userDisplayName} />}
+                      <AvatarFallback className="text-xs">
+                        {c.userDisplayName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate">{c.userDisplayName}</span>
+                        <span className="text-[11px] text-muted-foreground/60 shrink-0">
+                          {formatRelativeTime(c.createdAt)}
+                        </span>
+                      </div>
+                      {c.note && (
+                        <p className="mt-0.5 text-sm text-muted-foreground">{c.note}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground/60 py-2">No check-ins yet. Be the first!</p>
             )}
+          </CardContent>
+        </Card>
+      )}
 
-            {checkinError && <p className="text-sm text-destructive">{checkinError}</p>}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetCheckinForm}>
-              Cancel
-            </Button>
-            <Button onClick={handleCheckin} disabled={checkinSubmitting}>
-              {checkinSubmitting ? "Checking in..." : "Check In"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Confirmation card */}
+      {confirmation && (
+        <ConfirmationCard
+          confirmation={confirmation}
+          copied={copied}
+          onCopyLink={() => handleCopyLink(confirmation.placeId)}
+          onDismiss={() => setConfirmation(null)}
+        />
+      )}
+
+      {/* Check-in dialog */}
+      {(
+        <Dialog open={dialogOpen} onOpenChange={(open) => {
+          if (!open) resetForm();
+          setDialogOpen(open);
+        }}>
+          <DialogContent className="max-h-[85vh] w-[calc(100%-1rem)] max-w-[calc(100%-1rem)] sm:w-full sm:max-w-md flex flex-col overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedPlace
+                  ? `Check in at ${selectedPlace.category?.emoji ?? ""} ${selectedPlace.name}`.trim()
+                  : "Check in at a new place"}
+              </DialogTitle>
+              <DialogDescription>
+                {checkinLat && checkinLng ? `${checkinLat}, ${checkinLng}` : "Pick a location on the map"}
+              </DialogDescription>
+            </DialogHeader>
+            {!user ? (
+              <p className="text-sm text-muted-foreground py-4">Sign in to check in at this place.</p>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto min-w-0 space-y-4">
+                  {/* Nearby places for easy selection */}
+                  {nearbyPlaces.length > 0 && !selectedPlace && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Nearby places</p>
+                      <div className="flex gap-2 overflow-x-auto pb-1 snap-x">
+                        {nearbyPlaces.slice(0, 10).map((place) => (
+                          <button
+                            key={place.id}
+                            type="button"
+                            onClick={() => selectPlace(place)}
+                            className="flex-none snap-start rounded-md border border-border px-3 py-2 text-left hover:bg-accent transition-colors"
+                          >
+                            <div className="flex items-center gap-1">
+                              {place.category?.emoji && <span className="text-sm">{place.category.emoji}</span>}
+                              <span className="text-sm font-medium truncate max-w-[120px]">{place.name}</span>
+                            </div>
+                            <span className="text-[11px] text-muted-foreground">{formatDistance(place.distance)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {checkinFormFields}
+                </div>
+                <DialogFooter>
+                  {checkinFormActions}
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
+
     </div>
   );
 }
 
-function PlaceCard({ place }: { place: PlaceItem }) {
+function NearbyPlaceCard({
+  place,
+  selected,
+  onSelect,
+}: {
+  place: NearbyPlace;
+  selected: boolean;
+  onSelect: () => void;
+}) {
   return (
-    <Link to="/places/$placeId" params={{ placeId: place.id }} className="group block">
-      <Card className="h-full gap-0 overflow-hidden rounded-lg py-0 transition-shadow hover:shadow-md">
-        <CardContent className="flex-1 space-y-2.5 pb-5 pt-5">
-          <h3 className="line-clamp-2 font-semibold leading-snug transition-colors group-hover:text-primary">
-            {place.name}
-          </h3>
-
-          {place.category?.label && (
-            <Badge variant="secondary" className="text-xs">
-              {formatCategory(place.category)}
-            </Badge>
-          )}
-
-          <div className="space-y-1.5 text-sm text-muted-foreground">
-            {place.address && (
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                  <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
-                </svg>
-                <span className="truncate">{place.address}</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                <path fillRule="evenodd" d="M1 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V6Zm4 1.5a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm2 3a4 4 0 0 0-3.665 2.395.75.75 0 0 0 .416 1A8.98 8.98 0 0 0 7 14.5a8.98 8.98 0 0 0 3.249-.604.75.75 0 0 0 .416-1.001A4.001 4.001 0 0 0 7 10.5Zm5-3.75a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Zm0 6.5a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Zm.75-4a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z" clipRule="evenodd" />
-              </svg>
-              <span>{place.checkinCount} check-in{place.checkinCount !== 1 ? "s" : ""}</span>
-            </div>
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`flex-none snap-start w-[160px] rounded-lg border p-3 text-left transition-all ${
+        selected
+          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+          : "border-border hover:border-primary/40 hover:bg-accent"
+      }`}
+    >
+      <div className="flex items-center gap-1.5">
+        {place.category?.emoji && (
+          <span className="text-lg">{place.category.emoji}</span>
+        )}
+        <span className="font-medium text-sm truncate">{place.name}</span>
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        {formatDistance(place.distance)}
+      </div>
+      <div className="mt-2">
+        {place.latestCheckin ? (
+          <div className="flex items-center gap-1.5">
+            <Avatar className="size-4">
+              {place.latestCheckin.userAvatarUrl && (
+                <AvatarImage src={place.latestCheckin.userAvatarUrl} alt={place.latestCheckin.userDisplayName} />
+              )}
+              <AvatarFallback className="text-[8px]">
+                {place.latestCheckin.userDisplayName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-[11px] text-muted-foreground truncate">
+              {place.latestCheckin.userDisplayName}
+            </span>
+            <span className="text-[11px] text-muted-foreground/60 shrink-0">
+              {formatRelativeTime(place.latestCheckin.createdAt)}
+            </span>
           </div>
+        ) : place.checkinCount > 0 ? (
+          <span className="text-[11px] text-muted-foreground">
+            {place.checkinCount} check-in{place.checkinCount !== 1 ? "s" : ""}
+          </span>
+        ) : (
+          <span className="text-[11px] text-muted-foreground/60">No check-ins yet</span>
+        )}
+      </div>
+    </button>
+  );
+}
 
-          {place.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {place.tags.map((tag) => (
-                <Badge key={tag.slug} variant="secondary" className="text-xs">
-                  {tag.label}
-                </Badge>
-              ))}
-            </div>
+function ConfirmationCard({
+  confirmation,
+  copied,
+  onCopyLink,
+  onDismiss,
+}: {
+  confirmation: CheckinConfirmation;
+  copied: boolean;
+  onCopyLink: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <Card className="relative overflow-hidden">
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="absolute top-3 right-3 rounded-full p-1 hover:bg-accent transition-colors"
+      >
+        <X className="size-4 text-muted-foreground" />
+      </button>
+      <CardContent className="pt-6 space-y-3">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+            Checked in
+          </Badge>
+        </div>
+        <h3 className="font-semibold">
+          {confirmation.placeEmoji && <span className="mr-1">{confirmation.placeEmoji}</span>}
+          {confirmation.placeName}
+        </h3>
+        {confirmation.note && (
+          <p className="text-sm text-muted-foreground italic">"{confirmation.note}"</p>
+        )}
+        <div className="flex items-center gap-4">
+          {confirmation.mapImageUrl && (
+            <img
+              src={confirmation.mapImageUrl}
+              alt={`Map of ${confirmation.placeName}`}
+              className="w-24 h-24 rounded-md object-cover border"
+            />
           )}
-        </CardContent>
-      </Card>
-    </Link>
+          <div className="flex-1 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {new Date(confirmation.createdAt).toLocaleString()}
+            </p>
+            <Button variant="outline" size="sm" onClick={onCopyLink} className="gap-1.5">
+              {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              {copied ? "Copied!" : "Copy link"}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
