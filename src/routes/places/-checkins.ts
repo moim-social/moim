@@ -1,6 +1,6 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { checkins, users, places } from "~/server/db/schema";
+import { checkins, users, places, userFediverseAccounts } from "~/server/db/schema";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -17,11 +17,15 @@ export const GET = async ({ request }: { request: Request }) => {
       placeName: places.name,
       placeId: checkins.placeId,
       userDisplayName: users.displayName,
-      userHandle: users.fediverseHandle,
+      userHandle: userFediverseAccounts.fediverseHandle,
       userAvatarUrl: users.avatarUrl,
     })
     .from(checkins)
     .innerJoin(users, eq(checkins.userId, users.id))
+    .leftJoin(userFediverseAccounts, and(
+      eq(userFediverseAccounts.userId, users.id),
+      eq(userFediverseAccounts.isPrimary, true),
+    ))
     .innerJoin(places, eq(checkins.placeId, places.id))
     .$dynamic();
 

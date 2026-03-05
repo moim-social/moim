@@ -1,6 +1,6 @@
 import { aliasedTable, and, desc, eq, gte, lt } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { events, actors, users } from "~/server/db/schema";
+import { events, actors, users, userFediverseAccounts } from "~/server/db/schema";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -20,13 +20,17 @@ export const GET = async ({ request }: { request: Request }) => {
       createdAt: events.createdAt,
       groupHandle: actors.handle,
       groupName: actors.name,
-      organizerHandle: users.fediverseHandle,
+      organizerHandle: userFediverseAccounts.fediverseHandle,
       organizerDisplayName: users.displayName,
       organizerActorUrl: organizerActors.url,
     })
     .from(events)
     .leftJoin(actors, eq(events.groupActorId, actors.id))
     .innerJoin(users, eq(events.organizerId, users.id))
+    .leftJoin(userFediverseAccounts, and(
+      eq(userFediverseAccounts.userId, users.id),
+      eq(userFediverseAccounts.isPrimary, true),
+    ))
     .leftJoin(organizerActors, and(
       eq(organizerActors.userId, users.id),
       eq(organizerActors.isLocal, false),
