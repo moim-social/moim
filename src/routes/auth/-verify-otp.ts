@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db } from "~/server/db/client";
-import { actors, otpChallenges, otpVotes, sessions, users } from "~/server/db/schema";
+import { actors, otpChallenges, otpVotes, sessions, userFediverseAccounts, users } from "~/server/db/schema";
 import { toProxyHandle } from "~/server/fediverse/handles";
 import { getFederationContext } from "~/server/fediverse/federation";
 import {
@@ -99,12 +99,16 @@ export const POST = async ({ request }: { request: Request }) => {
     .where(eq(actors.handle, handle))
     .limit(1);
 
-  // Look up user by fediverseHandle or legacy handle
-  let [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.fediverseHandle, handle))
+  // Look up user via junction table
+  const [linkedAccount] = await db
+    .select({ userId: userFediverseAccounts.userId })
+    .from(userFediverseAccounts)
+    .where(eq(userFediverseAccounts.fediverseHandle, handle))
     .limit(1);
+
+  let [user] = linkedAccount
+    ? await db.select().from(users).where(eq(users.id, linkedAccount.userId)).limit(1)
+    : [];
 
   if (!user) {
     // Fallback: check legacy handle format for pre-migration users
@@ -126,6 +130,22 @@ export const POST = async ({ request }: { request: Request }) => {
       })
       .returning();
     user = created;
+
+    // Insert junction table entry as primary
+    await db.insert(userFediverseAccounts).values({
+      userId: user.id,
+      fediverseHandle: handle,
+      proxyHandle,
+      isPrimary: true,
+    });
+  } else if (!linkedAccount) {
+    // User exists but no junction table entry (legacy) — create one
+    await db.insert(userFediverseAccounts).values({
+      userId: user.id,
+      fediverseHandle: handle,
+      proxyHandle,
+      isPrimary: true,
+    }).onConflictDoNothing();
   }
 
   // Link remote actor to user if not already linked

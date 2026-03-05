@@ -13,6 +13,11 @@ import { POST as requestOtp } from "./routes/auth/-request-otp";
 import { POST as verifyOtp } from "./routes/auth/-verify-otp";
 import { GET as getMe } from "./routes/auth/-me";
 import { POST as signout } from "./routes/auth/-signout";
+import { GET as listLinkedAccounts, DELETE as unlinkAccount } from "./routes/auth/-linked-accounts";
+import { POST as linkAccount } from "./routes/auth/-link-account";
+import { PATCH as setPrimaryAccount } from "./routes/auth/-set-primary";
+import { POST as mergeAccount } from "./routes/auth/-merge-account";
+import { POST as otpCheck } from "./routes/auth/-otp-check";
 import { GET as searchUsers } from "./routes/groups/-search-users";
 import { POST as resolveModerator } from "./routes/groups/-resolve-moderator";
 import { POST as createGroup } from "./routes/groups/-create";
@@ -144,12 +149,36 @@ apiRouter.post("/auth/otp-verifications", defineEventHandler(async (event) => {
   return verifyOtp({ request: toWebRequest(event) });
 }));
 
+apiRouter.post("/auth/otp-check", defineEventHandler(async (event) => {
+  return otpCheck({ request: toWebRequest(event) });
+}));
+
 apiRouter.get("/session", defineEventHandler(async (event) => {
   return getMe({ request: toWebRequest(event) });
 }));
 
 apiRouter.delete("/session", defineEventHandler(async (event) => {
   return signout({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/auth/linked-accounts", defineEventHandler(async (event) => {
+  return listLinkedAccounts({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/auth/link-account", defineEventHandler(async (event) => {
+  return linkAccount({ request: toWebRequest(event) });
+}));
+
+apiRouter.patch("/auth/primary-account", defineEventHandler(async (event) => {
+  return setPrimaryAccount({ request: toWebRequest(event) });
+}));
+
+apiRouter.delete("/auth/linked-accounts", defineEventHandler(async (event) => {
+  return unlinkAccount({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/auth/merge-account", defineEventHandler(async (event) => {
+  return mergeAccount({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/users/settings", defineEventHandler(async (event) => {
