@@ -1,8 +1,20 @@
 import { db } from "~/server/db/client";
 import { actors } from "~/server/db/schema";
 import { env } from "~/server/env";
+import { getFederationContext } from "./federation";
 
 type WebfingerLink = { rel?: string; type?: string; href?: string };
+
+/**
+ * Get a signed document loader using the instance actor's keys.
+ * This ensures outgoing requests carry HTTP signatures, required by
+ * remote servers with authorized fetch enabled.
+ */
+async function getSignedLoader() {
+  const ctx = getFederationContext();
+  const instanceHost = new URL(env.federationOrigin ?? env.baseUrl).hostname;
+  return await ctx.getDocumentLoader({ identifier: instanceHost });
+}
 
 export async function resolveActorUrl(handle: string): Promise<string> {
   const baseHost = new URL(env.baseUrl).host;
@@ -18,6 +30,7 @@ export async function resolveActorUrl(handle: string): Promise<string> {
   const url = `https://${host}/.well-known/webfinger?resource=${encodeURIComponent(
     resource
   )}`;
+  // WebFinger is a public endpoint; unsigned fetch is fine here
   const response = await fetch(url, { headers: { Accept: "application/jrd+json" } });
   if (!response.ok) {
     throw new Error(`Webfinger lookup failed: ${response.status}`);
@@ -33,20 +46,16 @@ export async function resolveActorUrl(handle: string): Promise<string> {
 }
 
 export async function resolveOutboxUrl(actorUrl: string): Promise<string> {
-  const response = await fetch(actorUrl, {
-    headers: { Accept: "application/activity+json" },
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch actor: ${response.status}`);
-  }
-  const data = (await response.json()) as { outbox?: string };
+  const loader = await getSignedLoader();
+  const { document } = await loader(actorUrl);
+  const data = document as { outbox?: string };
   if (!data.outbox) {
     throw new Error("Actor missing outbox");
   }
   return data.outbox;
 }
 
-type ActorProfile = {
+export type ActorProfile = {
   id: string;
   type?: string;
   preferredUsername?: string;
@@ -62,6 +71,15 @@ type ActorProfile = {
 };
 
 /**
+ * Fetch a remote actor profile using signed HTTP requests.
+ */
+export async function fetchActorProfile(actorUrl: string): Promise<ActorProfile> {
+  const loader = await getSignedLoader();
+  const { document } = await loader(actorUrl);
+  return document as ActorProfile;
+}
+
+/**
  * Resolve a fediverse handle, fetch the actor profile, and persist in the actors table.
  * Returns the upserted actor record.
  */
@@ -69,14 +87,7 @@ export async function persistRemoteActor(
   handle: string,
 ): Promise<typeof actors.$inferSelect> {
   const actorUrl = await resolveActorUrl(handle);
-
-  const response = await fetch(actorUrl, {
-    headers: { Accept: "application/activity+json" },
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch actor profile: ${response.status}`);
-  }
-  const data = (await response.json()) as ActorProfile;
+  const data = await fetchActorProfile(actorUrl);
 
   if (!data.id) {
     throw new Error("Actor profile missing id");
