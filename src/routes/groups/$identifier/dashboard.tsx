@@ -186,7 +186,7 @@ function GroupDashboard() {
     if (activityFilter === "reply") return a.type === "reply" || a.type === "quote";
     return true;
   });
-  const hosts = members.filter((m) => m.role === "host");
+  const owners = members.filter((m) => m.role === "owner");
   const moderators = members.filter((m) => m.role === "moderator");
 
   const now = new Date();
@@ -437,13 +437,13 @@ function GroupDashboard() {
           <CardTitle className="text-base">Members ({members.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {hosts.length > 0 && (
+          {owners.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                Hosts
+                Owners
               </p>
               <ul className="space-y-1.5">
-                {hosts.map((m) => (
+                {owners.map((m) => (
                   <MemberRow key={m.handle} member={m} />
                 ))}
               </ul>

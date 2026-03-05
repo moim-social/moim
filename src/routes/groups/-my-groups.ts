@@ -10,8 +10,9 @@ export const GET = async ({ request }: { request: Request }) => {
   }
 
   // Find all groups where the user is host or moderator (join through actors to match any actor for this user)
+  // A user may have multiple actors in the same group (from linked accounts), so deduplicate by group.
   const memberActors = aliasedTable(actors, "member_actors");
-  const rows = await db
+  const rawRows = await db
     .select({
       id: actors.id,
       handle: actors.handle,
@@ -26,6 +27,16 @@ export const GET = async ({ request }: { request: Request }) => {
     .innerJoin(actors, eq(groupMembers.groupActorId, actors.id))
     .innerJoin(memberActors, eq(groupMembers.memberActorId, memberActors.id))
     .where(and(eq(memberActors.userId, user.id), eq(memberActors.type, "Person")));
+
+  // Deduplicate: keep highest-privilege role per group (host > moderator)
+  const groupMap = new Map<string, (typeof rawRows)[0]>();
+  for (const row of rawRows) {
+    const existing = groupMap.get(row.id);
+    if (!existing || (row.role === "owner" && existing.role !== "owner")) {
+      groupMap.set(row.id, row);
+    }
+  }
+  const rows = [...groupMap.values()];
 
   const now = new Date();
 
