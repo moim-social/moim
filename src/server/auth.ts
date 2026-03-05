@@ -1,6 +1,6 @@
 import { eq, and, gt } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { sessions, users } from "~/server/db/schema";
+import { sessions, users, userFediverseAccounts } from "~/server/db/schema";
 
 export function parseCookie(
   cookieHeader: string | null,
@@ -29,12 +29,16 @@ export async function getSessionUser(
     .select({
       id: users.id,
       handle: users.handle,
-      fediverseHandle: users.fediverseHandle,
+      fediverseHandle: userFediverseAccounts.fediverseHandle,
       displayName: users.displayName,
       avatarUrl: users.avatarUrl,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
+    .leftJoin(userFediverseAccounts, and(
+      eq(userFediverseAccounts.userId, users.id),
+      eq(userFediverseAccounts.isPrimary, true),
+    ))
     .where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())))
     .limit(1);
 
