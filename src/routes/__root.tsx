@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { CalendarDays, MapPin, User } from "lucide-react";
 import appCss from "~/styles/globals.css?url";
 
 type SessionUser = { handle: string; displayName: string; avatarUrl?: string | null; isAdmin?: boolean } | null;
@@ -45,10 +46,10 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Moim" },
       { property: "og:title", content: "Moim" },
-      { property: "og:description", content: "Federated events & places" },
+      { property: "og:description", content: "Federated events & check-ins" },
       { property: "og:image", content: "/logo.png" },
       { property: "og:type", content: "website" },
     ],
@@ -120,9 +121,9 @@ function RootLayout() {
                   <img src="/logo.png" alt="Moim" style={{ height: 28, width: "auto" }} />
                   <span className="text-lg font-bold tracking-tight">Moim</span>
                 </Link>
-                <nav className="flex items-center gap-6">
+                <nav className="hidden md:flex items-center gap-6">
                   <NavLink to="/events">Events</NavLink>
-                  <NavLink to="/places">Places</NavLink>
+                  <NavLink to="/places">Check-ins</NavLink>
                 </nav>
                 <div className="ml-auto flex items-center gap-3">
                   {loaded && (
@@ -136,7 +137,7 @@ function RootLayout() {
                                 {(user.displayName || user.handle).charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">@{user.handle}</span>
+                            <span className="hidden md:inline text-sm">@{user.handle}</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
@@ -179,23 +180,53 @@ function RootLayout() {
 
             {/* Main content */}
             <main className="flex-1">
-              <div className="mx-auto w-full max-w-5xl px-6 py-8">
+              <div className="mx-auto w-full max-w-5xl px-6 py-8 pb-24 md:pb-8">
                 <Outlet />
               </div>
             </main>
 
-            {/* Footer */}
-            <footer className="border-t">
+            {/* Footer (desktop only) */}
+            <footer className="hidden md:block border-t">
               <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
                 <p className="text-sm text-muted-foreground">
-                  Moim &mdash; Federated events & places
+                  Moim &mdash; Federated events & check-ins
                 </p>
                 <nav className="flex gap-4">
                   <Link to="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Events</Link>
-                  <Link to="/places" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Places</Link>
+                  <Link to="/places" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Check-ins</Link>
                 </nav>
               </div>
             </footer>
+
+            {/* Bottom tab bar (mobile only) */}
+            <nav
+              className="fixed bottom-0 inset-x-0 z-50 border-t bg-background md:hidden"
+              style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+            >
+              <div className="flex items-center justify-around h-14">
+                <Link
+                  to="/events"
+                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground [&.active]:text-foreground"
+                >
+                  <CalendarDays className="size-5" />
+                  <span className="text-[10px] font-medium">Events</span>
+                </Link>
+                <Link
+                  to="/places"
+                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground [&.active]:text-foreground"
+                >
+                  <MapPin className="size-5" />
+                  <span className="text-[10px] font-medium">Check-ins</span>
+                </Link>
+                <Link
+                  to={user ? "/settings" : "/auth/signin"}
+                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground [&.active]:text-foreground"
+                >
+                  <User className="size-5" />
+                  <span className="text-[10px] font-medium">{user ? "Profile" : "Sign in"}</span>
+                </Link>
+              </div>
+            </nav>
           </div>
           <Scripts />
         </AuthContext.Provider>
