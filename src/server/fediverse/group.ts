@@ -98,7 +98,7 @@ export async function createGroupActor(
   await db.insert(groupMembers).values({
     groupActorId: actor.id,
     memberActorId: hostActor.id,
-    role: "host",
+    role: "owner",
   });
 
   return actor;

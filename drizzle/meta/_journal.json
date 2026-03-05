@@ -162,6 +162,13 @@
       "when": 1772681581123,
       "tag": "0022_perpetual_nebula",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1772684357482,
+      "tag": "0023_ordinary_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }

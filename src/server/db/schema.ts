@@ -117,7 +117,7 @@ export const groupMembers = pgTable("group_members", {
   id: uuid("id").defaultRandom().primaryKey(),
   groupActorId: uuid("group_actor_id").references(() => actors.id).notNull(),
   memberActorId: uuid("member_actor_id").references(() => actors.id).notNull(),
-  role: varchar("role", { length: 32 }).notNull().default("host"), // 'host', 'moderator'
+  role: varchar("role", { length: 32 }).notNull().default("owner"), // 'owner', 'moderator'
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
