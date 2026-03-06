@@ -13,6 +13,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 import { TimezonePicker } from "~/components/TimezonePicker";
+import { datetimeLocalToUTC } from "~/lib/timezone";
 
 export const Route = createFileRoute("/events/create")({
   component: CreateEventPage,
@@ -229,8 +230,8 @@ function CreateEventPage() {
           externalUrl: externalUrl || undefined,
           categoryId: categoryId || undefined,
           groupActorId: groupActorId || undefined,
-          startsAt: new Date(startsAt).toISOString(),
-          endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
+          startsAt: datetimeLocalToUTC(startsAt, timezone),
+          endsAt: endsAt ? datetimeLocalToUTC(endsAt, timezone) : undefined,
           timezone: timezone || undefined,
           organizerHandles: organizers.map((o) => o.handle),
           questions: questions

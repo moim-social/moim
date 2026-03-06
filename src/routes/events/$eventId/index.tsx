@@ -28,6 +28,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
+import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { usePostHog } from "posthog-js/react";
 
@@ -303,6 +304,30 @@ function EventDetailPage() {
   const endDateStr = end ? end.toLocaleDateString(undefined, dateOpts) : null;
   const endTimeStr = end ? end.toLocaleTimeString(undefined, timeOpts) : null;
 
+  // Local timezone tooltip (only show if different from event timezone)
+  const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const showLocalTzHint = eventTz != null && browserTz !== eventTz;
+  const localTimeOpts: Intl.DateTimeFormatOptions = {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  };
+  const localDateOpts: Intl.DateTimeFormatOptions = {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  };
+  const localStartDate = start.toLocaleDateString(undefined, localDateOpts);
+  const localStartTime = start.toLocaleTimeString(undefined, localTimeOpts);
+  const localEndTime = end ? end.toLocaleTimeString(undefined, localTimeOpts) : null;
+  const localEndDate = end ? end.toLocaleDateString(undefined, localDateOpts) : null;
+  const localSameDay = end != null && localStartDate === localEndDate;
+  const localTooltip = !end
+    ? `${localStartDate} ${localStartTime}`
+    : localSameDay
+      ? `${localStartDate} ${localStartTime} — ${localEndTime}`
+      : `${localStartDate} ${localStartTime} — ${localEndDate} ${localEndTime}`;
+
   const attendeeCount = rsvpData?.rsvpCounts?.accepted ?? data.rsvpCounts?.accepted ?? 0;
 
   const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
@@ -357,7 +382,7 @@ function EventDetailPage() {
               <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75Z" clipRule="evenodd" />
             </svg>
           </div>
-          <div className="min-w-0">
+          <div className="flex-1 min-w-0">
             {end == null ? (
               <>
                 <p className="text-sm font-medium">{startDateStr}</p>
@@ -379,6 +404,18 @@ function EventDetailPage() {
               </>
             )}
           </div>
+          {showLocalTzHint && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="shrink-0 mt-0.5 text-muted-foreground cursor-help">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{localTooltip}</TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {(event.location || event.placeName) && (

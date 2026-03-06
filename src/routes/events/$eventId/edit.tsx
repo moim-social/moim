@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Checkbox } from "~/components/ui/checkbox";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 import { TimezonePicker } from "~/components/TimezonePicker";
+import { utcToDatetimeLocal, datetimeLocalToUTC } from "~/lib/timezone";
 
 export const Route = createFileRoute("/events/$eventId/edit")({
   component: EditEventPage,
@@ -21,26 +22,6 @@ type QuestionItem = {
   required: boolean;
   answerCount: number;
 };
-
-function toLocalDatetime(iso: string, tz?: string | null): string {
-  const d = new Date(iso);
-  if (tz) {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).formatToParts(d);
-    const get = (type: string) =>
-      parts.find((p) => p.type === type)?.value ?? "";
-    return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
-  }
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 function EditEventPage() {
   const { eventId } = Route.useParams();
@@ -78,8 +59,8 @@ function EditEventPage() {
         setDescription(e.description ?? "");
         setCategoryId(e.categoryId ?? "");
         setTimezone(e.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
-        setStartsAt(e.startsAt ? toLocalDatetime(e.startsAt, e.timezone) : "");
-        setEndsAt(e.endsAt ? toLocalDatetime(e.endsAt, e.timezone) : "");
+        setStartsAt(e.startsAt ? utcToDatetimeLocal(e.startsAt, e.timezone) : "");
+        setEndsAt(e.endsAt ? utcToDatetimeLocal(e.endsAt, e.timezone) : "");
         if (e.placeId) {
           setSelectedPlace({
             id: e.placeId,
@@ -122,8 +103,8 @@ function EditEventPage() {
           title: title.trim(),
           description: description.trim() || undefined,
           categoryId: categoryId || undefined,
-          startsAt: new Date(startsAt).toISOString(),
-          endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
+          startsAt: datetimeLocalToUTC(startsAt, timezone),
+          endsAt: endsAt ? datetimeLocalToUTC(endsAt, timezone) : undefined,
           timezone: timezone || undefined,
           placeId: selectedPlace?.id || undefined,
           location: selectedPlace?.name || undefined,
