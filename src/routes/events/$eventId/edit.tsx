@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Checkbox } from "~/components/ui/checkbox";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 import { TimezonePicker } from "~/components/TimezonePicker";
+import { ImageCropper } from "~/components/ImageCropper";
 import { utcToDatetimeLocal, datetimeLocalToUTC } from "~/lib/timezone";
 
 export const Route = createFileRoute("/events/$eventId/edit")({
@@ -46,6 +47,7 @@ function EditEventPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/events/${eventId}`)
@@ -160,12 +162,12 @@ function EditEventPage() {
     setQuestions(updated);
   }
 
-  async function handleImageUpload(file: File) {
+  async function handleImageUpload(blob: Blob) {
     setImageError("");
     setUploadingImage(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", blob, "header.webp");
       const res = await fetch(`/api/events/${eventId}/header-image`, {
         method: "POST",
         body: formData,
@@ -220,8 +222,8 @@ function EditEventPage() {
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                setHeaderImagePreview(URL.createObjectURL(file));
-                handleImageUpload(file);
+                setCropSrc(URL.createObjectURL(file));
+                if (fileInputRef.current) fileInputRef.current.value = "";
               }}
             />
             <Button
@@ -258,6 +260,18 @@ function EditEventPage() {
               </Button>
             )}
           </div>
+          {cropSrc && (
+            <ImageCropper
+              imageSrc={cropSrc}
+              open
+              onClose={() => setCropSrc(null)}
+              onCropped={(blob) => {
+                setCropSrc(null);
+                setHeaderImagePreview(URL.createObjectURL(blob));
+                handleImageUpload(blob);
+              }}
+            />
+          )}
           {imageError && (
             <p className="text-sm text-destructive">{imageError}</p>
           )}

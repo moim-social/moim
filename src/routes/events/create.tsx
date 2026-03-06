@@ -13,6 +13,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 import { TimezonePicker } from "~/components/TimezonePicker";
+import { ImageCropper } from "~/components/ImageCropper";
 import { datetimeLocalToUTC } from "~/lib/timezone";
 
 export const Route = createFileRoute("/events/create")({
@@ -140,8 +141,9 @@ function CreateEventPage() {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Header image
-  const [headerImageFile, setHeaderImageFile] = useState<File | null>(null);
+  const [headerImageBlob, setHeaderImageBlob] = useState<Blob | null>(null);
   const [headerImagePreview, setHeaderImagePreview] = useState<string | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const headerFileInputRef = useRef<HTMLInputElement>(null);
 
   // Survey questions
@@ -257,11 +259,11 @@ function CreateEventPage() {
       setCreatedEventId(data.event.id);
       posthog?.capture("event_created", { eventId: data.event.id });
 
-      // Upload header image if selected
-      if (headerImageFile) {
+      // Upload header image if cropped
+      if (headerImageBlob) {
         try {
           const formData = new FormData();
-          formData.append("file", headerImageFile);
+          formData.append("file", headerImageBlob, "header.webp");
           await fetch(`/api/events/${data.event.id}/header-image`, {
             method: "POST",
             body: formData,
@@ -461,8 +463,8 @@ function CreateEventPage() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      setHeaderImageFile(file);
-                      setHeaderImagePreview(URL.createObjectURL(file));
+                      setCropSrc(URL.createObjectURL(file));
+                      if (headerFileInputRef.current) headerFileInputRef.current.value = "";
                     }}
                   />
                   <Button
@@ -471,26 +473,37 @@ function CreateEventPage() {
                     size="sm"
                     onClick={() => headerFileInputRef.current?.click()}
                   >
-                    {headerImageFile ? "Change Image" : "Upload Image"}
+                    {headerImageBlob ? "Change Image" : "Upload Image"}
                   </Button>
-                  {headerImageFile && (
+                  {headerImageBlob && (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive"
                       onClick={() => {
-                        setHeaderImageFile(null);
+                        setHeaderImageBlob(null);
                         setHeaderImagePreview(null);
-                        if (headerFileInputRef.current) headerFileInputRef.current.value = "";
                       }}
                     >
                       Remove
                     </Button>
                   )}
                 </div>
+                {cropSrc && (
+                  <ImageCropper
+                    imageSrc={cropSrc}
+                    open
+                    onClose={() => setCropSrc(null)}
+                    onCropped={(blob) => {
+                      setCropSrc(null);
+                      setHeaderImageBlob(blob);
+                      setHeaderImagePreview(URL.createObjectURL(blob));
+                    }}
+                  />
+                )}
                 <p className="text-xs text-muted-foreground">
-                  Landscape image recommended. Max 10 MB. Will be resized to 1200x630.
+                  Select an image and crop it to 1200x630. Max 10 MB.
                 </p>
               </div>
 

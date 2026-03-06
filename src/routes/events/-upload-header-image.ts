@@ -88,24 +88,8 @@ export const POST = async ({ request }: { request: Request }) => {
   const arrayBuffer = await file.arrayBuffer();
   const inputBuffer = Buffer.from(arrayBuffer);
 
-  // Validate landscape orientation
-  const metadata = await sharp(inputBuffer).metadata();
-  if (!metadata.width || !metadata.height || metadata.height > metadata.width) {
-    return Response.json(
-      { error: "Image must be landscape (wider than tall)" },
-      { status: 400 },
-    );
-  }
-
-  // Resize to 1200x630 and convert to WebP
-  const aspectRatio = metadata.width / metadata.height;
-  const fit = aspectRatio > 4 ? ("contain" as const) : ("cover" as const);
+  // Normalize to WebP (client sends pre-cropped image from the cropper)
   const processed = await sharp(inputBuffer)
-    .resize(1200, 630, {
-      fit,
-      position: "centre",
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
     .webp({ quality: 85 })
     .toBuffer();
 
