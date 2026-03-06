@@ -20,6 +20,7 @@ export type CalendarEvent = {
   categoryId: string;
   startsAt: string;
   endsAt: string | null;
+  timezone: string | null;
   location: string | null;
   organizerName?: string | null;
   groupName?: string | null;
@@ -201,9 +202,11 @@ export function EventCalendar({ events }: EventCalendarProps) {
             <div className="space-y-2">
               {selectedEvents.map((evt) => {
                 const start = new Date(evt.startsAt);
+                const evtTz = evt.timezone ?? undefined;
                 const timeStr = start.toLocaleTimeString(undefined, {
                   hour: "2-digit",
                   minute: "2-digit",
+                  timeZone: evtTz,
                 });
                 const [color] = pickGradient(evt.categoryId || evt.id);
 

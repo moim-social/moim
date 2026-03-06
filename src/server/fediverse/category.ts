@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, posts } from "~/server/db/schema";
 import { getI18n, resolveLocale } from "~/server/i18n";
+import { resolveTimezone, formatEventDateRange } from "~/server/timezone";
 import { CATEGORIES } from "~/shared/categories";
 import { getFederationContext } from "./federation";
 
@@ -82,6 +83,7 @@ export async function announceEvent(
     description?: string | null;
     startsAt: Date;
     endsAt?: Date | null;
+    timezone?: string | null;
     externalUrl?: string | null;
   },
   organizers: Array<{ handle: string; actorUrl: string }>,
@@ -105,9 +107,9 @@ export async function announceEvent(
   const i18n = getI18n(locale);
   const resolvedLocale = resolveLocale(locale);
 
-  // Build HTML content
-  const startStr = event.startsAt.toISOString();
-  const endStr = event.endsAt ? ` — ${event.endsAt.toISOString()}` : "";
+  // Build HTML content with timezone-aware formatting
+  const tz = resolveTimezone(event.timezone, hostActor.timezone);
+  const dateRangeStr = formatEventDateRange(event.startsAt, event.endsAt, tz);
   const eventUrl = new URL(`/events/${event.id}`, ctx.canonicalOrigin).href;
   const descHtml = event.description
     ? `<p>${event.description}</p>`
@@ -124,7 +126,7 @@ export async function announceEvent(
       `<p>${hostingMsg}</p>`,
       `<p><strong><a href="${eventUrl}">${event.title}</a></strong></p>`,
       descHtml,
-      `<p>📅 ${startStr}${endStr}</p>`,
+      `<p>📅 ${dateRangeStr}</p>`,
       event.externalUrl
         ? `<p><a href="${event.externalUrl}">${i18n._("Register here")}</a> · <a href="${eventUrl}">${i18n._("Details")}</a></p>`
         : `<p><a href="${eventUrl}">${i18n._("RSVP here")}</a></p>`,
@@ -150,7 +152,7 @@ export async function announceEvent(
     content = [
       `<p><strong><a href="${eventUrl}">${event.title}</a></strong></p>`,
       descHtml,
-      `<p>📅 ${startStr}${endStr}</p>`,
+      `<p>📅 ${dateRangeStr}</p>`,
       organizers.length > 0
         ? `<p>${i18n._("Organized by: {organizers}", { organizers: orgMentions })}</p>`
         : "",

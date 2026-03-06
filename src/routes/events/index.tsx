@@ -36,6 +36,7 @@ type EventItem = {
   categoryId: string;
   startsAt: string;
   endsAt: string | null;
+  timezone: string | null;
   location: string | null;
   groupHandle: string | null;
   groupName: string | null;
@@ -131,14 +132,17 @@ function EventsPage() {
 
 function EventCard({ event }: { event: EventItem }) {
   const start = new Date(event.startsAt);
+  const eventTz = event.timezone ?? undefined;
   const dateStr = start.toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
+    timeZone: eventTz,
   });
   const timeStr = start.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: eventTz,
   });
   const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
 

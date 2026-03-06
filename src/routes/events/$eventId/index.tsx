@@ -106,6 +106,7 @@ type EventData = {
     categoryId: string;
     startsAt: string;
     endsAt: string | null;
+    timezone: string | null;
     location: string | null;
     placeId: string | null;
     placeName: string | null;
@@ -279,19 +280,22 @@ function EventDetailPage() {
 
   const sameDay =
     end != null &&
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate();
+    start.toLocaleDateString(undefined, { timeZone: event.timezone ?? undefined }) ===
+    end.toLocaleDateString(undefined, { timeZone: event.timezone ?? undefined });
 
+  const eventTz = event.timezone ?? undefined;
   const dateOpts: Intl.DateTimeFormatOptions = {
     weekday: "short",
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: eventTz,
   };
   const timeOpts: Intl.DateTimeFormatOptions = {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: eventTz,
+    timeZoneName: "short",
   };
 
   const startDateStr = start.toLocaleDateString(undefined, dateOpts);
