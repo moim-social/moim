@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CATEGORIES } from "~/shared/categories";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -41,6 +41,11 @@ function EditEventPage() {
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [externalUrl, setExternalUrl] = useState("");
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
+  const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
+  const [headerImagePreview, setHeaderImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch(`/api/events/${eventId}`)
@@ -71,6 +76,7 @@ function EditEventPage() {
           });
         }
         setExternalUrl(e.externalUrl ?? "");
+        setHeaderImageUrl(e.headerImageUrl ?? null);
         setQuestions(
           (data.questions ?? []).map((q: any, idx: number) => ({
             id: q.id,
@@ -154,6 +160,30 @@ function EditEventPage() {
     setQuestions(updated);
   }
 
+  async function handleImageUpload(file: File) {
+    setImageError("");
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/events/${eventId}/header-image`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImageError(data.error ?? "Failed to upload image");
+        return;
+      }
+      setHeaderImageUrl(data.headerImageUrl);
+      setHeaderImagePreview(null);
+    } catch {
+      setImageError("Network error");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
   if (loading) {
     return <p className="text-muted-foreground">Loading...</p>;
   }
@@ -170,6 +200,71 @@ function EditEventPage() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
+
+        {/* Header Image */}
+        <div className="space-y-1.5">
+          <Label>Header Image (optional)</Label>
+          {(headerImagePreview || headerImageUrl) && (
+            <img
+              src={headerImagePreview ?? headerImageUrl!}
+              alt="Header preview"
+              className="w-full rounded-md object-cover aspect-[1200/630]"
+            />
+          )}
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setHeaderImagePreview(URL.createObjectURL(file));
+                handleImageUpload(file);
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={uploadingImage}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploadingImage ? "Uploading..." : headerImageUrl ? "Change Image" : "Upload Image"}
+            </Button>
+            {headerImageUrl && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                disabled={uploadingImage}
+                onClick={async () => {
+                  await fetch(`/api/events/${eventId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      title: title.trim(),
+                      startsAt: startsAt,
+                      headerImageUrl: null,
+                    }),
+                  });
+                  setHeaderImageUrl(null);
+                  setHeaderImagePreview(null);
+                }}
+              >
+                Remove
+              </Button>
+            )}
+          </div>
+          {imageError && (
+            <p className="text-sm text-destructive">{imageError}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Landscape image recommended. Max 10 MB. Will be resized to 1200x630.
+          </p>
+        </div>
 
         {/* Title */}
         <div className="space-y-1.5">

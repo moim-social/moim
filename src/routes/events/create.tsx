@@ -139,6 +139,11 @@ function CreateEventPage() {
   const [resolving, setResolving] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Header image
+  const [headerImageFile, setHeaderImageFile] = useState<File | null>(null);
+  const [headerImagePreview, setHeaderImagePreview] = useState<string | null>(null);
+  const headerFileInputRef = useRef<HTMLInputElement>(null);
+
   // Survey questions
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
   const [createdEventId, setCreatedEventId] = useState("");
@@ -251,6 +256,21 @@ function CreateEventPage() {
       }
       setCreatedEventId(data.event.id);
       posthog?.capture("event_created", { eventId: data.event.id });
+
+      // Upload header image if selected
+      if (headerImageFile) {
+        try {
+          const formData = new FormData();
+          formData.append("file", headerImageFile);
+          await fetch(`/api/events/${data.event.id}/header-image`, {
+            method: "POST",
+            body: formData,
+          });
+        } catch {
+          // Non-blocking: event is created, image upload failure is not critical
+        }
+      }
+
       setPhase("success");
     } catch {
       setError("Network error");
@@ -420,6 +440,58 @@ function CreateEventPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                 />
+              </div>
+
+              {/* Header Image */}
+              <div className="space-y-1.5">
+                <Label>Header Image (optional)</Label>
+                {headerImagePreview && (
+                  <img
+                    src={headerImagePreview}
+                    alt="Header preview"
+                    className="w-full rounded-md object-cover aspect-[1200/630]"
+                  />
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={headerFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setHeaderImageFile(file);
+                      setHeaderImagePreview(URL.createObjectURL(file));
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => headerFileInputRef.current?.click()}
+                  >
+                    {headerImageFile ? "Change Image" : "Upload Image"}
+                  </Button>
+                  {headerImageFile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        setHeaderImageFile(null);
+                        setHeaderImagePreview(null);
+                        if (headerFileInputRef.current) headerFileInputRef.current.value = "";
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Landscape image recommended. Max 10 MB. Will be resized to 1200x630.
+                </p>
               </div>
 
               {/* Date range */}
