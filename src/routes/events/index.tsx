@@ -38,6 +38,7 @@ type EventItem = {
   endsAt: string | null;
   timezone: string | null;
   location: string | null;
+  headerImageUrl: string | null;
   groupHandle: string | null;
   groupName: string | null;
   organizerHandle: string | null;
@@ -163,10 +164,14 @@ function EventCard({ event }: { event: EventItem }) {
   return (
     <Link to="/events/$eventId" params={{ eventId: event.id }} className="group block cursor-pointer">
       <Card className="rounded-lg overflow-hidden transition-shadow hover:shadow-md h-full flex flex-col gap-0 py-0 cursor-pointer">
-        {/* Gradient banner */}
+        {/* Header banner */}
         <div
-          className="h-24 relative"
-          style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
+          className="h-24 relative bg-cover bg-center"
+          style={{
+            background: event.headerImageUrl
+              ? `linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.2)), url(${event.headerImageUrl}) center/cover no-repeat`
+              : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
+          }}
         >
           {event.categoryId && (
             <Badge

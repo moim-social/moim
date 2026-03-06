@@ -18,6 +18,7 @@ export const GET = async ({ request }: { request: Request }) => {
       endsAt: events.endsAt,
       timezone: events.timezone,
       location: events.location,
+      headerImageUrl: events.headerImageUrl,
       createdAt: events.createdAt,
       groupHandle: actors.handle,
       groupName: actors.name,
