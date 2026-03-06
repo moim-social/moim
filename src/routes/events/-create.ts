@@ -21,6 +21,7 @@ export const POST = async ({ request }: { request: Request }) => {
     groupActorId?: string;
     startsAt?: string;
     endsAt?: string;
+    timezone?: string;
     location?: string;
     externalUrl?: string;
     placeId?: string;
@@ -113,6 +114,7 @@ export const POST = async ({ request }: { request: Request }) => {
         placeId: body.placeId ?? null,
         startsAt,
         endsAt: endsAt ?? null,
+        timezone: body.timezone ?? null,
       })
       .returning();
 

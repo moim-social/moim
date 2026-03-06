@@ -12,6 +12,7 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Card, CardContent } from "~/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
+import { TimezonePicker } from "~/components/TimezonePicker";
 
 export const Route = createFileRoute("/events/create")({
   component: CreateEventPage,
@@ -123,6 +124,9 @@ function CreateEventPage() {
   const [externalUrl, setExternalUrl] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [timezone, setTimezone] = useState<string | null>(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+  );
 
   // Organizers
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
@@ -227,6 +231,7 @@ function CreateEventPage() {
           groupActorId: groupActorId || undefined,
           startsAt: new Date(startsAt).toISOString(),
           endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
+          timezone: timezone || undefined,
           organizerHandles: organizers.map((o) => o.handle),
           questions: questions
             .filter((q) => q.question.trim())
@@ -430,6 +435,13 @@ function CreateEventPage() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">End time is optional.</p>
+                <div className="mt-2">
+                  <Label>Timezone</Label>
+                  <TimezonePicker
+                    value={timezone}
+                    onChange={setTimezone}
+                  />
+                </div>
               </div>
 
               {/* Location */}

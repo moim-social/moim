@@ -24,6 +24,7 @@ export const POST = async ({ request }: { request: Request }) => {
     website?: string;
     categories?: string[];
     moderatorHandles?: string[];
+    timezone?: string;
   } | null;
 
   if (!body?.handle || !body?.name || !body?.summary) {
@@ -46,9 +47,11 @@ export const POST = async ({ request }: { request: Request }) => {
   const website = body.website?.trim() || undefined;
 
   try {
+    const timezone = body.timezone?.trim() || undefined;
     const actor = await createGroupActor(body.handle, body.name, body.summary, user.id, {
       website,
       categories,
+      timezone,
     });
 
     // Process moderators
