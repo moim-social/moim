@@ -32,6 +32,7 @@ export const GET = async () => {
     startsAt: Date;
     endsAt: Date | null;
     location: string | null;
+    headerImageUrl: string | null;
     groupHandle: string;
     groupName: string | null;
     organizerHandle: string | null;
@@ -47,6 +48,7 @@ export const GET = async () => {
     startsAt: Date;
     endsAt: Date | null;
     location: string | null;
+    headerImageUrl: string | null;
     groupHandle: null;
     groupName: null;
     organizerHandle: string | null;
@@ -65,6 +67,7 @@ export const GET = async () => {
         startsAt: events.startsAt,
         endsAt: events.endsAt,
         location: events.location,
+        headerImageUrl: events.headerImageUrl,
         groupHandle: actors.handle,
         groupName: actors.name,
         organizerHandle: userFediverseAccounts.fediverseHandle,
@@ -102,6 +105,7 @@ export const GET = async () => {
           startsAt: events.startsAt,
           endsAt: events.endsAt,
           location: events.location,
+          headerImageUrl: events.headerImageUrl,
           groupHandle: sql<null>`NULL`.as("group_handle"),
           groupName: sql<null>`NULL`.as("group_name"),
           organizerHandle: userFediverseAccounts.fediverseHandle,

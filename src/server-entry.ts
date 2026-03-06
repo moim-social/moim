@@ -63,6 +63,8 @@ import { POST as webfingerLookup } from "./routes/api/-webfinger";
 import { GET as groupFeed } from "./routes/groups/-feed";
 import { GET as eventDashboard } from "./routes/events/-dashboard";
 import { GET as eventDashboardActivity } from "./routes/events/-dashboard-activity";
+import { POST as uploadEventHeaderImage } from "./routes/events/-upload-header-image";
+import { GET as serveEventHeader } from "./routes/event-headers/-serve";
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -362,6 +364,16 @@ apiRouter.get("/events/:eventId/dashboard/activity", defineEventHandler(async (e
   });
 }));
 
+apiRouter.post("/events/:eventId/header-image", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  if (!eventId) return Response.json({ error: "eventId is required" }, { status: 400 });
+
+  return uploadEventHeaderImage({
+    request: await forwardFormData(request, `/api/events/${eventId}/header-image?eventId=${eventId}`, "POST", (formData) => formData),
+  });
+}));
+
 apiRouter.get("/notes/:noteId", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   const noteId = event.context.params?.noteId;
@@ -562,6 +574,12 @@ app.use("/avatars", defineEventHandler(async (event) => {
 app.use("/banners", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   return serveBanner({ request });
+}));
+
+// Event header image routes
+app.use("/event-headers", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  return serveEventHeader({ request });
 }));
 
 app.use(

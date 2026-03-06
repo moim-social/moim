@@ -41,6 +41,7 @@ const getEventMeta = createServerFn({ method: "GET" })
         description: events.description,
         startsAt: events.startsAt,
         location: events.location,
+        headerImageUrl: events.headerImageUrl,
         organizerHandle: userFediverseAccounts.fediverseHandle,
         groupHandle: actors.handle,
         groupName: actors.name,
@@ -85,6 +86,9 @@ export const Route = createFileRoute("/events/$eventId/")({
         { property: "og:title", content: title },
         { property: "og:description", content: desc },
         { property: "og:type", content: "website" },
+        ...(loaderData.headerImageUrl
+          ? [{ property: "og:image", content: loaderData.headerImageUrl }]
+          : []),
         ...(loaderData.groupHandle
           ? [{ property: "fediverse:creator", content: `@${loaderData.groupHandle}@${loaderData.groupDomain}` }]
           : loaderData.organizerHandle
@@ -115,6 +119,7 @@ type EventData = {
     placeLatitude: string | null;
     placeLongitude: string | null;
     externalUrl: string | null;
+    headerImageUrl: string | null;
     groupHandle: string | null;
     groupName: string | null;
     organizerHandle: string | null;
@@ -475,8 +480,12 @@ function EventDetailPage() {
     <div className="pb-24 md:pb-0">
       {/* Hero */}
       <div
-        className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen px-6 py-12 md:py-16 pb-20 md:pb-24"
-        style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
+        className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen px-6 py-12 md:py-16 pb-20 md:pb-24 bg-cover bg-center"
+        style={{
+          background: event.headerImageUrl
+            ? `linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.3)), url(${event.headerImageUrl}) center/cover no-repeat`
+            : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
+        }}
       >
         <div className="mx-auto max-w-5xl">
           {event.categoryId && (

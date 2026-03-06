@@ -13,6 +13,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 import { TimezonePicker } from "~/components/TimezonePicker";
+import { ImageCropper } from "~/components/ImageCropper";
 import { datetimeLocalToUTC } from "~/lib/timezone";
 
 export const Route = createFileRoute("/events/create")({
@@ -139,6 +140,12 @@ function CreateEventPage() {
   const [resolving, setResolving] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Header image
+  const [headerImageBlob, setHeaderImageBlob] = useState<Blob | null>(null);
+  const [headerImagePreview, setHeaderImagePreview] = useState<string | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const headerFileInputRef = useRef<HTMLInputElement>(null);
+
   // Survey questions
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
   const [createdEventId, setCreatedEventId] = useState("");
@@ -251,6 +258,21 @@ function CreateEventPage() {
       }
       setCreatedEventId(data.event.id);
       posthog?.capture("event_created", { eventId: data.event.id });
+
+      // Upload header image if cropped
+      if (headerImageBlob) {
+        try {
+          const formData = new FormData();
+          formData.append("file", headerImageBlob, "header.webp");
+          await fetch(`/api/events/${data.event.id}/header-image`, {
+            method: "POST",
+            body: formData,
+          });
+        } catch {
+          // Non-blocking: event is created, image upload failure is not critical
+        }
+      }
+
       setPhase("success");
     } catch {
       setError("Network error");
@@ -420,6 +442,69 @@ function CreateEventPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                 />
+              </div>
+
+              {/* Header Image */}
+              <div className="space-y-1.5">
+                <Label>Header Image (optional)</Label>
+                {headerImagePreview && (
+                  <img
+                    src={headerImagePreview}
+                    alt="Header preview"
+                    className="w-full rounded-md object-cover aspect-[1200/630]"
+                  />
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={headerFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setCropSrc(URL.createObjectURL(file));
+                      if (headerFileInputRef.current) headerFileInputRef.current.value = "";
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => headerFileInputRef.current?.click()}
+                  >
+                    {headerImageBlob ? "Change Image" : "Upload Image"}
+                  </Button>
+                  {headerImageBlob && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        setHeaderImageBlob(null);
+                        setHeaderImagePreview(null);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                {cropSrc && (
+                  <ImageCropper
+                    imageSrc={cropSrc}
+                    open
+                    onClose={() => setCropSrc(null)}
+                    onCropped={(blob) => {
+                      setCropSrc(null);
+                      setHeaderImageBlob(blob);
+                      setHeaderImagePreview(URL.createObjectURL(blob));
+                    }}
+                  />
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Select an image and crop it to 1200x630. Max 10 MB.
+                </p>
               </div>
 
               {/* Date range */}

@@ -25,6 +25,7 @@ export const GET = async ({ request }: { request: Request }) => {
       location: events.location,
       externalUrl: events.externalUrl,
       placeId: events.placeId,
+      headerImageUrl: events.headerImageUrl,
       createdAt: events.createdAt,
       placeName: places.name,
       placeAddress: places.address,

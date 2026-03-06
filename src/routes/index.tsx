@@ -30,6 +30,7 @@ type EventItem = {
   startsAt: string;
   endsAt: string | null;
   location: string | null;
+  headerImageUrl: string | null;
   groupHandle: string | null;
   groupName: string | null;
   organizerHandle: string | null;
@@ -55,6 +56,7 @@ type EventSlide = {
   startsAt: string;
   endsAt: string | null;
   location: string | null;
+  headerImageUrl: string | null;
   groupHandle: string | null;
   groupName: string | null;
   organizerHandle: string | null;
@@ -399,8 +401,12 @@ function EventSlideContent({ slide }: { slide: EventSlide }) {
 
   return (
     <div
-      className="h-full px-6 py-6 md:py-0 flex items-center overflow-hidden"
-      style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
+      className="h-full px-6 py-6 md:py-0 flex items-center overflow-hidden bg-cover bg-center"
+      style={{
+        background: slide.headerImageUrl
+          ? `linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.3)), url(${slide.headerImageUrl}) center/cover no-repeat`
+          : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
+      }}
     >
       <div className="mx-auto max-w-5xl w-full" style={{ color: "white" }}>
         <div className="flex items-center gap-3 mb-1 md:mb-2">
@@ -495,8 +501,12 @@ function EventCard({ event }: { event: EventItem }) {
     <Link to="/events/$eventId" params={{ eventId: event.id }} className="group block cursor-pointer">
       <Card className="rounded-lg overflow-hidden transition-shadow hover:shadow-md h-full flex flex-col gap-0 py-0 cursor-pointer">
         <div
-          className="h-24 relative"
-          style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
+          className="h-24 relative bg-cover bg-center"
+          style={{
+            background: event.headerImageUrl
+              ? `linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.2)), url(${event.headerImageUrl}) center/cover no-repeat`
+              : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
+          }}
         >
           {event.categoryId && (
             <Badge

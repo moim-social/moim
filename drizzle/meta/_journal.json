@@ -176,6 +176,13 @@
       "when": 1772776890403,
       "tag": "0024_wooden_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1772779502335,
+      "tag": "0025_petite_wolverine",
+      "breakpoints": true
     }
   ]
 }

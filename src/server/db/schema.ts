@@ -135,6 +135,7 @@ export const events = pgTable("events", {
   location: text("location"),
   externalUrl: text("external_url").default("").notNull(),
   placeId: uuid("place_id").references(() => places.id),
+  headerImageUrl: text("header_image_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
