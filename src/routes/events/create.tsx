@@ -101,7 +101,7 @@ function CreateEventPage() {
 
   // Groups the user can create events for
   const [groups, setGroups] = useState<
-    { id: string; handle: string; name: string | null }[]
+    { id: string; handle: string; name: string | null; timezone: string | null }[]
   >([]);
   const [groupsLoaded, setGroupsLoaded] = useState(false);
 
@@ -315,8 +315,11 @@ function CreateEventPage() {
                     onValueChange={(v) => {
                       if (v === "personal") {
                         setGroupActorId("");
+                        setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
                       } else if (v === "group" && groups.length > 0 && !groupActorId) {
                         setGroupActorId(groups[0].id);
+                        const groupTz = groups[0].timezone;
+                        if (groupTz) setTimezone(groupTz);
                       }
                     }}
                   >
@@ -339,7 +342,11 @@ function CreateEventPage() {
                       ) : (
                         <select
                           value={groupActorId}
-                          onChange={(e) => setGroupActorId(e.target.value)}
+                          onChange={(e) => {
+                            setGroupActorId(e.target.value);
+                            const selected = groups.find((g) => g.id === e.target.value);
+                            if (selected?.timezone) setTimezone(selected.timezone);
+                          }}
                           className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         >
                           <option value="">Select a group</option>
