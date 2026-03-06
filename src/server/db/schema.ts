@@ -57,6 +57,7 @@ export const actors = pgTable("actors", {
   website: text("website"),
   avatarUrl: text("avatar_url"),
   language: varchar("language", { length: 16 }), // BCP 47 tag e.g. "en", "ko", "ja"
+  timezone: varchar("timezone", { length: 64 }), // IANA e.g. "Asia/Seoul"
   categories: jsonb("categories"), // string[] of category IDs (for Group actors)
   verified: boolean("verified").default(false).notNull(),
   raw: jsonb("raw"),
@@ -130,6 +131,7 @@ export const events = pgTable("events", {
   description: text("description"),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
   endsAt: timestamp("ends_at", { withTimezone: true }),
+  timezone: varchar("timezone", { length: 64 }), // IANA e.g. "Asia/Seoul"
   location: text("location"),
   externalUrl: text("external_url").default("").notNull(),
   placeId: uuid("place_id").references(() => places.id),
