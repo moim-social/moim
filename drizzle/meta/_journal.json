@@ -169,6 +169,13 @@
       "when": 1772684357482,
       "tag": "0023_ordinary_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1772776890403,
+      "tag": "0024_wooden_mister_sinister",
+      "breakpoints": true
     }
   ]
 }

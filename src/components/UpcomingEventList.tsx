@@ -24,6 +24,7 @@ export function UpcomingEventList({ events }: UpcomingEventListProps) {
         year: "numeric",
         month: "long",
         day: "numeric",
+        timeZone: event.timezone ?? undefined,
       });
       if (label !== currentLabel) {
         groups.push({ dateLabel: label, events: [] });
@@ -50,9 +51,11 @@ export function UpcomingEventList({ events }: UpcomingEventListProps) {
           <div className="rounded-lg border divide-y ml-4">
             {group.events.map((event) => {
               const start = new Date(event.startsAt);
+              const evtTz = event.timezone ?? undefined;
               const timeStr = start.toLocaleTimeString(undefined, {
                 hour: "2-digit",
                 minute: "2-digit",
+                timeZone: evtTz,
               });
               const [color] = pickGradient(event.categoryId || event.id);
 

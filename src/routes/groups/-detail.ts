@@ -44,6 +44,7 @@ export const GET = async ({ request }: { request: Request }) => {
       categoryId: events.categoryId,
       startsAt: events.startsAt,
       endsAt: events.endsAt,
+      timezone: events.timezone,
       location: events.location,
       createdAt: events.createdAt,
     })
@@ -175,6 +176,7 @@ export const GET = async ({ request }: { request: Request }) => {
       avatarUrl: group.avatarUrl,
       categories: group.categories,
       language: group.language,
+      timezone: group.timezone,
       verified: group.verified,
       followersCount: followers.length,
       createdAt: group.createdAt,

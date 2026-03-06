@@ -12,6 +12,8 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Card, CardContent } from "~/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
+import { TimezonePicker } from "~/components/TimezonePicker";
+import { datetimeLocalToUTC } from "~/lib/timezone";
 
 export const Route = createFileRoute("/events/create")({
   component: CreateEventPage,
@@ -100,7 +102,7 @@ function CreateEventPage() {
 
   // Groups the user can create events for
   const [groups, setGroups] = useState<
-    { id: string; handle: string; name: string | null }[]
+    { id: string; handle: string; name: string | null; timezone: string | null }[]
   >([]);
   const [groupsLoaded, setGroupsLoaded] = useState(false);
 
@@ -123,6 +125,9 @@ function CreateEventPage() {
   const [externalUrl, setExternalUrl] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [timezone, setTimezone] = useState<string | null>(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+  );
 
   // Organizers
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
@@ -225,8 +230,9 @@ function CreateEventPage() {
           externalUrl: externalUrl || undefined,
           categoryId: categoryId || undefined,
           groupActorId: groupActorId || undefined,
-          startsAt: new Date(startsAt).toISOString(),
-          endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
+          startsAt: datetimeLocalToUTC(startsAt, timezone),
+          endsAt: endsAt ? datetimeLocalToUTC(endsAt, timezone) : undefined,
+          timezone: timezone || undefined,
           organizerHandles: organizers.map((o) => o.handle),
           questions: questions
             .filter((q) => q.question.trim())
@@ -310,8 +316,11 @@ function CreateEventPage() {
                     onValueChange={(v) => {
                       if (v === "personal") {
                         setGroupActorId("");
+                        setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
                       } else if (v === "group" && groups.length > 0 && !groupActorId) {
                         setGroupActorId(groups[0].id);
+                        const groupTz = groups[0].timezone;
+                        if (groupTz) setTimezone(groupTz);
                       }
                     }}
                   >
@@ -334,7 +343,11 @@ function CreateEventPage() {
                       ) : (
                         <select
                           value={groupActorId}
-                          onChange={(e) => setGroupActorId(e.target.value)}
+                          onChange={(e) => {
+                            setGroupActorId(e.target.value);
+                            const selected = groups.find((g) => g.id === e.target.value);
+                            if (selected?.timezone) setTimezone(selected.timezone);
+                          }}
                           className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         >
                           <option value="">Select a group</option>
@@ -430,6 +443,13 @@ function CreateEventPage() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">End time is optional.</p>
+                <div className="mt-2">
+                  <Label>Timezone</Label>
+                  <TimezonePicker
+                    value={timezone}
+                    onChange={setTimezone}
+                  />
+                </div>
               </div>
 
               {/* Location */}

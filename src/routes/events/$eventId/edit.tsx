@@ -8,6 +8,8 @@ import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Checkbox } from "~/components/ui/checkbox";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
+import { TimezonePicker } from "~/components/TimezonePicker";
+import { utcToDatetimeLocal, datetimeLocalToUTC } from "~/lib/timezone";
 
 export const Route = createFileRoute("/events/$eventId/edit")({
   component: EditEventPage,
@@ -20,12 +22,6 @@ type QuestionItem = {
   required: boolean;
   answerCount: number;
 };
-
-function toLocalDatetime(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 function EditEventPage() {
   const { eventId } = Route.useParams();
@@ -41,6 +37,7 @@ function EditEventPage() {
   const [categoryId, setCategoryId] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [timezone, setTimezone] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [externalUrl, setExternalUrl] = useState("");
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
@@ -61,8 +58,9 @@ function EditEventPage() {
         setTitle(e.title ?? "");
         setDescription(e.description ?? "");
         setCategoryId(e.categoryId ?? "");
-        setStartsAt(e.startsAt ? toLocalDatetime(e.startsAt) : "");
-        setEndsAt(e.endsAt ? toLocalDatetime(e.endsAt) : "");
+        setTimezone(e.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
+        setStartsAt(e.startsAt ? utcToDatetimeLocal(e.startsAt, e.timezone) : "");
+        setEndsAt(e.endsAt ? utcToDatetimeLocal(e.endsAt, e.timezone) : "");
         if (e.placeId) {
           setSelectedPlace({
             id: e.placeId,
@@ -105,8 +103,9 @@ function EditEventPage() {
           title: title.trim(),
           description: description.trim() || undefined,
           categoryId: categoryId || undefined,
-          startsAt: new Date(startsAt).toISOString(),
-          endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
+          startsAt: datetimeLocalToUTC(startsAt, timezone),
+          endsAt: endsAt ? datetimeLocalToUTC(endsAt, timezone) : undefined,
+          timezone: timezone || undefined,
           placeId: selectedPlace?.id || undefined,
           location: selectedPlace?.name || undefined,
           externalUrl: externalUrl.trim() || undefined,
@@ -238,6 +237,13 @@ function EditEventPage() {
             />
           </div>
           <p className="text-xs text-muted-foreground">End time is optional.</p>
+          <div className="mt-2">
+            <Label>Timezone</Label>
+            <TimezonePicker
+              value={timezone}
+              onChange={setTimezone}
+            />
+          </div>
         </div>
 
         {/* Location */}

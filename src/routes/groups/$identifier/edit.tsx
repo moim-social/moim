@@ -10,6 +10,7 @@ import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Card, CardContent } from "~/components/ui/card";
+import { TimezonePicker } from "~/components/TimezonePicker";
 
 export const Route = createFileRoute("/groups/$identifier/edit")({
   component: EditGroupPage,
@@ -29,6 +30,7 @@ function EditGroupPage() {
   const [website, setWebsite] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [language, setLanguage] = useState("");
+  const [timezone, setTimezone] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [groupId, setGroupId] = useState("");
@@ -51,6 +53,7 @@ function EditGroupPage() {
         setWebsite(g.website ?? "");
         setSelectedCategories(g.categories ?? []);
         setLanguage(g.language ?? "");
+        setTimezone(g.timezone ?? null);
         if (g.avatarUrl) setAvatarPreview(g.avatarUrl);
         setLoading(false);
       })
@@ -82,6 +85,7 @@ function EditGroupPage() {
           website: website.trim() || undefined,
           categories: selectedCategories,
           language: language || undefined,
+          timezone: timezone || undefined,
         }),
       });
       const data = await res.json();
@@ -196,6 +200,19 @@ function EditGroupPage() {
               </select>
               <p className="text-sm text-muted-foreground">
                 Language used for federated posts from this group.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Default Timezone</Label>
+              <TimezonePicker
+                value={timezone}
+                onChange={setTimezone}
+                showAutoOption
+                autoLabel="Auto (instance default)"
+              />
+              <p className="text-sm text-muted-foreground">
+                Timezone used for event dates in federated posts from this group.
               </p>
             </div>
 

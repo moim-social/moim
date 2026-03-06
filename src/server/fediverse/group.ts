@@ -19,7 +19,7 @@ export async function createGroupActor(
   name: string,
   summary: string,
   hostUserId: string,
-  options?: { website?: string; categories?: string[] },
+  options?: { website?: string; categories?: string[]; timezone?: string },
 ): Promise<typeof actors.$inferSelect> {
   const ctx = getFederationContext();
 
@@ -53,6 +53,7 @@ export async function createGroupActor(
       isLocal: true,
       website: options?.website ?? null,
       categories: options?.categories ?? null,
+      timezone: options?.timezone ?? null,
     })
     .returning();
 

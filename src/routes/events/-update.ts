@@ -19,6 +19,7 @@ export const POST = async ({ request }: { request: Request }) => {
     categoryId?: string;
     startsAt?: string;
     endsAt?: string;
+    timezone?: string;
     location?: string;
     externalUrl?: string;
     placeId?: string | null;
@@ -106,6 +107,7 @@ export const POST = async ({ request }: { request: Request }) => {
         categoryId: body.categoryId ?? null,
         startsAt,
         endsAt: endsAt ?? null,
+        timezone: body.timezone ?? undefined,
         location: body.location?.trim() || null,
         externalUrl: body.externalUrl?.trim() || "",
         placeId: body.placeId !== undefined ? (body.placeId || null) : undefined,

@@ -35,6 +35,9 @@ export const env = {
   // i18n
   defaultLocale: process.env.DEFAULT_LOCALE ?? "en",
 
+  // Timezone
+  defaultTimezone: process.env.DEFAULT_TIMEZONE ?? "UTC",
+
   // Map link providers (comma-separated: kakao,naver,google)
   mapLinkProviders: (process.env.MAP_LINK_PROVIDERS ?? "").split(",").map(s => s.trim()).filter(Boolean),
 
