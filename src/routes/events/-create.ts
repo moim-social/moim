@@ -181,7 +181,7 @@ export const POST = async ({ request }: { request: Request }) => {
 
     // Host actor posts Note; category Service announces only for group events
     // Only federate if the event is published
-    if (body.published !== false) {
+    if (event.published) {
       await announceEvent(body.categoryId ?? null, hostActorId, event, organizers, {
         skipAnnounce: isPersonalEvent,
         creatorMention,
