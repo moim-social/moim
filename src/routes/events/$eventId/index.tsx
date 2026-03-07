@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useBottomBarSlot } from "~/routes/__root";
 import { createServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { useEffect, useState } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { z } from "zod";
 import { LeafletMap } from "~/components/LeafletMap";
 import { and, eq } from "drizzle-orm";
@@ -272,6 +273,56 @@ function EventDetailPage() {
     setRsvpSubmitting(false);
   }
 
+  const attendeeCount = rsvpData?.rsvpCounts?.accepted ?? data?.rsvpCounts?.accepted ?? 0;
+
+  const bottomBarContent = useMemo(() => {
+    if (!data) return null;
+    if (data.event.externalUrl) {
+      return (
+        <div className="mx-auto flex max-w-5xl items-center justify-center gap-4 px-6 py-3">
+          <Button size="sm" asChild>
+            <a href={data.event.externalUrl} target="_blank" rel="noopener noreferrer">
+              Register externally
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 ml-1">
+                <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Zm7.5-2.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0V5.56l-5.22 5.22a.75.75 0 1 1-1.06-1.06l5.22-5.22H12.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+              </svg>
+            </a>
+          </Button>
+        </div>
+      );
+    }
+    if (rsvpData) {
+      return (
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">{attendeeCount} attending</span>
+            {rsvpData.userRsvp && (
+              <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"} className="text-xs">
+                {rsvpData.userRsvp.status === "accepted" ? "Going" : "Not going"}
+              </Badge>
+            )}
+          </div>
+          {!rsvpData.isAuthenticated ? (
+            <Button size="sm" asChild>
+              <Link to="/auth/signin">Sign in to RSVP</Link>
+            </Button>
+          ) : rsvpData.userRsvp ? (
+            <Button size="sm" variant="outline" onClick={() => setRsvpDialogOpen(true)}>
+              Change RSVP
+            </Button>
+          ) : (
+            <Button size="sm" onClick={() => setRsvpDialogOpen(true)}>
+              RSVP
+            </Button>
+          )}
+        </div>
+      );
+    }
+    return null;
+  }, [data, rsvpData, attendeeCount, setRsvpDialogOpen]);
+
+  useBottomBarSlot(bottomBarContent);
+
   if (loading) {
     return <p className="text-muted-foreground">Loading...</p>;
   }
@@ -332,8 +383,6 @@ function EventDetailPage() {
     : localSameDay
       ? `${localStartDate} ${localStartTime} — ${localEndTime}`
       : `${localStartDate} ${localStartTime} — ${localEndDate} ${localEndTime}`;
-
-  const attendeeCount = rsvpData?.rsvpCounts?.accepted ?? data.rsvpCounts?.accepted ?? 0;
 
   const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
 
@@ -677,47 +726,6 @@ function EventDetailPage() {
         </div>
       </div>
 
-      {/* Mobile sticky bottom bar */}
-      {event.externalUrl ? (
-        <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-          <div className="mx-auto flex max-w-5xl items-center justify-center gap-4 px-6 py-3">
-            <Button size="sm" asChild>
-              <a href={event.externalUrl} target="_blank" rel="noopener noreferrer">
-                Register externally
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 ml-1">
-                  <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Zm7.5-2.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0V5.56l-5.22 5.22a.75.75 0 1 1-1.06-1.06l5.22-5.22H12.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
-                </svg>
-              </a>
-            </Button>
-          </div>
-        </div>
-      ) : rsvpData ? (
-        <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{attendeeCount} attending</span>
-              {rsvpData.userRsvp && (
-                <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"} className="text-xs">
-                  {rsvpData.userRsvp.status === "accepted" ? "Going" : "Not going"}
-                </Badge>
-              )}
-            </div>
-            {!rsvpData.isAuthenticated ? (
-              <Button size="sm" asChild>
-                <Link to="/auth/signin">Sign in to RSVP</Link>
-              </Button>
-            ) : rsvpData.userRsvp ? (
-              <Button size="sm" variant="outline" onClick={() => setRsvpDialogOpen(true)}>
-                Change RSVP
-              </Button>
-            ) : (
-              <Button size="sm" onClick={() => setRsvpDialogOpen(true)}>
-                RSVP
-              </Button>
-            )}
-          </div>
-        </div>
-      ) : null}
 
       {/* Map Dialog */}
       {event.placeLatitude && event.placeLongitude && (
