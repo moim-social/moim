@@ -29,6 +29,7 @@ export const GET = async ({ request }: { request: Request }) => {
       and(
         eq(events.placeId, placeId),
         isNotNull(events.groupActorId),
+        eq(events.published, true),
       ),
     )
     .orderBy(events.startsAt);

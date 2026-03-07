@@ -64,6 +64,7 @@ import { GET as groupFeed } from "./routes/groups/-feed";
 import { GET as eventDashboard } from "./routes/events/-dashboard";
 import { GET as eventDashboardActivity } from "./routes/events/-dashboard-activity";
 import { POST as uploadEventHeaderImage } from "./routes/events/-upload-header-image";
+import { POST as publishEvent } from "./routes/events/-publish";
 import { GET as serveEventHeader } from "./routes/event-headers/-serve";
 
 const startFetch = createStartHandler(defaultStreamHandler);
@@ -361,6 +362,19 @@ apiRouter.get("/events/:eventId/dashboard/activity", defineEventHandler(async (e
   const eventId = event.context.params?.eventId;
   return eventDashboardActivity({
     request: forwardGet(request, `/api/events/${eventId}/dashboard/activity`, { eventId }),
+  });
+}));
+
+apiRouter.post("/events/:eventId/publish", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  if (!eventId) return Response.json({ error: "eventId is required" }, { status: 400 });
+
+  return publishEvent({
+    request: await forwardJson(request, `/api/events/${eventId}/publish`, "POST", (body) => ({
+      ...(body ?? {}),
+      eventId,
+    })),
   });
 }));
 

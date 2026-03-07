@@ -26,6 +26,7 @@ export const GET = async ({ request }: { request: Request }) => {
       externalUrl: events.externalUrl,
       placeId: events.placeId,
       headerImageUrl: events.headerImageUrl,
+      published: events.published,
       createdAt: events.createdAt,
       placeName: places.name,
       placeAddress: places.address,
@@ -54,6 +55,39 @@ export const GET = async ({ request }: { request: Request }) => {
 
   if (!event) {
     return Response.json({ error: "Event not found" }, { status: 404 });
+  }
+
+  // If unpublished, only allow organizer/group members to view
+  if (!event.published) {
+    const sessionUser = await getSessionUser(request);
+    let canView = false;
+    if (sessionUser) {
+      const [eventRow] = await db
+        .select({ organizerId: events.organizerId, groupActorId: events.groupActorId })
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1);
+      if (eventRow?.organizerId === sessionUser.id) {
+        canView = true;
+      } else if (eventRow?.groupActorId) {
+        const [membership] = await db
+          .select({ role: groupMembers.role })
+          .from(groupMembers)
+          .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+          .where(
+            and(
+              eq(groupMembers.groupActorId, eventRow.groupActorId),
+              eq(actors.userId, sessionUser.id),
+              eq(actors.type, "Person"),
+            ),
+          )
+          .limit(1);
+        if (membership) canView = true;
+      }
+    }
+    if (!canView) {
+      return Response.json({ error: "Event not found" }, { status: 404 });
+    }
   }
 
   // Get organizers

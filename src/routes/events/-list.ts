@@ -37,7 +37,7 @@ export const GET = async ({ request }: { request: Request }) => {
       eq(organizerActors.handle, userFediverseAccounts.fediverseHandle),
       eq(organizerActors.isLocal, false),
     ))
-    .where(past ? lt(events.startsAt, now) : gte(events.startsAt, now))
+    .where(and(eq(events.published, true), past ? lt(events.startsAt, now) : gte(events.startsAt, now)))
     .orderBy(past ? desc(events.startsAt) : events.startsAt);
 
   return Response.json({ events: rows });

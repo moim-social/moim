@@ -37,6 +37,7 @@ export const POST = async ({ request }: { request: Request }) => {
       opensAt?: string;
       closesAt?: string;
     }>;
+    published?: boolean;
   } | null;
 
   if (!body?.title || !body?.startsAt) {
@@ -118,6 +119,7 @@ export const POST = async ({ request }: { request: Request }) => {
         location: body.location ?? null,
         externalUrl: body.externalUrl ?? "",
         placeId: body.placeId ?? null,
+        published: body.published ?? (isPersonalEvent ? true : false),
         startsAt,
         endsAt: endsAt ?? null,
         timezone: body.timezone ?? null,
@@ -178,10 +180,13 @@ export const POST = async ({ request }: { request: Request }) => {
     }
 
     // Host actor posts Note; category Service announces only for group events
-    await announceEvent(body.categoryId ?? null, hostActorId, event, organizers, {
-      skipAnnounce: isPersonalEvent,
-      creatorMention,
-    });
+    // Only federate if the event is published
+    if (event.published) {
+      await announceEvent(body.categoryId ?? null, hostActorId, event, organizers, {
+        skipAnnounce: isPersonalEvent,
+        creatorMention,
+      });
+    }
 
     return Response.json({
       event: { id: event.id, title: event.title, categoryId: event.categoryId },
