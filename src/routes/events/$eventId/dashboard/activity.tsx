@@ -25,8 +25,8 @@ const ACTIVITY_PAGE_SIZE = 20;
 function ActivityTab() {
   const { eventId } = Route.useParams();
   const navigate = useNavigate();
-  const ctx = useDashboard();
-  const isGroupEvent = !!ctx?.data.event.groupActorId;
+  const { data } = useDashboard();
+  const isGroupEvent = !!data.event.groupActorId;
 
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [total, setTotal] = useState(0);

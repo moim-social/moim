@@ -27,7 +27,7 @@ type QuestionItem = {
 
 function EditTab() {
   const { eventId } = Route.useParams();
-  const refresh = useDashboard()?.refresh;
+  const { refresh } = useDashboard();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

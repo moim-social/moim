@@ -114,7 +114,7 @@ const getDashboardData = createServerFn({ method: "GET" })
   .handler(async ({ data: { eventId } }) => {
     const request = getRequest();
     const user = await getSessionUser(request);
-    if (!user) return null;
+    if (!user) throw redirect({ to: "/events/$eventId", params: { eventId } });
 
     const [event] = await db
       .select({
@@ -135,7 +135,7 @@ const getDashboardData = createServerFn({ method: "GET" })
       .where(eq(events.id, eventId))
       .limit(1);
 
-    if (!event) return null;
+    if (!event) throw redirect({ to: "/events/$eventId", params: { eventId } });
 
     // Access control
     if (event.groupActorId) {
@@ -151,9 +151,9 @@ const getDashboardData = createServerFn({ method: "GET" })
           ),
         )
         .limit(1);
-      if (!membership) return null;
+      if (!membership) throw redirect({ to: "/events/$eventId", params: { eventId } });
     } else {
-      if (event.organizerId !== user.id) return null;
+      if (event.organizerId !== user.id) throw redirect({ to: "/events/$eventId", params: { eventId } });
     }
 
     const rsvpCountRows = await db
@@ -277,11 +277,7 @@ const getDashboardData = createServerFn({ method: "GET" })
 
 export const Route = createFileRoute("/events/$eventId/dashboard")({
   loader: async ({ params }) => {
-    const data = await getDashboardData({ data: { eventId: params.eventId } });
-    if (!data) {
-      throw redirect({ to: "/events/$eventId", params });
-    }
-    return data;
+    return getDashboardData({ data: { eventId: params.eventId } });
   },
   pendingComponent: () => <p className="text-muted-foreground p-6">Loading...</p>,
   component: DashboardLayout,
