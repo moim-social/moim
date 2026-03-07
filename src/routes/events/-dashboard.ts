@@ -8,6 +8,7 @@ import {
   groupMembers,
   activityLogs,
   userFediverseAccounts,
+  eventTiers,
 } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
@@ -33,6 +34,7 @@ export const GET = async ({ request }: { request: Request }) => {
       startsAt: events.startsAt,
       endsAt: events.endsAt,
       location: events.location,
+      timezone: events.timezone,
       organizerId: events.organizerId,
       groupActorId: events.groupActorId,
       createdAt: events.createdAt,
@@ -93,6 +95,7 @@ export const GET = async ({ request }: { request: Request }) => {
       handle: userFediverseAccounts.fediverseHandle,
       displayName: users.displayName,
       avatarUrl: users.avatarUrl,
+      tierName: eventTiers.name,
     })
     .from(rsvps)
     .innerJoin(users, eq(rsvps.userId, users.id))
@@ -100,6 +103,7 @@ export const GET = async ({ request }: { request: Request }) => {
       eq(userFediverseAccounts.userId, users.id),
       eq(userFediverseAccounts.isPrimary, true),
     ))
+    .leftJoin(eventTiers, eq(rsvps.tierId, eventTiers.id))
     .where(eq(rsvps.eventId, eventId));
 
   // Engagement counts from activity_logs directly by eventId
@@ -153,6 +157,22 @@ export const GET = async ({ request }: { request: Request }) => {
     .groupBy(activityLogs.actorId, actors.handle, actors.name)
     .orderBy(sql`count(*) DESC`);
 
+  // Tiers with RSVP counts
+  const tiers = await db
+    .select({
+      id: eventTiers.id,
+      name: eventTiers.name,
+      opensAt: eventTiers.opensAt,
+      closesAt: eventTiers.closesAt,
+      sortOrder: eventTiers.sortOrder,
+      rsvpCount: sql<number>`count(${rsvps.userId})::int`,
+    })
+    .from(eventTiers)
+    .leftJoin(rsvps, eq(rsvps.tierId, eventTiers.id))
+    .where(eq(eventTiers.eventId, eventId))
+    .groupBy(eventTiers.id)
+    .orderBy(eventTiers.sortOrder);
+
   // Compute event status
   const now = new Date();
   const status =
@@ -169,5 +189,6 @@ export const GET = async ({ request }: { request: Request }) => {
     engagementCounts,
     recentActivity,
     participantEngagement,
+    tiers,
   });
 };

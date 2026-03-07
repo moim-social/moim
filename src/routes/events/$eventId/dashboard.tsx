@@ -6,10 +6,14 @@ import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Card, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Alert, AlertDescription } from "~/components/ui/alert";
+import { utcToDatetimeLocal, datetimeLocalToUTC } from "~/lib/timezone";
 import {
   LayoutDashboard,
   Users,
   Activity,
+  Layers,
   ArrowLeft,
   ExternalLink,
   Pencil,
@@ -26,6 +30,15 @@ const categoryMap = new Map<string, string>(
   CATEGORIES.map((c) => [c.id, c.label]),
 );
 
+type TierItem = {
+  id?: string;
+  name: string;
+  sortOrder: number;
+  opensAt: string;
+  closesAt: string;
+  rsvpCount: number;
+};
+
 type DashboardData = {
   event: {
     id: string;
@@ -34,6 +47,7 @@ type DashboardData = {
     categoryId: string | null;
     startsAt: string;
     endsAt: string | null;
+    timezone: string | null;
     location: string | null;
     status: "upcoming" | "ongoing" | "ended";
     createdAt: string;
@@ -60,6 +74,7 @@ type DashboardData = {
     actorName: string | null;
   }[];
   participantEngagement: ParticipantEngagement[];
+  tiers: TierItem[];
 };
 
 type Attendee = {
@@ -68,6 +83,7 @@ type Attendee = {
   displayName: string;
   avatarUrl: string | null;
   status: string;
+  tierName: string | null;
   createdAt: string;
 };
 
@@ -92,7 +108,7 @@ type ActivityItem = {
   actorName: string | null;
 };
 
-type Tab = "overview" | "attendees" | "activity";
+type Tab = "overview" | "attendees" | "tiers" | "activity";
 
 function EventDashboard() {
   const { eventId } = Route.useParams();
@@ -138,6 +154,7 @@ function EventDashboard() {
   const NAV_ITEMS: { tab: Tab; icon: typeof LayoutDashboard; label: string }[] = [
     { tab: "overview", icon: LayoutDashboard, label: "Overview" },
     { tab: "attendees", icon: Users, label: "Attendees" },
+    { tab: "tiers", icon: Layers, label: "Ticket Management" },
     { tab: "activity", icon: Activity, label: "Activity" },
   ];
 
@@ -222,6 +239,13 @@ function EventDashboard() {
       <div className="flex-1 overflow-auto p-6">
         {activeTab === "overview" && <OverviewTab data={data} />}
         {activeTab === "attendees" && <AttendeesTab data={data} />}
+        {activeTab === "tiers" && (
+          <TiersTab
+            eventId={eventId}
+            data={data}
+            onTiersUpdated={(newTiers) => setData({ ...data, tiers: newTiers })}
+          />
+        )}
         {activeTab === "activity" && <ActivityTab eventId={eventId} />}
       </div>
     </div>
@@ -314,11 +338,16 @@ function AttendeesTab({ data }: { data: DashboardData }) {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <span className="font-medium">{a.displayName}</span>
-                        {a.handle && (
-                          <span className="text-muted-foreground ml-1.5 text-xs">
-                            @{a.handle}
-                          </span>
+                        <div>
+                          <span className="font-medium">{a.displayName}</span>
+                          {a.handle && (
+                            <span className="text-muted-foreground ml-1.5 text-xs">
+                              @{a.handle}
+                            </span>
+                          )}
+                        </div>
+                        {a.tierName && (
+                          <span className="text-xs text-muted-foreground">{a.tierName}</span>
                         )}
                       </div>
                     </div>
@@ -507,6 +536,183 @@ function ActivityTab({ eventId }: { eventId: string }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Tiers Tab ──────────────────────────────────────────────────────────────
+
+function TiersTab({
+  eventId,
+  data,
+  onTiersUpdated,
+}: {
+  eventId: string;
+  data: DashboardData;
+  onTiersUpdated: (tiers: TierItem[]) => void;
+}) {
+  const timezone = data.event.timezone;
+  const [tiers, setTiers] = useState<TierItem[]>(() =>
+    data.tiers.map((t) => ({
+      ...t,
+      opensAt: t.opensAt ? utcToDatetimeLocal(t.opensAt, timezone) : "",
+      closesAt: t.closesAt ? utcToDatetimeLocal(t.closesAt, timezone) : "",
+    })),
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  function addTier() {
+    setTiers([...tiers, { name: "", sortOrder: tiers.length, opensAt: "", closesAt: "", rsvpCount: 0 }]);
+    setSuccess(false);
+  }
+
+  function removeTier(idx: number) {
+    setTiers(tiers.filter((_, i) => i !== idx));
+    setSuccess(false);
+  }
+
+  function updateTier(idx: number, patch: Partial<TierItem>) {
+    const updated = [...tiers];
+    updated[idx] = { ...updated[idx], ...patch };
+    setTiers(updated);
+    setSuccess(false);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError("");
+    setSuccess(false);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: data.event.title,
+          startsAt: data.event.startsAt,
+          categoryId: data.event.categoryId,
+          tiers: tiers.map((t, idx) => ({
+            id: t.id,
+            name: t.name.trim(),
+            sortOrder: idx,
+            opensAt: t.opensAt ? datetimeLocalToUTC(t.opensAt, timezone) : null,
+            closesAt: t.closesAt ? datetimeLocalToUTC(t.closesAt, timezone) : null,
+          })),
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        setError(result.error ?? "Failed to save tiers");
+        setSaving(false);
+        return;
+      }
+      // Refetch dashboard to get updated tiers with rsvpCounts
+      const dashRes = await fetch(`/api/events/${eventId}/dashboard`);
+      if (dashRes.ok) {
+        const dashData = await dashRes.json();
+        onTiersUpdated(dashData.tiers);
+        setTiers(
+          (dashData.tiers ?? []).map((t: any) => ({
+            ...t,
+            opensAt: t.opensAt ? utcToDatetimeLocal(t.opensAt, timezone) : "",
+            closesAt: t.closesAt ? utcToDatetimeLocal(t.closesAt, timezone) : "",
+          })),
+        );
+      }
+      setSuccess(true);
+    } catch {
+      setError("Network error");
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">Ticket Types</h2>
+        <p className="mt-1 text-muted-foreground">
+          Manage registration tiers and their open/close windows.
+        </p>
+      </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert>
+          <AlertDescription>Tiers saved successfully.</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-3">
+        {tiers.map((t, idx) => {
+          const hasRsvps = t.rsvpCount > 0;
+          const isOnlyTier = tiers.length <= 1;
+          return (
+            <div key={t.id ?? `new-tier-${idx}`} className="border rounded-md p-3 space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <Input
+                    placeholder={`Tier ${idx + 1} name`}
+                    value={t.name}
+                    onChange={(e) => updateTier(idx, { name: e.target.value })}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  disabled={hasRsvps || isOnlyTier}
+                  onClick={() => removeTier(idx)}
+                >
+                  Remove
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">Registration opens</Label>
+                  <Input
+                    type="datetime-local"
+                    value={t.opensAt}
+                    onChange={(e) => updateTier(idx, { opensAt: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Registration closes</Label>
+                  <Input
+                    type="datetime-local"
+                    value={t.closesAt}
+                    onChange={(e) => updateTier(idx, { closesAt: e.target.value })}
+                  />
+                </div>
+              </div>
+              {hasRsvps && (
+                <p className="text-xs text-muted-foreground">
+                  {t.rsvpCount} RSVP{t.rsvpCount !== 1 && "s"} — cannot be removed
+                </p>
+              )}
+              {isOnlyTier && !hasRsvps && (
+                <p className="text-xs text-muted-foreground">
+                  At least one tier is required
+                </p>
+              )}
+            </div>
+          );
+        })}
+
+        <Button type="button" variant="outline" onClick={addTier}>
+          + Add Tier
+        </Button>
+      </div>
+
+      <Button onClick={handleSave} disabled={saving}>
+        {saving ? "Saving..." : "Save Changes"}
+      </Button>
     </div>
   );
 }

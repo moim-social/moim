@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, events, eventOrganizers, eventQuestions, groupMembers } from "~/server/db/schema";
+import { actors, events, eventOrganizers, eventQuestions, eventTiers, groupMembers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { persistRemoteActor } from "~/server/fediverse/resolve";
 import { announceEvent } from "~/server/fediverse/category";
@@ -30,6 +30,12 @@ export const POST = async ({ request }: { request: Request }) => {
       question: string;
       sortOrder: number;
       required: boolean;
+    }>;
+    tiers?: Array<{
+      name: string;
+      sortOrder?: number;
+      opensAt?: string;
+      closesAt?: string;
     }>;
   } | null;
 
@@ -117,6 +123,18 @@ export const POST = async ({ request }: { request: Request }) => {
         timezone: body.timezone ?? null,
       })
       .returning();
+
+    // Insert tiers (default "General" if none provided)
+    const tiersToInsert = body.tiers && body.tiers.length > 0
+      ? body.tiers.map((t, idx) => ({
+          eventId: event.id,
+          name: t.name,
+          sortOrder: t.sortOrder ?? idx,
+          opensAt: t.opensAt ? new Date(t.opensAt) : null,
+          closesAt: t.closesAt ? new Date(t.closesAt) : null,
+        }))
+      : [{ eventId: event.id, name: "General", sortOrder: 0 }];
+    await db.insert(eventTiers).values(tiersToInsert);
 
     // Insert survey questions
     if (body.questions && body.questions.length > 0) {

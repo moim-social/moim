@@ -1,6 +1,6 @@
 import { aliasedTable, and, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { events, actors, eventOrganizers, groupMembers, rsvps, eventQuestions, rsvpAnswers, users, places, userFediverseAccounts } from "~/server/db/schema";
+import { events, actors, eventOrganizers, eventTiers, groupMembers, rsvps, eventQuestions, rsvpAnswers, users, places, userFediverseAccounts } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
 export const GET = async ({ request }: { request: Request }) => {
@@ -101,6 +101,22 @@ export const GET = async ({ request }: { request: Request }) => {
 
   const questionCount = questions.length;
 
+  // Get tiers with RSVP counts
+  const tiers = await db
+    .select({
+      id: eventTiers.id,
+      name: eventTiers.name,
+      opensAt: eventTiers.opensAt,
+      closesAt: eventTiers.closesAt,
+      sortOrder: eventTiers.sortOrder,
+      rsvpCount: sql<number>`count(${rsvps.userId})::int`,
+    })
+    .from(eventTiers)
+    .leftJoin(rsvps, eq(rsvps.tierId, eventTiers.id))
+    .where(eq(eventTiers.eventId, eventId))
+    .groupBy(eventTiers.id)
+    .orderBy(eventTiers.sortOrder);
+
   // Determine canEdit for the current user
   let canEdit = false;
   const sessionUser = await getSessionUser(request);
@@ -141,6 +157,7 @@ export const GET = async ({ request }: { request: Request }) => {
     rsvpCounts,
     questionCount,
     questions,
+    tiers,
     canEdit,
   });
 };
