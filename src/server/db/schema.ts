@@ -146,6 +146,16 @@ export const eventOrganizers = pgTable("event_organizers", {
   pk: primaryKey({ columns: [table.eventId, table.actorId] }),
 }));
 
+export const eventTiers = pgTable("event_tiers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  eventId: uuid("event_id").references(() => events.id).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  opensAt: timestamp("opens_at", { withTimezone: true }),
+  closesAt: timestamp("closes_at", { withTimezone: true }),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const placeCategories = pgTable("place_categories", {
   slug: varchar("slug", { length: 64 }).primaryKey(),
   label: varchar("label", { length: 128 }).notNull(),
@@ -175,6 +185,7 @@ export const places = pgTable("places", {
 export const rsvps = pgTable("rsvps", {
   userId: uuid("user_id").references(() => users.id).notNull(),
   eventId: uuid("event_id").references(() => events.id).notNull(),
+  tierId: uuid("tier_id").references(() => eventTiers.id),
   status: varchar("status", { length: 32 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
