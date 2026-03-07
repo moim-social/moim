@@ -5,6 +5,7 @@ import {
   rsvps,
   rsvpAnswers,
   eventQuestions,
+  eventTiers,
   users,
   actors,
   groupMembers,
@@ -67,11 +68,24 @@ export const GET = async ({ request }: { request: Request }) => {
     .where(eq(eventQuestions.eventId, eventId))
     .orderBy(eventQuestions.sortOrder);
 
+  // Get event tiers
+  const tiers = await db
+    .select({
+      id: eventTiers.id,
+      name: eventTiers.name,
+      sortOrder: eventTiers.sortOrder,
+    })
+    .from(eventTiers)
+    .where(eq(eventTiers.eventId, eventId))
+    .orderBy(eventTiers.sortOrder);
+
   // Get all RSVPs with user info
   const rsvpRows = await db
     .select({
       userId: rsvps.userId,
       status: rsvps.status,
+      tierId: rsvps.tierId,
+      tierName: eventTiers.name,
       createdAt: rsvps.createdAt,
       handle: userFediverseAccounts.fediverseHandle,
       displayName: users.displayName,
@@ -79,6 +93,7 @@ export const GET = async ({ request }: { request: Request }) => {
     })
     .from(rsvps)
     .innerJoin(users, eq(rsvps.userId, users.id))
+    .leftJoin(eventTiers, eq(rsvps.tierId, eventTiers.id))
     .leftJoin(userFediverseAccounts, and(
       eq(userFediverseAccounts.userId, users.id),
       eq(userFediverseAccounts.isPrimary, true),
@@ -113,9 +128,11 @@ export const GET = async ({ request }: { request: Request }) => {
     displayName: r.displayName,
     avatarUrl: r.avatarUrl,
     status: r.status,
+    tierId: r.tierId,
+    tierName: r.tierName,
     createdAt: r.createdAt,
     answers: answersByUser.get(r.userId) ?? [],
   }));
 
-  return Response.json({ questions, attendees });
+  return Response.json({ questions, tiers, attendees });
 };

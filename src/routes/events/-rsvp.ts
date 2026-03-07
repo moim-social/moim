@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { rsvps, rsvpAnswers, eventQuestions, events } from "~/server/db/schema";
+import { rsvps, rsvpAnswers, eventQuestions, events, eventTiers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
 export const POST = async ({ request }: { request: Request }) => {
@@ -12,6 +12,7 @@ export const POST = async ({ request }: { request: Request }) => {
   const body = (await request.json().catch(() => null)) as {
     eventId?: string;
     status?: "accepted" | "declined";
+    tierId?: string;
     answers?: Array<{ questionId: string; answer: string }>;
   } | null;
 
@@ -25,13 +26,55 @@ export const POST = async ({ request }: { request: Request }) => {
 
   // Verify event exists
   const [event] = await db
-    .select({ id: events.id })
+    .select({ id: events.id, startsAt: events.startsAt })
     .from(events)
     .where(eq(events.id, body.eventId))
     .limit(1);
 
   if (!event) {
     return Response.json({ error: "Event not found" }, { status: 404 });
+  }
+
+  // Resolve tier
+  let resolvedTierId: string | null = null;
+  if (body.status === "accepted") {
+    const tiers = await db
+      .select({ id: eventTiers.id, opensAt: eventTiers.opensAt, closesAt: eventTiers.closesAt })
+      .from(eventTiers)
+      .where(eq(eventTiers.eventId, body.eventId))
+      .orderBy(eventTiers.sortOrder);
+
+    if (tiers.length > 0) {
+      if (body.tierId) {
+        const tier = tiers.find((t) => t.id === body.tierId);
+        if (!tier) {
+          return Response.json({ error: "Invalid tier for this event" }, { status: 400 });
+        }
+        // Validate date range
+        const now = new Date();
+        if (tier.opensAt && now < tier.opensAt) {
+          return Response.json({ error: "This tier is not yet open for registration" }, { status: 400 });
+        }
+        const closesAt = tier.closesAt ?? event.startsAt;
+        if (now > closesAt) {
+          return Response.json({ error: "This tier is no longer open for registration" }, { status: 400 });
+        }
+        resolvedTierId = tier.id;
+      } else if (tiers.length === 1) {
+        const tier = tiers[0];
+        const now = new Date();
+        if (tier.opensAt && now < tier.opensAt) {
+          return Response.json({ error: "Registration is not yet open" }, { status: 400 });
+        }
+        const closesAt = tier.closesAt ?? event.startsAt;
+        if (now > closesAt) {
+          return Response.json({ error: "Registration is closed" }, { status: 400 });
+        }
+        resolvedTierId = tier.id;
+      } else {
+        return Response.json({ error: "tierId is required for multi-tier events" }, { status: 400 });
+      }
+    }
   }
 
   // If accepting, validate required questions are answered
@@ -66,11 +109,12 @@ export const POST = async ({ request }: { request: Request }) => {
         .values({
           userId: user.id,
           eventId: body.eventId!,
+          tierId: resolvedTierId,
           status: body.status!,
         })
         .onConflictDoUpdate({
           target: [rsvps.userId, rsvps.eventId],
-          set: { status: body.status! },
+          set: { status: body.status!, tierId: resolvedTierId },
         });
 
       // Delete old answers

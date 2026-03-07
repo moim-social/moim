@@ -139,14 +139,25 @@ type EventData = {
   canEdit: boolean;
 };
 
+type TierInfo = {
+  id: string;
+  name: string;
+  opensAt: string | null;
+  closesAt: string | null;
+  sortOrder: number;
+};
+
 type AttendeesData = {
   questions: Array<{ id: string; question: string; sortOrder: number }>;
+  tiers: TierInfo[];
   attendees: Array<{
     userId: string;
     handle: string;
     displayName: string;
     avatarUrl: string | null;
     status: string;
+    tierId: string | null;
+    tierName: string | null;
     createdAt: string;
     answers: Array<{ questionId: string; answer: string }>;
   }>;
@@ -159,9 +170,12 @@ type RsvpData = {
     sortOrder: number;
     required: boolean;
   }>;
+  tiers: TierInfo[];
   rsvpCounts: { accepted: number; declined: number };
+  tierCounts: Array<{ tierId: string; status: string; count: number }>;
   userRsvp: {
     status: string;
+    tierId: string | null;
     answers: Array<{ questionId: string; answer: string }>;
   } | null;
   isAuthenticated: boolean;
@@ -186,6 +200,7 @@ function EventDetailPage() {
   const [rsvpSubmitting, setRsvpSubmitting] = useState(false);
   const [rsvpError, setRsvpError] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [selectedTierId, setSelectedTierId] = useState<string>("");
 
   useEffect(() => {
     fetch(`/api/events/${eventId}`)
@@ -215,6 +230,12 @@ function EventDetailPage() {
           }
           setAnswers(prefilled);
         }
+        // Pre-select tier
+        if (d.userRsvp?.tierId) {
+          setSelectedTierId(d.userRsvp.tierId);
+        } else if (d.tiers?.length === 1) {
+          setSelectedTierId(d.tiers[0].id);
+        }
       })
       .catch(() => {});
   }, [eventId]);
@@ -242,6 +263,7 @@ function EventDetailPage() {
         body: JSON.stringify({
           eventId,
           status,
+          tierId: selectedTierId || undefined,
           answers: Object.entries(answers).map(([questionId, answer]) => ({
             questionId,
             answer,
@@ -294,12 +316,19 @@ function EventDetailPage() {
     if (rsvpData) {
       return (
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">{attendeeCount} attending</span>
-            {rsvpData.userRsvp && (
-              <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"} className="text-xs">
-                {rsvpData.userRsvp.status === "accepted" ? "Going" : "Not going"}
-              </Badge>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{attendeeCount} attending</span>
+              {rsvpData.userRsvp && (
+                <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"} className="text-xs">
+                  {rsvpData.userRsvp.status === "accepted" ? "Going" : "Not going"}
+                </Badge>
+              )}
+            </div>
+            {rsvpData.userRsvp?.tierId && rsvpData.tiers.length > 1 && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {rsvpData.tiers.find((t) => t.id === rsvpData.userRsvp?.tierId)?.name}
+              </p>
             )}
           </div>
           {!rsvpData.isAuthenticated ? (
@@ -401,14 +430,21 @@ function EventDetailPage() {
   ) : rsvpData ? (
     <>
       <Separator />
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">
-          {attendeeCount} attending
-        </span>
-        {rsvpData.userRsvp && (
-          <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"}>
-            {rsvpData.userRsvp.status === "accepted" ? "Attending" : "Not attending"}
-          </Badge>
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            {attendeeCount} attending
+          </span>
+          {rsvpData.userRsvp && (
+            <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"}>
+              {rsvpData.userRsvp.status === "accepted" ? "Attending" : "Not attending"}
+            </Badge>
+          )}
+        </div>
+        {rsvpData.userRsvp?.tierId && rsvpData.tiers.length > 1 && (
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {rsvpData.tiers.find((t) => t.id === rsvpData.userRsvp?.tierId)?.name}
+          </p>
         )}
       </div>
       {!rsvpData.isAuthenticated ? (
@@ -682,8 +718,13 @@ function EventDetailPage() {
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <span className="text-sm font-medium">{a.displayName}</span>
-                              <span className="text-sm text-muted-foreground ml-1.5">@{a.handle}</span>
+                              <div>
+                                <span className="text-sm font-medium">{a.displayName}</span>
+                                <span className="text-sm text-muted-foreground ml-1.5">@{a.handle}</span>
+                              </div>
+                              {a.tierName && (
+                                <span className="text-xs text-muted-foreground">{a.tierName}</span>
+                              )}
                             </div>
                           </div>
                           <Badge variant={a.status === "accepted" ? "default" : "secondary"}>
@@ -767,6 +808,52 @@ function EventDetailPage() {
 
           {rsvpError && (
             <p className="text-sm text-destructive">{rsvpError}</p>
+          )}
+
+          {rsvpData?.tiers && rsvpData.tiers.length > 1 && (
+            <div className="space-y-1.5">
+              <Label>Ticket Type</Label>
+              <div className="space-y-2">
+                {rsvpData.tiers.map((t) => {
+                  const now = new Date();
+                  const isOpen = (!t.opensAt || new Date(t.opensAt) <= now)
+                              && (!t.closesAt || new Date(t.closesAt) > now);
+                  const fmt = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+                  return (
+                    <label
+                      key={t.id}
+                      className={`flex items-center gap-3 rounded-md border p-3 cursor-pointer transition-colors ${
+                        selectedTierId === t.id ? "border-primary bg-accent/50" : ""
+                      } ${!isOpen ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="tier"
+                        value={t.id}
+                        checked={selectedTierId === t.id}
+                        disabled={!isOpen}
+                        onChange={(e) => setSelectedTierId(e.target.value)}
+                        className="shrink-0"
+                      />
+                      <div>
+                        <span className="text-sm font-medium">
+                          {t.name}{!isOpen ? " (closed)" : ""}
+                        </span>
+                        {(t.opensAt || t.closesAt) && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {t.opensAt && t.closesAt
+                              ? `${fmt(t.opensAt)} – ${fmt(t.closesAt)}`
+                              : t.opensAt
+                                ? `Opens ${fmt(t.opensAt)}`
+                                : `Closes ${fmt(t.closesAt!)}`}
+                          </p>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           {rsvpData?.questions && rsvpData.questions.length > 0 && (

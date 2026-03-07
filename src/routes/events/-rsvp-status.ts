@@ -1,6 +1,6 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { rsvps, rsvpAnswers, eventQuestions } from "~/server/db/schema";
+import { rsvps, rsvpAnswers, eventQuestions, eventTiers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
 export const GET = async ({ request }: { request: Request }) => {
@@ -23,6 +23,19 @@ export const GET = async ({ request }: { request: Request }) => {
     .where(eq(eventQuestions.eventId, eventId))
     .orderBy(eventQuestions.sortOrder);
 
+  // Get event tiers
+  const tiers = await db
+    .select({
+      id: eventTiers.id,
+      name: eventTiers.name,
+      opensAt: eventTiers.opensAt,
+      closesAt: eventTiers.closesAt,
+      sortOrder: eventTiers.sortOrder,
+    })
+    .from(eventTiers)
+    .where(eq(eventTiers.eventId, eventId))
+    .orderBy(eventTiers.sortOrder);
+
   // Get RSVP counts
   const counts = await db
     .select({
@@ -38,12 +51,23 @@ export const GET = async ({ request }: { request: Request }) => {
     declined: counts.find((c) => c.status === "declined")?.count ?? 0,
   };
 
+  // Get per-tier RSVP counts
+  const tierCounts = await db
+    .select({
+      tierId: rsvps.tierId,
+      status: rsvps.status,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(rsvps)
+    .where(eq(rsvps.eventId, eventId))
+    .groupBy(rsvps.tierId, rsvps.status);
+
   // Check current user's RSVP
-  let userRsvp: { status: string; answers: Array<{ questionId: string; answer: string }> } | null = null;
+  let userRsvp: { status: string; tierId: string | null; answers: Array<{ questionId: string; answer: string }> } | null = null;
   const user = await getSessionUser(request);
   if (user) {
     const [rsvp] = await db
-      .select({ status: rsvps.status })
+      .select({ status: rsvps.status, tierId: rsvps.tierId })
       .from(rsvps)
       .where(and(eq(rsvps.userId, user.id), eq(rsvps.eventId, eventId)))
       .limit(1);
@@ -61,9 +85,9 @@ export const GET = async ({ request }: { request: Request }) => {
             eq(rsvpAnswers.eventId, eventId),
           ),
         );
-      userRsvp = { status: rsvp.status!, answers };
+      userRsvp = { status: rsvp.status!, tierId: rsvp.tierId, answers };
     }
   }
 
-  return Response.json({ questions, rsvpCounts, userRsvp, isAuthenticated: !!user });
+  return Response.json({ questions, tiers, rsvpCounts, tierCounts, userRsvp, isAuthenticated: !!user });
 };
