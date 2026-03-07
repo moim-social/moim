@@ -11,9 +11,7 @@ export const Route = createFileRoute("/events/$eventId/dashboard/attendees")({
 });
 
 function AttendeesTab() {
-  const ctx = useDashboard();
-  if (!ctx) return null;
-  const { data } = ctx;
+  const { data } = useDashboard();
   const { attendees } = data;
   const [search, setSearch] = useState("");
 

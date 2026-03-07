@@ -37,6 +37,7 @@ export const GET = async ({ request }: { request: Request }) => {
       timezone: events.timezone,
       organizerId: events.organizerId,
       groupActorId: events.groupActorId,
+      published: events.published,
       createdAt: events.createdAt,
     })
     .from(events)
@@ -47,27 +48,28 @@ export const GET = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Event not found" }, { status: 404 });
   }
 
-  // Dashboard only supported for group events
-  if (!event.groupActorId) {
-    return Response.json({ error: "Dashboard is only available for group events" }, { status: 400 });
-  }
+  // Access control: organizer for personal events, group member for group events
+  if (event.groupActorId) {
+    const [membership] = await db
+      .select({ role: groupMembers.role })
+      .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+      .where(
+        and(
+          eq(groupMembers.groupActorId, event.groupActorId),
+          eq(actors.userId, user.id),
+          eq(actors.type, "Person"),
+        ),
+      )
+      .limit(1);
 
-  // Access control: must be a member of the event's group
-  const [membership] = await db
-    .select({ role: groupMembers.role })
-    .from(groupMembers)
-    .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
-    .where(
-      and(
-        eq(groupMembers.groupActorId, event.groupActorId),
-        eq(actors.userId, user.id),
-        eq(actors.type, "Person"),
-      ),
-    )
-    .limit(1);
-
-  if (!membership) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    if (!membership) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else {
+    if (event.organizerId !== user.id) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   // RSVP counts

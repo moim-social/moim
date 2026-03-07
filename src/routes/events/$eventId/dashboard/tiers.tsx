@@ -14,31 +14,29 @@ export const Route = createFileRoute("/events/$eventId/dashboard/tiers")({
 function TiersTab() {
   const { eventId } = Route.useParams();
   const navigate = useNavigate();
-  const ctx = useDashboard();
+  const { data, refresh } = useDashboard();
+
+  const isGroupEvent = !!data.event.groupActorId;
+  const timezone = data.event.timezone;
 
   const [tiers, setTiers] = useState<TierItem[]>(() =>
-    ctx ? ctx.data.tiers.map((t) => ({
+    data.tiers.map((t) => ({
       ...t,
-      opensAt: t.opensAt ? utcToDatetimeLocal(t.opensAt, ctx.data.event.timezone) : "",
-      closesAt: t.closesAt ? utcToDatetimeLocal(t.closesAt, ctx.data.event.timezone) : "",
-    })) : [],
+      opensAt: t.opensAt ? utcToDatetimeLocal(t.opensAt, timezone) : "",
+      closesAt: t.closesAt ? utcToDatetimeLocal(t.closesAt, timezone) : "",
+    })),
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const isGroupEvent = !!ctx?.data.event.groupActorId;
-
   useEffect(() => {
-    if (ctx && !isGroupEvent) {
+    if (!isGroupEvent) {
       navigate({ to: "/events/$eventId/dashboard", params: { eventId }, replace: true });
     }
-  }, [ctx, isGroupEvent, eventId, navigate]);
+  }, [isGroupEvent, eventId, navigate]);
 
-  if (!ctx || !isGroupEvent) return null;
-
-  const { data, setData } = ctx;
-  const timezone = data.event.timezone;
+  if (!isGroupEvent) return null;
 
   function addTier() {
     setTiers([...tiers, { name: "", sortOrder: tiers.length, opensAt: "", closesAt: "", rsvpCount: 0 }]);
@@ -84,18 +82,7 @@ function TiersTab() {
         setSaving(false);
         return;
       }
-      const dashRes = await fetch(`/api/events/${eventId}/dashboard`);
-      if (dashRes.ok) {
-        const dashData = await dashRes.json();
-        setData({ ...data, tiers: dashData.tiers });
-        setTiers(
-          (dashData.tiers ?? []).map((t: any) => ({
-            ...t,
-            opensAt: t.opensAt ? utcToDatetimeLocal(t.opensAt, timezone) : "",
-            closesAt: t.closesAt ? utcToDatetimeLocal(t.closesAt, timezone) : "",
-          })),
-        );
-      }
+      refresh();
       setSuccess(true);
     } catch {
       setError("Network error");
