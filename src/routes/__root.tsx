@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, type ReactNode } from "react";
 import {
   createRootRoute,
   Outlet,
@@ -32,6 +32,18 @@ const AuthContext = createContext<{
 
 export function useAuth() {
   return useContext(AuthContext);
+}
+
+const BottomBarSlotContext = createContext<{
+  setBottomBar: (node: ReactNode) => void;
+}>({ setBottomBar: () => {} });
+
+export function useBottomBarSlot(node: ReactNode) {
+  const { setBottomBar } = useContext(BottomBarSlotContext);
+  useEffect(() => {
+    setBottomBar(node);
+    return () => setBottomBar(null);
+  }, [node, setBottomBar]);
 }
 
 const getPublicConfig = createServerFn({ method: "GET" }).handler(async () => ({
@@ -87,6 +99,7 @@ function RootLayout() {
   const config = Route.useLoaderData();
   const [user, setUser] = useState<SessionUser>(null);
   const [loaded, setLoaded] = useState(false);
+  const [bottomBar, setBottomBar] = useState<ReactNode>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -113,6 +126,7 @@ function RootLayout() {
       <body className="min-h-screen bg-background font-sans antialiased">
         <PostHogWrapper config={config}>
         <AuthContext.Provider value={{ user, setUser, loaded }}>
+        <BottomBarSlotContext.Provider value={{ setBottomBar }}>
           <div className="relative flex min-h-screen flex-col">
             {/* Header */}
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -198,11 +212,14 @@ function RootLayout() {
               </div>
             </footer>
 
-            {/* Bottom tab bar (mobile only) */}
-            <nav
-              className="fixed bottom-0 inset-x-0 z-50 border-t bg-background md:hidden"
-              style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-            >
+            {/* Bottom bar slot + tab bar (mobile only) */}
+            <div className="fixed bottom-0 inset-x-0 z-50 md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+              {bottomBar && (
+                <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                  {bottomBar}
+                </div>
+              )}
+              <nav className="border-t bg-background">
               <div className="flex items-center justify-around h-14">
                 <Link
                   to="/events"
@@ -226,9 +243,11 @@ function RootLayout() {
                   <span className="text-[10px] font-medium">{user ? "Profile" : "Sign in"}</span>
                 </Link>
               </div>
-            </nav>
+              </nav>
+            </div>
           </div>
           <Scripts />
+        </BottomBarSlotContext.Provider>
         </AuthContext.Provider>
         </PostHogWrapper>
 
