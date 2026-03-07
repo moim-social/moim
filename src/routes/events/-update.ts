@@ -1,6 +1,6 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, events, eventQuestions, groupMembers, rsvpAnswers } from "~/server/db/schema";
+import { actors, events, eventQuestions, eventTiers, groupMembers, rsvpAnswers, rsvps } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { CATEGORIES } from "~/shared/categories";
 
@@ -29,6 +29,13 @@ export const POST = async ({ request }: { request: Request }) => {
       question: string;
       sortOrder: number;
       required: boolean;
+    }>;
+    tiers?: Array<{
+      id?: string;
+      name: string;
+      sortOrder: number;
+      opensAt?: string | null;
+      closesAt?: string | null;
     }>;
   } | null;
 
@@ -162,6 +169,68 @@ export const POST = async ({ request }: { request: Request }) => {
             required: q.required,
           });
         }
+      }
+    }
+
+    // Reconcile tiers
+    if (body.tiers !== undefined) {
+      const submittedTierIds = body.tiers
+        .filter((t) => t.id)
+        .map((t) => t.id as string);
+
+      const existingTiers = await db
+        .select({ id: eventTiers.id })
+        .from(eventTiers)
+        .where(eq(eventTiers.eventId, event.id));
+
+      // Delete tiers not in submitted set (only those without RSVPs)
+      for (const et of existingTiers) {
+        if (!submittedTierIds.includes(et.id)) {
+          const [rsvpRow] = await db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(rsvps)
+            .where(eq(rsvps.tierId, et.id));
+
+          if (rsvpRow.count === 0) {
+            await db.delete(eventTiers).where(eq(eventTiers.id, et.id));
+          }
+        }
+      }
+
+      // Upsert submitted tiers
+      for (const t of body.tiers) {
+        if (t.id && existingTiers.some((e) => e.id === t.id)) {
+          await db
+            .update(eventTiers)
+            .set({
+              name: t.name,
+              sortOrder: t.sortOrder,
+              opensAt: t.opensAt ? new Date(t.opensAt) : null,
+              closesAt: t.closesAt ? new Date(t.closesAt) : null,
+            })
+            .where(eq(eventTiers.id, t.id));
+        } else {
+          await db.insert(eventTiers).values({
+            eventId: event.id,
+            name: t.name,
+            sortOrder: t.sortOrder,
+            opensAt: t.opensAt ? new Date(t.opensAt) : null,
+            closesAt: t.closesAt ? new Date(t.closesAt) : null,
+          });
+        }
+      }
+
+      // Safety: ensure at least one tier always exists
+      const remainingTiers = await db
+        .select({ id: eventTiers.id })
+        .from(eventTiers)
+        .where(eq(eventTiers.eventId, event.id));
+      if (remainingTiers.length === 0) {
+        await db.insert(eventTiers).values({
+          eventId: event.id,
+          name: "General",
+          sortOrder: 0,
+        });
       }
     }
 
