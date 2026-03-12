@@ -1,4 +1,4 @@
-import { aliasedTable, and, eq, sql } from "drizzle-orm";
+import { aliasedTable, and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, eventOrganizers, eventTiers, groupMembers, rsvps, eventQuestions, rsvpAnswers, users, places, userFediverseAccounts } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
@@ -50,7 +50,7 @@ export const GET = async ({ request }: { request: Request }) => {
       eq(organizerActors.isLocal, false),
     ))
     .leftJoin(places, eq(events.placeId, places.id))
-    .where(eq(events.id, eventId))
+    .where(and(eq(events.id, eventId), isNull(events.deletedAt)))
     .limit(1);
 
   if (!event) {

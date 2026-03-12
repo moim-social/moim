@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect, useRouter, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { useState, useCallback } from "react";
@@ -15,7 +15,23 @@ import {
   Pencil,
   Eye,
   EyeOff,
+  MoreHorizontal,
+  Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "~/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "~/components/ui/dialog";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { eq, and, sql } from "drizzle-orm";
@@ -81,6 +97,7 @@ export type DashboardData = {
   }[];
   participantEngagement: ParticipantEngagement[];
   tiers: TierItem[];
+  hasRsvps: boolean;
 };
 
 export type Attendee = {
@@ -266,6 +283,7 @@ const getDashboardData = createServerFn({ method: "GET" })
       recentActivity: recentActivityRows,
       participantEngagement: participantEngagementRows,
       tiers: tierRows,
+      hasRsvps: rsvpCounts.accepted > 0,
     } as unknown as DashboardData;
   });
 
@@ -305,8 +323,24 @@ function DashboardLayout() {
   const data = Route.useLoaderData();
 
   const [publishing, setPublishing] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const router = useRouter();
+  const navigate = useNavigate();
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, { method: "DELETE" });
+      if (res.ok) {
+        navigate({ to: "/events" });
+      }
+    } catch {
+      // ignore
+    }
+    setDeleting(false);
+  }
 
   async function handleTogglePublish() {
     setPublishing(true);
@@ -441,8 +475,53 @@ function DashboardLayout() {
             <ExternalLink className="size-4" />
             Public Page
           </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+              >
+                <MoreHorizontal className="size-4" />
+                More Actions
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top">
+              <DropdownMenuItem
+                disabled={data.hasRsvps}
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive focus:text-destructive"
+                title={data.hasRsvps ? "Cannot delete event with RSVPs" : undefined}
+              >
+                <Trash2 className="size-4" />
+                Delete Event
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Event</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this event? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting}
+              onClick={handleDelete}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">

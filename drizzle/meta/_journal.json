@@ -225,6 +225,13 @@
       "when": 1773319425034,
       "tag": "0031_workable_the_executioner",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1773328850145,
+      "tag": "0032_hard_pete_wisdom",
+      "breakpoints": true
     }
   ]
 }

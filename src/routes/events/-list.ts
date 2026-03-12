@@ -1,4 +1,4 @@
-import { type SQL, aliasedTable, and, desc, eq, gte, lt } from "drizzle-orm";
+import { type SQL, aliasedTable, and, desc, eq, gte, isNull, lt } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, users, userFediverseAccounts } from "~/server/db/schema";
 
@@ -11,7 +11,7 @@ export const GET = async ({ request }: { request: Request }) => {
   const monthParam = url.searchParams.get("month");
   const now = new Date();
 
-  const conditions: SQL[] = [eq(events.published, true)];
+  const conditions: SQL[] = [eq(events.published, true), isNull(events.deletedAt)];
   if (category) conditions.push(eq(events.categoryId, category));
   if (country) conditions.push(eq(events.country, country));
 

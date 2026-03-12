@@ -49,7 +49,7 @@ export const GET = async ({ request }: { request: Request }) => {
       createdAt: events.createdAt,
     })
     .from(events)
-    .where(and(eq(events.groupActorId, group.id), eq(events.published, true)))
+    .where(and(eq(events.groupActorId, group.id), eq(events.published, true), isNull(events.deletedAt)))
     .orderBy(events.startsAt);
 
   // Get followers with their actor info
