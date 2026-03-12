@@ -13,7 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, MapPin } from "lucide-react";
+import { H3CoverageMap } from "~/components/H3CoverageMap";
 
 export const Route = createFileRoute("/admin/banners")({
   component: AdminBannersPage,
@@ -30,6 +31,10 @@ type Banner = {
   enabled: boolean;
   startsAt: string;
   endsAt: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  h3Index: string | null;
+  hopCount: number | null;
   impressionCount: number;
   clickCount: number;
   createdAt: string;
@@ -46,6 +51,9 @@ type BannerFormData = {
   enabled: boolean;
   startsAt: string;
   endsAt: string;
+  latitude: string;
+  longitude: string;
+  hopCount: number;
 };
 
 const emptyForm: BannerFormData = {
@@ -58,6 +66,9 @@ const emptyForm: BannerFormData = {
   enabled: false,
   startsAt: "",
   endsAt: "",
+  latitude: "",
+  longitude: "",
+  hopCount: 0,
 };
 
 function toLocalDatetime(iso: string): string {
@@ -128,6 +139,9 @@ function AdminBannersPage() {
       enabled: banner.enabled,
       startsAt: toLocalDatetime(banner.startsAt),
       endsAt: banner.endsAt ? toLocalDatetime(banner.endsAt) : "",
+      latitude: banner.latitude ?? "",
+      longitude: banner.longitude ?? "",
+      hopCount: banner.hopCount ?? 0,
     });
     setShowForm(true);
   };
@@ -147,6 +161,9 @@ function AdminBannersPage() {
       enabled: form.enabled,
       startsAt: new Date(form.startsAt).toISOString(),
       endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
+      latitude: form.latitude || null,
+      longitude: form.longitude || null,
+      hopCount: form.latitude && form.longitude ? form.hopCount : null,
     };
 
     await fetch(editingId ? `/api/admin/banners/${editingId}` : "/api/admin/banners", {
@@ -205,6 +222,7 @@ function AdminBannersPage() {
                 <th className="px-4 py-3 text-left font-medium">Requester</th>
                 <th className="px-4 py-3 text-center font-medium">Weight</th>
                 <th className="px-4 py-3 text-center font-medium">Enabled</th>
+                <th className="px-4 py-3 text-center font-medium">Targeting</th>
                 <th className="px-4 py-3 text-left font-medium">Schedule</th>
                 <th className="px-4 py-3 text-right font-medium">Impressions</th>
                 <th className="px-4 py-3 text-right font-medium">Clicks</th>
@@ -245,6 +263,16 @@ function AdminBannersPage() {
                           handleToggle(banner.id, checked === true)
                         }
                       />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {banner.h3Index ? (
+                        <Badge variant="outline" className="gap-1">
+                          <MapPin className="size-3" />
+                          {banner.hopCount ?? 0}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">Global</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
                       <div>{formatDate(banner.startsAt)}</div>
@@ -462,6 +490,83 @@ function AdminBannersPage() {
                   Leave empty for indefinite
                 </p>
               </div>
+            </div>
+
+            {/* Geotargeting */}
+            <div className="grid gap-2 rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">Geotargeting</Label>
+                {form.latitude && form.longitude ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setForm({ ...form, latitude: "", longitude: "", hopCount: 0 })
+                    }
+                  >
+                    Clear location
+                  </Button>
+                ) : null}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Click the map to set a target location. Leave empty for global reach.
+              </p>
+              <H3CoverageMap
+                latitude={form.latitude || undefined}
+                longitude={form.longitude || undefined}
+                hopCount={form.hopCount}
+                onMapClick={(lat, lng) =>
+                  setForm({
+                    ...form,
+                    latitude: lat.toFixed(6),
+                    longitude: lng.toFixed(6),
+                  })
+                }
+                height="250px"
+              />
+              {form.latitude && form.longitude && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="grid gap-1">
+                    <Label htmlFor="latitude" className="text-xs">Latitude</Label>
+                    <Input
+                      id="latitude"
+                      value={form.latitude}
+                      onChange={(e) =>
+                        setForm({ ...form, latitude: e.target.value })
+                      }
+                      placeholder="37.5665"
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label htmlFor="longitude" className="text-xs">Longitude</Label>
+                    <Input
+                      id="longitude"
+                      value={form.longitude}
+                      onChange={(e) =>
+                        setForm({ ...form, longitude: e.target.value })
+                      }
+                      placeholder="126.978"
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label htmlFor="hopCount" className="text-xs">Hop Count</Label>
+                    <Input
+                      id="hopCount"
+                      type="number"
+                      value={form.hopCount}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          hopCount: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      min={0}
+                      max={50}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">

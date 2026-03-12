@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { banners } from "~/server/db/schema";
 import { requireAdmin } from "~/server/admin";
+import { computeH3Index } from "~/server/geo/h3";
 
 export const GET = async ({ request }: { request: Request }) => {
   await requireAdmin(request);
@@ -16,12 +17,18 @@ export const POST = async ({ request }: { request: Request }) => {
   await requireAdmin(request);
   const body = await request.json();
 
-  const { title, imageUrl, linkUrl, altText, requester, weight, enabled, startsAt, endsAt } = body;
+  const { title, imageUrl, linkUrl, altText, requester, weight, enabled, startsAt, endsAt, latitude, longitude, hopCount } = body;
   if (!title || !imageUrl || !linkUrl || !startsAt) {
     return Response.json(
       { error: "title, imageUrl, linkUrl, and startsAt are required" },
       { status: 400 },
     );
+  }
+
+  // Compute H3 index server-side from lat/lng
+  let h3Index: string | null = null;
+  if (latitude && longitude) {
+    h3Index = computeH3Index(parseFloat(latitude), parseFloat(longitude));
   }
 
   const [row] = await db
@@ -36,6 +43,10 @@ export const POST = async ({ request }: { request: Request }) => {
       enabled: enabled ?? false,
       startsAt: new Date(startsAt),
       endsAt: endsAt ? new Date(endsAt) : null,
+      latitude: latitude ?? null,
+      longitude: longitude ?? null,
+      h3Index,
+      hopCount: hopCount ?? null,
     })
     .returning();
 
@@ -60,6 +71,16 @@ export const PUT = async ({ request }: { request: Request }) => {
   if (body.enabled !== undefined) updates.enabled = body.enabled;
   if (body.startsAt !== undefined) updates.startsAt = new Date(body.startsAt);
   if (body.endsAt !== undefined) updates.endsAt = body.endsAt ? new Date(body.endsAt) : null;
+  if (body.latitude !== undefined) {
+    updates.latitude = body.latitude ?? null;
+    updates.longitude = body.longitude ?? null;
+    if (body.latitude && body.longitude) {
+      updates.h3Index = computeH3Index(parseFloat(body.latitude), parseFloat(body.longitude));
+    } else {
+      updates.h3Index = null;
+    }
+  }
+  if (body.hopCount !== undefined) updates.hopCount = body.hopCount ?? null;
 
   const [row] = await db
     .update(banners)
