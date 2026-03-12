@@ -57,6 +57,7 @@ import { POST as bulkRegeneratePlaceSnapshots } from "./routes/admin/-place-snap
 import { GET as listUsers } from "./routes/admin/users/-list";
 import { GET as userDetail } from "./routes/admin/users/-detail";
 import { GET as listAdminGroups, PATCH as toggleGroupVerified } from "./routes/admin/-groups";
+import { GET as listCountries, PUT as importCountries, DELETE as clearCountries } from "./routes/admin/-countries";
 import { GET as getCarouselSlides } from "./routes/-carousel";
 import { POST as trackBannerClick } from "./routes/-banner-click";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
@@ -548,6 +549,18 @@ apiRouter.post("/admin/group-places", defineEventHandler(async (event) => {
 
 apiRouter.delete("/admin/group-places", defineEventHandler(async (event) => {
   return unassignGroupPlace({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/admin/countries", defineEventHandler(async (event) => {
+  return listCountries({ request: toWebRequest(event) });
+}));
+
+apiRouter.put("/admin/countries", defineEventHandler(async (event) => {
+  return importCountries({ request: toWebRequest(event) });
+}));
+
+apiRouter.delete("/admin/countries", defineEventHandler(async (event) => {
+  return clearCountries({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/admin/users/:userId", defineEventHandler(async (event) => {

@@ -11,6 +11,7 @@ import {
   MapPinned,
   Tags,
   Building2,
+  Globe,
 } from "lucide-react";
 
 type NavItem = { to: string; icon: LucideIcon; label: string; exact?: boolean };
@@ -32,6 +33,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: "/admin/places", icon: MapPinned, label: "Places" },
       { to: "/admin/place-categories", icon: Tags, label: "Place Categories" },
       { to: "/admin/group-places", icon: Building2, label: "Group Places" },
+      { to: "/admin/countries", icon: Globe, label: "Countries" },
     ],
   },
   {
