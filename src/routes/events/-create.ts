@@ -1,9 +1,10 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, events, eventOrganizers, eventQuestions, eventTiers, groupMembers } from "~/server/db/schema";
+import { actors, events, eventOrganizers, eventQuestions, eventTiers, groupMembers, places } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { persistRemoteActor } from "~/server/fediverse/resolve";
 import { announceEvent } from "~/server/fediverse/category";
+import { reverseGeocodeCountry } from "~/server/geo/reverse-geocode";
 import { CATEGORIES } from "~/shared/categories";
 
 const validCategoryIds = new Set(CATEGORIES.map((c) => c.id));
@@ -107,6 +108,23 @@ export const POST = async ({ request }: { request: Request }) => {
   }
 
   try {
+    // Auto-detect country from place coordinates
+    let country: string | null = null;
+    if (body.placeId) {
+      const [place] = await db
+        .select({ latitude: places.latitude, longitude: places.longitude })
+        .from(places)
+        .where(eq(places.id, body.placeId))
+        .limit(1);
+      if (place?.latitude && place?.longitude) {
+        const result = await reverseGeocodeCountry(
+          parseFloat(place.latitude),
+          parseFloat(place.longitude),
+        );
+        if (result) country = result.code;
+      }
+    }
+
     // Insert event
     const [event] = await db
       .insert(events)
@@ -119,6 +137,7 @@ export const POST = async ({ request }: { request: Request }) => {
         location: body.location ?? null,
         externalUrl: body.externalUrl ?? "",
         placeId: body.placeId ?? null,
+        country,
         published: body.published ?? (isPersonalEvent ? true : false),
         startsAt,
         endsAt: endsAt ?? null,
