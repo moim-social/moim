@@ -8,7 +8,7 @@ import { LeafletMap } from "~/components/LeafletMap";
 import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, users, userFediverseAccounts } from "~/server/db/schema";
-import { CATEGORIES } from "~/shared/categories";
+import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { pickGradient } from "~/shared/gradients";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -100,10 +100,6 @@ export const Route = createFileRoute("/events/$eventId/")({
   },
 });
 
-const categoryMap = new Map<string, string>(
-  CATEGORIES.map((c) => [c.id, c.label]),
-);
-
 type EventData = {
   event: {
     id: string;
@@ -182,6 +178,7 @@ type RsvpData = {
 };
 
 function EventDetailPage() {
+  const { categoryMap } = useEventCategoryMap();
   const posthog = usePostHog();
   const { eventId } = Route.useParams();
   const [data, setData] = useState<EventData | null>(null);

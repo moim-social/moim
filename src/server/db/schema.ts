@@ -126,7 +126,7 @@ export const events = pgTable("events", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizerId: uuid("organizer_id").references(() => users.id).notNull(),
   groupActorId: uuid("group_actor_id").references(() => actors.id),
-  categoryId: varchar("category_id", { length: 64 }),
+  categoryId: varchar("category_id", { length: 64 }).references(() => eventCategories.slug),
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description"),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
@@ -156,6 +156,17 @@ export const eventTiers = pgTable("event_tiers", {
   closesAt: timestamp("closes_at", { withTimezone: true }),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const eventCategories = pgTable("event_categories", {
+  slug: varchar("slug", { length: 64 }).primaryKey(),
+  label: varchar("label", { length: 128 }).notNull(),
+  emoji: varchar("emoji", { length: 16 }),
+  description: text("description"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const placeCategories = pgTable("place_categories", {

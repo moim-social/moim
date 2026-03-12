@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CATEGORIES } from "~/shared/categories";
+import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { languageLabel } from "~/shared/languages";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -30,8 +30,6 @@ import type { PlaceCategoryOption, PlaceCategorySummary } from "~/lib/place";
 export const Route = createFileRoute("/groups/$identifier/dashboard")({
   component: GroupDashboard,
 });
-
-const categoryMap = new Map<string, string>(CATEGORIES.map((c) => [c.id, c.label]));
 
 type GroupData = {
   group: {
@@ -100,6 +98,7 @@ type GroupData = {
 };
 
 function GroupDashboard() {
+  const { categoryMap } = useEventCategoryMap();
   const { identifier } = Route.useParams();
   const navigate = useNavigate();
   const handle = identifier.replace(/^@/, "");

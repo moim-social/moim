@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { usePostHog } from "posthog-js/react";
-import { CATEGORIES } from "~/shared/categories";
+import { useEventCategories } from "~/hooks/useEventCategories";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -73,6 +73,7 @@ function Stepper({ currentStep }: { currentStep: number }) {
 }
 
 function CreateGroupPage() {
+  const { categories } = useEventCategories();
   const navigate = useNavigate();
   const posthog = usePostHog();
   const [phase, setPhase] = useState<Phase>("basic");
@@ -384,19 +385,19 @@ function CreateGroupPage() {
               </div>
 
               <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2">
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <label
-                    key={cat.id}
+                    key={cat.slug}
                     className={cn(
                       "flex items-center gap-2 px-2.5 py-1.5 border rounded-md cursor-pointer transition-colors",
-                      selectedCategories.includes(cat.id)
+                      selectedCategories.includes(cat.slug)
                         ? "border-primary bg-primary/5"
                         : "border-border",
                     )}
                   >
                     <Checkbox
-                      checked={selectedCategories.includes(cat.id)}
-                      onCheckedChange={() => toggleCategory(cat.id)}
+                      checked={selectedCategories.includes(cat.slug)}
+                      onCheckedChange={() => toggleCategory(cat.slug)}
                     />
                     <span className="text-sm">{cat.label}</span>
                   </label>

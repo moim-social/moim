@@ -2,9 +2,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, events, eventQuestions, eventTiers, groupMembers, rsvpAnswers, rsvps } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
-import { CATEGORIES } from "~/shared/categories";
-
-const validCategoryIds = new Set(CATEGORIES.map((c) => c.id));
+import { getEventCategories } from "~/server/events/categories";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -91,8 +89,12 @@ export const POST = async ({ request }: { request: Request }) => {
   if (event.groupActorId && !body.categoryId) {
     return Response.json({ error: "categoryId is required for group events" }, { status: 400 });
   }
-  if (body.categoryId && !validCategoryIds.has(body.categoryId as any)) {
-    return Response.json({ error: "Invalid categoryId" }, { status: 400 });
+  if (body.categoryId) {
+    const allCategories = await getEventCategories();
+    const validCategoryIds = new Set(allCategories.map((c) => c.slug));
+    if (!validCategoryIds.has(body.categoryId)) {
+      return Response.json({ error: "Invalid categoryId" }, { status: 400 });
+    }
   }
 
   const startsAt = new Date(body.startsAt);
