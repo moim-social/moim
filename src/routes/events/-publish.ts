@@ -30,6 +30,7 @@ export const POST = async ({ request }: { request: Request }) => {
       groupActorId: events.groupActorId,
       published: events.published,
       categoryId: events.categoryId,
+      country: events.country,
       title: events.title,
       description: events.description,
       startsAt: events.startsAt,

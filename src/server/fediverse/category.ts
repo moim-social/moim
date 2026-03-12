@@ -70,6 +70,68 @@ export async function ensureCategoryActor(
 }
 
 /**
+ * Get the feed actor handle for a country-specific category.
+ */
+export function countryCategoryHandle(categoryId: string, countryCode: string): string {
+  return `feed_${categoryId}_${countryCode.toLowerCase()}`;
+}
+
+/**
+ * Ensure a Service actor exists for the given category + country combination.
+ * Auto-provisions on first call (same pattern as ensureCategoryActor).
+ */
+export async function ensureCountryCategoryActor(
+  categoryId: string,
+  countryCode: string,
+): Promise<typeof actors.$inferSelect> {
+  const category = CATEGORIES.find((c) => c.id === categoryId);
+  if (!category) throw new Error(`Unknown category: ${categoryId}`);
+
+  const handle = countryCategoryHandle(categoryId, countryCode);
+  const ctx = getFederationContext();
+
+  const [existing] = await db
+    .select()
+    .from(actors)
+    .where(and(eq(actors.handle, handle), eq(actors.isLocal, true)))
+    .limit(1);
+  if (existing) return existing;
+
+  const cc = countryCode.toUpperCase();
+  const defaultI18n = getI18n();
+  const [actor] = await db
+    .insert(actors)
+    .values({
+      handle,
+      type: "Service",
+      actorUrl: ctx.getActorUri(handle).href,
+      iri: ctx.getActorUri(handle).href,
+      name: defaultI18n._("{categoryLabel} Events ({countryCode})", { categoryLabel: category.label, countryCode: cc }),
+      summary: defaultI18n._("Event feed for {categoryLabel} events in {countryCode} on Moim.", { categoryLabel: category.label, countryCode: cc }),
+      inboxUrl: ctx.getInboxUri(handle).href,
+      outboxUrl: ctx.getOutboxUri(handle).href,
+      sharedInboxUrl: ctx.getInboxUri().href,
+      followersUrl: ctx.getFollowersUri(handle).href,
+      followingUrl: ctx.getFollowingUri(handle).href,
+      domain: new URL(ctx.canonicalOrigin).hostname,
+      isLocal: true,
+    })
+    .onConflictDoNothing()
+    .returning();
+
+  if (!actor) {
+    const [refetched] = await db
+      .select()
+      .from(actors)
+      .where(and(eq(actors.handle, handle), eq(actors.isLocal, true)))
+      .limit(1);
+    return refetched;
+  }
+
+  return actor;
+}
+
+/**
  * Post a Note about a new event from the host actor (Group or Person),
  * then optionally have the category Service actor Announce (boost) it.
  * For personal events, pass { skipAnnounce: true } to skip the Announce step.
@@ -85,6 +147,7 @@ export async function announceEvent(
     endsAt?: Date | null;
     timezone?: string | null;
     externalUrl?: string | null;
+    country?: string | null;
   },
   organizers: Array<{ handle: string; actorUrl: string }>,
   options?: {
@@ -244,6 +307,24 @@ export async function announceEvent(
         published,
         to: PUBLIC_COLLECTION,
         ccs: [ctx.getFollowersUri(catHandle)],
+      }),
+    );
+  }
+
+  // 3. Country-specific category actor also Announces
+  if (!options?.skipAnnounce && categoryId && event.country) {
+    const countryActor = await ensureCountryCategoryActor(categoryId, event.country);
+    const countryHandle = countryActor.handle;
+    await ctx.sendActivity(
+      { identifier: countryHandle },
+      "followers",
+      new Announce({
+        id: new URL(`${noteUri.href}#announce-${event.country.toLowerCase()}`),
+        actor: ctx.getActorUri(countryHandle),
+        object: noteUri,
+        published,
+        to: PUBLIC_COLLECTION,
+        ccs: [ctx.getFollowersUri(countryHandle)],
       }),
     );
   }
