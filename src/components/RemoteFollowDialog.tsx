@@ -19,7 +19,7 @@ interface ActorInfo {
   remoteFollowUrl?: string;
 }
 
-export function RemoteFollowDialog({ actorHandle }: { actorHandle: string }) {
+export function RemoteFollowDialog({ actorHandle, className }: { actorHandle: string; className?: string }) {
   const [open, setOpen] = useState(false);
   const [fediverseId, setFediverseId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -87,7 +87,7 @@ export function RemoteFollowDialog({ actorHandle }: { actorHandle: string }) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className={className}>
           Remote Follow
         </Button>
       </DialogTrigger>
