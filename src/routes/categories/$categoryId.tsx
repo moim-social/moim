@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { CATEGORIES } from "~/shared/categories";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
@@ -11,7 +10,9 @@ import { UpcomingEventList } from "~/components/UpcomingEventList";
 import { useIsMobile } from "~/hooks/useIsMobile";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const categoryMap = new Map<string, (typeof CATEGORIES)[number]>(CATEGORIES.map((c) => [c.id, c]));
+function slugToLabel(slug: string) {
+  return slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export const Route = createFileRoute("/categories/$categoryId")({
   component: CategoryDetailPage,
@@ -19,8 +20,7 @@ export const Route = createFileRoute("/categories/$categoryId")({
     country: typeof search.country === "string" ? search.country : undefined,
   }),
   head: ({ params }) => {
-    const cat = categoryMap.get(params.categoryId);
-    const label = cat?.label ?? params.categoryId;
+    const label = slugToLabel(params.categoryId);
     return {
       meta: [
         { title: `${label} Events — Moim` },

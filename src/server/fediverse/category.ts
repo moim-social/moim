@@ -28,14 +28,27 @@ export async function ensureCategoryActor(
   const handle = categoryHandle(categoryId);
   const ctx = getFederationContext();
 
+  const defaultI18n = getI18n();
+  const expectedName = defaultI18n._("{categoryLabel} Events", { categoryLabel: category.label });
+  const expectedSummary = category.description
+    ?? defaultI18n._("Event feed for the {categoryLabel} category on Moim.", { categoryLabel: category.label });
+
   const [existing] = await db
     .select()
     .from(actors)
     .where(and(eq(actors.handle, handle), eq(actors.isLocal, true)))
     .limit(1);
-  if (existing) return existing;
+  if (existing) {
+    if (existing.name !== expectedName || existing.summary !== expectedSummary) {
+      const [updated] = await db.update(actors)
+        .set({ name: expectedName, summary: expectedSummary })
+        .where(eq(actors.id, existing.id))
+        .returning();
+      return updated;
+    }
+    return existing;
+  }
 
-  const defaultI18n = getI18n();
   const [actor] = await db
     .insert(actors)
     .values({
@@ -43,8 +56,8 @@ export async function ensureCategoryActor(
       type: "Service",
       actorUrl: ctx.getActorUri(handle).href,
       iri: ctx.getActorUri(handle).href,
-      name: defaultI18n._("{categoryLabel} Events", { categoryLabel: category.label }),
-      summary: defaultI18n._("Event feed for the {categoryLabel} category on Moim.", { categoryLabel: category.label }),
+      name: expectedName,
+      summary: expectedSummary,
       inboxUrl: ctx.getInboxUri(handle).href,
       outboxUrl: ctx.getOutboxUri(handle).href,
       sharedInboxUrl: ctx.getInboxUri().href,
@@ -90,15 +103,28 @@ export async function ensureCountryCategoryActor(
   const handle = countryCategoryHandle(categoryId, countryCode);
   const ctx = getFederationContext();
 
+  const cc = countryCode.toUpperCase();
+  const defaultI18n = getI18n();
+  const expectedName = defaultI18n._("{categoryLabel} Events ({countryCode})", { categoryLabel: category.label, countryCode: cc });
+  const expectedSummary = category.description
+    ?? defaultI18n._("Event feed for {categoryLabel} events in {countryCode} on Moim.", { categoryLabel: category.label, countryCode: cc });
+
   const [existing] = await db
     .select()
     .from(actors)
     .where(and(eq(actors.handle, handle), eq(actors.isLocal, true)))
     .limit(1);
-  if (existing) return existing;
+  if (existing) {
+    if (existing.name !== expectedName || existing.summary !== expectedSummary) {
+      const [updated] = await db.update(actors)
+        .set({ name: expectedName, summary: expectedSummary })
+        .where(eq(actors.id, existing.id))
+        .returning();
+      return updated;
+    }
+    return existing;
+  }
 
-  const cc = countryCode.toUpperCase();
-  const defaultI18n = getI18n();
   const [actor] = await db
     .insert(actors)
     .values({
@@ -106,8 +132,8 @@ export async function ensureCountryCategoryActor(
       type: "Service",
       actorUrl: ctx.getActorUri(handle).href,
       iri: ctx.getActorUri(handle).href,
-      name: defaultI18n._("{categoryLabel} Events ({countryCode})", { categoryLabel: category.label, countryCode: cc }),
-      summary: defaultI18n._("Event feed for {categoryLabel} events in {countryCode} on Moim.", { categoryLabel: category.label, countryCode: cc }),
+      name: expectedName,
+      summary: expectedSummary,
       inboxUrl: ctx.getInboxUri(handle).href,
       outboxUrl: ctx.getOutboxUri(handle).href,
       sharedInboxUrl: ctx.getInboxUri().href,
