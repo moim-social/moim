@@ -22,17 +22,22 @@ export type CalendarEvent = {
   endsAt: string | null;
   timezone: string | null;
   location: string | null;
+  country?: string | null;
   organizerName?: string | null;
   groupName?: string | null;
 };
 
 type EventCalendarProps = {
   events: CalendarEvent[];
+  /** When true, show country tag per event; when false (default), show venue */
+  showCountry?: boolean;
+  /** Called when the visible month changes */
+  onMonthChange?: (year: number, month: number) => void;
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function EventCalendar({ events }: EventCalendarProps) {
+export function EventCalendar({ events, showCountry = false, onMonthChange }: EventCalendarProps) {
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
@@ -69,8 +74,10 @@ export function EventCalendar({ events }: EventCalendarProps) {
     if (currentMonth === 0) {
       setCurrentYear((y) => y - 1);
       setCurrentMonth(11);
+      onMonthChange?.(currentYear - 1, 11);
     } else {
       setCurrentMonth((m) => m - 1);
+      onMonthChange?.(currentYear, currentMonth - 1);
     }
   }
 
@@ -79,8 +86,10 @@ export function EventCalendar({ events }: EventCalendarProps) {
     if (currentMonth === 11) {
       setCurrentYear((y) => y + 1);
       setCurrentMonth(0);
+      onMonthChange?.(currentYear + 1, 0);
     } else {
       setCurrentMonth((m) => m + 1);
+      onMonthChange?.(currentYear, currentMonth + 1);
     }
   }
 
@@ -135,7 +144,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
               type="button"
               onClick={() => handleDayClick(day)}
               className={cn(
-                "flex flex-col items-center py-2 rounded-md transition-colors overflow-visible min-h-24",
+                "flex flex-col items-center py-1.5 rounded-md transition-colors overflow-hidden min-h-28",
                 "text-xs sm:text-sm",
                 "hover:bg-accent/50",
                 !inMonth && "text-muted-foreground/40",
@@ -151,20 +160,33 @@ export function EventCalendar({ events }: EventCalendarProps) {
                 {day.getDate()}
               </span>
               {dayEvents.length > 0 && (
-                <div className="flex gap-0.5 mt-1">
-                  {dayEvents.slice(0, 3).map((evt) => {
+                <div className="w-full mt-1 space-y-0.5 px-0.5">
+                  {dayEvents.slice(0, 2).map((evt) => {
                     const [color] = pickGradient(evt.categoryId || evt.id);
+                    const start = new Date(evt.startsAt);
+                    const timeStr = start.toLocaleTimeString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      timeZone: evt.timezone ?? undefined,
+                    });
+                    const secondary = showCountry ? evt.country : evt.location;
                     return (
-                      <span
+                      <div
                         key={evt.id}
-                        className="size-2 rounded-full"
-                        style={{ backgroundColor: color }}
-                      />
+                        className="text-left rounded px-1 py-0.5 truncate"
+                        style={{ backgroundColor: `${color}20`, borderLeft: `2px solid ${color}` }}
+                      >
+                        <span className="text-[10px] text-muted-foreground">{timeStr}</span>
+                        <p className="text-[10px] font-medium leading-tight truncate">{evt.title}</p>
+                        {secondary && (
+                          <span className="text-[9px] text-muted-foreground truncate block">{secondary}</span>
+                        )}
+                      </div>
                     );
                   })}
-                  {dayEvents.length > 3 && (
-                    <span className="text-[9px] text-muted-foreground leading-none">
-                      +{dayEvents.length - 3}
+                  {dayEvents.length > 2 && (
+                    <span className="text-[9px] text-muted-foreground px-1">
+                      +{dayEvents.length - 2} more
                     </span>
                   )}
                 </div>

@@ -1,17 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CATEGORIES } from "~/shared/categories";
 import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
+import { EventCalendar, type CalendarEvent } from "~/components/EventCalendar";
+import { UpcomingEventList } from "~/components/UpcomingEventList";
+import { useIsMobile } from "~/hooks/useIsMobile";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const categoryMap = new Map<string, (typeof CATEGORIES)[number]>(CATEGORIES.map((c) => [c.id, c]));
 
@@ -55,15 +52,40 @@ type EventItem = {
 
 type CountryOption = { code: string; name: string };
 
+function toCalendarEvent(event: EventItem): CalendarEvent {
+  return {
+    id: event.id,
+    title: event.title,
+    categoryId: event.categoryId,
+    startsAt: event.startsAt,
+    endsAt: event.endsAt,
+    timezone: event.timezone,
+    location: event.location,
+    country: event.country,
+    organizerName: event.organizerDisplayName,
+    groupName: event.groupName,
+  };
+}
+
+function formatMonthYear(year: number, month: number) {
+  return new Date(year, month).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+  });
+}
+
 function CategoryDetailPage() {
   const { categoryId } = Route.useParams();
   const { country } = Route.useSearch();
   const navigate = useNavigate({ from: "/categories/$categoryId" });
   const category = categoryMap.get(categoryId);
+  const isMobile = useIsMobile();
 
+  const now = new Date();
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [countries, setCountries] = useState<CountryOption[]>([]);
 
   useEffect(() => {
@@ -73,11 +95,13 @@ function CategoryDetailPage() {
       .catch(() => {});
   }, []);
 
+  // Fetch events for visible month
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (tab === "past") params.set("past", "1");
     params.set("category", categoryId);
+    params.set("year", String(currentYear));
+    params.set("month", String(currentMonth));
     if (country) params.set("country", country);
     fetch(`/api/events?${params}`)
       .then((r) => r.json())
@@ -86,7 +110,14 @@ function CategoryDetailPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [tab, categoryId, country]);
+  }, [categoryId, country, currentYear, currentMonth]);
+
+  const calendarEvents = useMemo(() => events.map(toCalendarEvent), [events]);
+
+  const handleMonthChange = (year: number, month: number) => {
+    setCurrentYear(year);
+    setCurrentMonth(month);
+  };
 
   if (!category) {
     return (
@@ -106,6 +137,24 @@ function CategoryDetailPage() {
   const feedHandle = country
     ? `feed_${categoryId}_${country.toLowerCase()}`
     : `feed_${categoryId}`;
+
+  function goToPrevMonth() {
+    if (currentMonth === 0) {
+      setCurrentYear((y) => y - 1);
+      setCurrentMonth(11);
+    } else {
+      setCurrentMonth((m) => m - 1);
+    }
+  }
+
+  function goToNextMonth() {
+    if (currentMonth === 11) {
+      setCurrentYear((y) => y + 1);
+      setCurrentMonth(0);
+    } else {
+      setCurrentMonth((m) => m + 1);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -144,23 +193,6 @@ function CategoryDetailPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex gap-1">
-          <Button
-            variant={tab === "upcoming" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTab("upcoming")}
-          >
-            Upcoming
-          </Button>
-          <Button
-            variant={tab === "past" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTab("past")}
-          >
-            Past
-          </Button>
-        </div>
-
         {countries.length > 0 && (
           <select
             className="h-9 w-48 rounded-md border border-input bg-background px-3 text-sm"
@@ -181,135 +213,36 @@ function CategoryDetailPage() {
         )}
       </div>
 
-      {/* Events grid */}
+      {/* Content */}
       {loading ? (
         <p className="text-muted-foreground">Loading...</p>
-      ) : events.length === 0 ? (
-        <Card className="flex items-center justify-center py-16">
-          <CardHeader className="text-center">
-            <CardTitle className="text-base text-muted-foreground">
-              {tab === "past" ? "No past events" : "No upcoming events"}
-            </CardTitle>
-            <CardDescription>
-              {tab === "past"
-                ? "Past events in this category will appear here."
-                : "No upcoming events in this category yet."}
-            </CardDescription>
-          </CardHeader>
+      ) : !isMobile ? (
+        <Card className="rounded-lg">
+          <CardContent className="pt-6">
+            <EventCalendar
+              events={calendarEvents}
+              showCountry={!country}
+              onMonthChange={handleMonthChange}
+            />
+          </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
+        <div className="space-y-4">
+          {/* Month navigation for list view */}
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" size="icon-xs" onClick={goToPrevMonth}>
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm font-semibold">
+              {formatMonthYear(currentYear, currentMonth)}
+            </span>
+            <Button variant="ghost" size="icon-xs" onClick={goToNextMonth}>
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+          <UpcomingEventList events={calendarEvents} />
         </div>
       )}
     </div>
-  );
-}
-
-function EventCard({ event }: { event: EventItem }) {
-  const start = new Date(event.startsAt);
-  const eventTz = event.timezone ?? undefined;
-  const dateStr = start.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: eventTz,
-  });
-  const timeStr = start.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: eventTz,
-  });
-  const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
-
-  const hostLabel = event.groupHandle
-    ? (event.groupName ?? `@${event.groupHandle}`)
-    : event.organizerHandle
-      ? `@${event.organizerHandle}`
-      : null;
-
-  const hostLink = event.groupHandle
-    ? `/groups/@${event.groupHandle}`
-    : event.organizerActorUrl
-      ? event.organizerActorUrl
-      : null;
-
-  const hostIsExternal = !event.groupHandle && !!event.organizerActorUrl;
-
-  return (
-    <Link to="/events/$eventId" params={{ eventId: event.id }} className="group block cursor-pointer">
-      <Card className="rounded-lg overflow-hidden transition-shadow hover:shadow-md h-full flex flex-col gap-0 py-0 cursor-pointer">
-        <div
-          className="h-24 relative bg-cover bg-center"
-          style={{
-            background: event.headerImageUrl
-              ? `linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.2)), url(${event.headerImageUrl}) center/cover no-repeat`
-              : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
-          }}
-        >
-          {event.country && (
-            <Badge
-              variant="secondary"
-              className="absolute bottom-3 right-4 bg-white/20 text-white border-white/30 text-xs"
-            >
-              {event.country}
-            </Badge>
-          )}
-        </div>
-        <CardContent className="pt-4 pb-5 space-y-2.5 flex-1">
-          <h3 className="font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-            {event.title}
-          </h3>
-          <div className="space-y-1.5 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75Z" clipRule="evenodd" />
-              </svg>
-              <span>{dateStr} · {timeStr}</span>
-            </div>
-            {hostLabel && (
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                  <path d="M10 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.465 14.493a1.23 1.23 0 0 0 .41 1.412A9.957 9.957 0 0 0 10 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 0 0-13.074.003Z" />
-                </svg>
-                {hostLink ? (
-                  hostIsExternal ? (
-                    <a
-                      href={hostLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="truncate hover:underline hover:text-foreground cursor-pointer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {hostLabel}
-                    </a>
-                  ) : (
-                    <Link
-                      to={hostLink}
-                      className="truncate hover:underline hover:text-foreground cursor-pointer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {hostLabel}
-                    </Link>
-                  )
-                ) : (
-                  <span className="truncate">{hostLabel}</span>
-                )}
-              </div>
-            )}
-            {event.location && (
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                  <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
-                </svg>
-                <span className="truncate">{event.location}</span>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
   );
 }
