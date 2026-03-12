@@ -204,6 +204,13 @@
       "when": 1773307762412,
       "tag": "0028_mature_madame_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1773309741961,
+      "tag": "0029_wandering_mandrill",
+      "breakpoints": true
     }
   ]
 }

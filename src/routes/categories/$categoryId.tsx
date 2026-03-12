@@ -11,27 +11,29 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
+import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
 
-export const Route = createFileRoute("/events/")({
-  component: EventsPage,
-  validateSearch: (search: Record<string, unknown>): { category?: string; country?: string } => ({
-    category: typeof search.category === "string" ? search.category : undefined,
+const categoryMap = new Map<string, (typeof CATEGORIES)[number]>(CATEGORIES.map((c) => [c.id, c]));
+
+export const Route = createFileRoute("/categories/$categoryId")({
+  component: CategoryDetailPage,
+  validateSearch: (search: Record<string, unknown>): { country?: string } => ({
     country: typeof search.country === "string" ? search.country : undefined,
   }),
-  head: () => ({
-    meta: [
-      { title: "Events — Moim" },
-      { name: "description", content: "Discover upcoming events from groups across the fediverse." },
-      { property: "og:title", content: "Events — Moim" },
-      { property: "og:description", content: "Discover upcoming events from groups across the fediverse." },
-      { property: "og:type", content: "website" },
-    ],
-  }),
+  head: ({ params }) => {
+    const cat = categoryMap.get(params.categoryId);
+    const label = cat?.label ?? params.categoryId;
+    return {
+      meta: [
+        { title: `${label} Events — Moim` },
+        { name: "description", content: `Discover ${label} events on Moim.` },
+        { property: "og:title", content: `${label} Events — Moim` },
+        { property: "og:description", content: `Discover ${label} events on Moim.` },
+        { property: "og:type", content: "website" },
+      ],
+    };
+  },
 });
-
-const categoryMap = new Map<string, string>(
-  CATEGORIES.map((c) => [c.id, c.label]),
-);
 
 type EventItem = {
   id: string;
@@ -53,20 +55,18 @@ type EventItem = {
 
 type CountryOption = { code: string; name: string };
 
-function EventsPage() {
-  const { category, country } = Route.useSearch();
-  const navigate = useNavigate({ from: "/events/" });
-  const [user, setUser] = useState<{ handle: string } | null>(null);
+function CategoryDetailPage() {
+  const { categoryId } = Route.useParams();
+  const { country } = Route.useSearch();
+  const navigate = useNavigate({ from: "/categories/$categoryId" });
+  const category = categoryMap.get(categoryId);
+
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [countries, setCountries] = useState<CountryOption[]>([]);
 
   useEffect(() => {
-    fetch("/api/session")
-      .then((r) => r.json())
-      .then((data) => setUser(data.user))
-      .catch(() => {});
     fetch("/api/countries")
       .then((r) => r.json())
       .then((data) => setCountries(data.countries ?? []))
@@ -77,122 +77,111 @@ function EventsPage() {
     setLoading(true);
     const params = new URLSearchParams();
     if (tab === "past") params.set("past", "1");
-    if (category) params.set("category", category);
+    params.set("category", categoryId);
     if (country) params.set("country", country);
-    const qs = params.toString();
-    fetch(`/api/events${qs ? `?${qs}` : ""}`)
+    fetch(`/api/events?${params}`)
       .then((r) => r.json())
       .then((data) => {
         setEvents(data.events ?? []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [tab, category, country]);
+  }, [tab, categoryId, country]);
 
-  const updateSearch = (updates: { category?: string; country?: string }) => {
-    const next = { category, country, ...updates };
-    navigate({
-      search: {
-        ...(next.category ? { category: next.category } : {}),
-        ...(next.country ? { country: next.country } : {}),
-      },
-    });
-  };
+  if (!category) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold">Category not found</h2>
+        <p className="text-muted-foreground">
+          The category "{categoryId}" does not exist.
+        </p>
+        <Button asChild variant="outline">
+          <Link to="/categories">Back to categories</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const [gradFrom, gradTo] = pickGradient(categoryId);
+  const feedHandle = country
+    ? `feed_${categoryId}_${country.toLowerCase()}`
+    : `feed_${categoryId}`;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Events</h2>
-          <p className="text-muted-foreground mt-1">
-            Discover upcoming events from groups across the fediverse.
-          </p>
+      {/* Hero banner */}
+      <div
+        className="rounded-xl p-6 text-white"
+        style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
+      >
+        <Link
+          to="/categories"
+          className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-3.5">
+            <path fillRule="evenodd" d="M9.78 4.22a.75.75 0 0 1 0 1.06L7.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06L5.47 8.53a.75.75 0 0 1 0-1.06l3.25-3.25a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
+          </svg>
+          All categories
+        </Link>
+        <h2 className="text-2xl font-bold mt-2">{category.label} Events</h2>
+        <p className="text-white/80 text-sm mt-1">
+          Follow this feed from your fediverse account to get notified about new {category.label.toLowerCase()} events.
+        </p>
+
+        <div className="mt-4 flex items-center gap-3 flex-wrap">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-white/60">@{feedHandle}</span>
+            <RemoteFollowDialog actorHandle={feedHandle} className="bg-white text-gray-900 border-white hover:bg-white/90" />
+          </div>
+          {country && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs text-white/60">@feed_{categoryId} (global)</span>
+              <RemoteFollowDialog actorHandle={`feed_${categoryId}`} className="bg-white/20 text-white border-white/40 hover:bg-white/30" />
+            </div>
+          )}
         </div>
-        {user && (
-          <Button asChild>
-            <Link to="/events/create">Create Event</Link>
-          </Button>
-        )}
       </div>
 
       {/* Filters */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex gap-1">
-            <Button
-              variant={tab === "upcoming" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTab("upcoming")}
-            >
-              Upcoming
-            </Button>
-            <Button
-              variant={tab === "past" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTab("past")}
-            >
-              Past
-            </Button>
-          </div>
-
-          {countries.length > 0 && (
-            <select
-              className="h-9 w-48 rounded-md border border-input bg-background px-3 text-sm"
-              value={country ?? ""}
-              onChange={(e) => updateSearch({ country: e.target.value || undefined })}
-            >
-              <option value="">All countries</option>
-              {countries.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name} ({c.code})
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        {/* Category pills — horizontal scroll */}
-        <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
-          <div className="flex gap-1.5 w-max items-center">
-            <Button
-              variant={!category ? "default" : "outline"}
-              size="sm"
-              className="h-7 text-xs shrink-0"
-              onClick={() => updateSearch({ category: undefined })}
-            >
-              All
-            </Button>
-            {CATEGORIES.map((cat) => {
-              const isActive = category === cat.id;
-              return (
-                <Button
-                  key={cat.id}
-                  variant={isActive ? "default" : "outline"}
-                  size="sm"
-                  className="h-7 text-xs shrink-0"
-                  onClick={() => updateSearch({ category: isActive ? undefined : cat.id })}
-                >
-                  {cat.label}
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        {category && (
-          <Link
-            to="/categories/$categoryId"
-            params={{ categoryId: category }}
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex gap-1">
+          <Button
+            variant={tab === "upcoming" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTab("upcoming")}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-3.5">
-              <path d="M8.543 2.232a.75.75 0 0 0-1.085 0l-5.25 5.5A.75.75 0 0 0 2.75 9H4v4a1 1 0 0 0 1 1h1.5a.5.5 0 0 0 .5-.5v-2a1 1 0 0 1 2 0v2a.5.5 0 0 0 .5.5H11a1 1 0 0 0 1-1V9h1.25a.75.75 0 0 0 .543-1.268l-5.25-5.5Z" />
-            </svg>
-            Go to {categoryMap.get(category)} feed page
-          </Link>
+            Upcoming
+          </Button>
+          <Button
+            variant={tab === "past" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTab("past")}
+          >
+            Past
+          </Button>
+        </div>
+
+        {countries.length > 0 && (
+          <select
+            className="h-9 w-48 rounded-md border border-input bg-background px-3 text-sm"
+            value={country ?? ""}
+            onChange={(e) => {
+              navigate({
+                search: e.target.value ? { country: e.target.value } : {},
+              });
+            }}
+          >
+            <option value="">All countries</option>
+            {countries.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name} ({c.code})
+              </option>
+            ))}
+          </select>
         )}
       </div>
 
+      {/* Events grid */}
       {loading ? (
         <p className="text-muted-foreground">Loading...</p>
       ) : events.length === 0 ? (
@@ -203,8 +192,8 @@ function EventsPage() {
             </CardTitle>
             <CardDescription>
               {tab === "past"
-                ? "Past events will appear here."
-                : "Create a group to start hosting events."}
+                ? "Past events in this category will appear here."
+                : "No upcoming events in this category yet."}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -252,7 +241,6 @@ function EventCard({ event }: { event: EventItem }) {
   return (
     <Link to="/events/$eventId" params={{ eventId: event.id }} className="group block cursor-pointer">
       <Card className="rounded-lg overflow-hidden transition-shadow hover:shadow-md h-full flex flex-col gap-0 py-0 cursor-pointer">
-        {/* Header banner */}
         <div
           className="h-24 relative bg-cover bg-center"
           style={{
@@ -261,21 +249,6 @@ function EventCard({ event }: { event: EventItem }) {
               : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
           }}
         >
-          {event.categoryId && (
-            <Link
-              to="/categories/$categoryId"
-              params={{ categoryId: event.categoryId }}
-              onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-3 left-4"
-            >
-              <Badge
-                variant="secondary"
-                className="bg-white/20 text-white border-white/30 text-xs hover:bg-white/30 transition-colors"
-              >
-                {categoryMap.get(event.categoryId) ?? event.categoryId}
-              </Badge>
-            </Link>
-          )}
           {event.country && (
             <Badge
               variant="secondary"
@@ -285,23 +258,17 @@ function EventCard({ event }: { event: EventItem }) {
             </Badge>
           )}
         </div>
-
-        {/* Event info */}
         <CardContent className="pt-4 pb-5 space-y-2.5 flex-1">
           <h3 className="font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
             {event.title}
           </h3>
-
           <div className="space-y-1.5 text-sm text-muted-foreground">
-            {/* Date */}
             <div className="flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
                 <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75Z" clipRule="evenodd" />
               </svg>
               <span>{dateStr} · {timeStr}</span>
             </div>
-
-            {/* Host */}
             {hostLabel && (
               <div className="flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
@@ -332,8 +299,6 @@ function EventCard({ event }: { event: EventItem }) {
                 )}
               </div>
             )}
-
-            {/* Location */}
             {event.location && (
               <div className="flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
