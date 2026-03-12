@@ -10,6 +10,7 @@ import { db } from "~/server/db/client";
 import { events, actors, users, userFediverseAccounts } from "~/server/db/schema";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { pickGradient } from "~/shared/gradients";
+import { renderMarkdown } from "~/lib/markdown";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -651,9 +652,10 @@ function EventDetailPage() {
                 <CardTitle className="text-base">About</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {event.description}
-                </p>
+                <div
+                  className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(event.description) }}
+                />
               </CardContent>
             </Card>
           )}

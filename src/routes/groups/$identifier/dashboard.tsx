@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { Textarea } from "~/components/ui/textarea";
+import { MarkdownEditor } from "~/components/MarkdownEditor";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
@@ -590,10 +591,10 @@ function GroupDashboard() {
             </Alert>
           )}
 
-          <Textarea
-            placeholder="What's happening?"
+          <MarkdownEditor
             value={noteContent}
-            onChange={(e) => setNoteContent(e.target.value)}
+            onChange={setNoteContent}
+            placeholder="What's happening?"
             rows={4}
           />
 

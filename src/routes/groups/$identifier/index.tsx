@@ -15,6 +15,7 @@ import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
 import { Calendar, BadgeCheck } from "lucide-react";
+import { renderMarkdown } from "~/lib/markdown";
 
 const getGroupMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ handle: z.string() })))
@@ -386,7 +387,7 @@ function TimelineEvent({
 
           {event.description && (
             <p className="text-sm text-muted-foreground line-clamp-2">
-              {event.description}
+              {event.description.replace(/[#*_`~\[\]()>!|-]/g, "").trim()}
             </p>
           )}
         </div>
@@ -416,7 +417,7 @@ function TimelineNote({
 
         <div className="rounded-lg border p-4 space-y-2">
           <div
-            className="text-sm leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0"
+            className="prose prose-sm max-w-none dark:prose-invert"
             dangerouslySetInnerHTML={{ __html: note.content }}
           />
 

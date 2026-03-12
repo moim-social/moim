@@ -7,6 +7,7 @@ import { getI18n, resolveLocale } from "~/server/i18n";
 import { resolveTimezone, formatEventDateRange } from "~/server/timezone";
 import { getEventCategory } from "~/server/events/categories";
 import { getFederationContext } from "./federation";
+import { renderMarkdown } from "~/lib/markdown";
 
 /**
  * Get the feed actor handle for a category.
@@ -201,7 +202,7 @@ export async function announceEvent(
   const dateRangeStr = formatEventDateRange(event.startsAt, event.endsAt, tz);
   const eventUrl = new URL(`/events/${event.id}`, ctx.canonicalOrigin).href;
   const descHtml = event.description
-    ? `<p>${event.description}</p>`
+    ? renderMarkdown(event.description)
     : "";
 
   let content: string;
