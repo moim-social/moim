@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CATEGORIES } from "~/shared/categories";
+import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
@@ -78,7 +79,9 @@ function CategoryDetailPage() {
   const { categoryId } = Route.useParams();
   const { country } = Route.useSearch();
   const navigate = useNavigate({ from: "/categories/$categoryId" });
-  const category = categoryMap.get(categoryId);
+  const { categoryMap: dbCategoryMap } = useEventCategoryMap();
+  const categoryLabel = dbCategoryMap.get(categoryId);
+  const category = categoryLabel ? { slug: categoryId, label: categoryLabel } : null;
   const isMobile = useIsMobile();
 
   const now = new Date();
