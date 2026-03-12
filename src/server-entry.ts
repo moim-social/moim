@@ -49,6 +49,7 @@ import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
 import { GET as listBanners, POST as createBanner, PUT as updateBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
 import { GET as getUserSettings, PATCH as updateUserSettings } from "./routes/users/-settings";
 import { GET as listAdminPlaceCategories, POST as createAdminPlaceCategory, PATCH as updateAdminPlaceCategory, PUT as importAdminPlaceCategories } from "./routes/admin/-place-categories";
+import { GET as listAdminEventCategories, POST as createAdminEventCategory, PATCH as updateAdminEventCategory, PUT as importAdminEventCategories } from "./routes/admin/-event-categories";
 import { GET as listAdminPlaces, PATCH as updateAdminPlace } from "./routes/admin/-places";
 import { GET as listAdminGroupPlaces, POST as assignGroupPlace, DELETE as unassignGroupPlace } from "./routes/admin/-group-places";
 import { GET as listGroupPlaces, PATCH as updateGroupPlace } from "./routes/groups/-places";
@@ -504,6 +505,31 @@ apiRouter.patch("/admin/place-categories/:categoryId", defineEventHandler(async 
     request: await forwardJson(request, `/api/admin/place-categories/${categoryId}`, "PATCH", (body) => ({
       ...(body ?? {}),
       categorySlug: categoryId,
+    })),
+  });
+}));
+
+apiRouter.get("/admin/event-categories", defineEventHandler(async (event) => {
+  return listAdminEventCategories({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/admin/event-categories", defineEventHandler(async (event) => {
+  return createAdminEventCategory({ request: toWebRequest(event) });
+}));
+
+apiRouter.put("/admin/event-categories", defineEventHandler(async (event) => {
+  return importAdminEventCategories({ request: toWebRequest(event) });
+}));
+
+apiRouter.patch("/admin/event-categories/:categorySlug", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const categorySlug = event.context.params?.categorySlug;
+  if (!categorySlug) return Response.json({ error: "categorySlug is required" }, { status: 400 });
+
+  return updateAdminEventCategory({
+    request: await forwardJson(request, `/api/admin/event-categories/${categorySlug}`, "PATCH", (body) => ({
+      ...(body ?? {}),
+      categorySlug,
     })),
   });
 }));
