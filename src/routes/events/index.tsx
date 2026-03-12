@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CATEGORIES } from "~/shared/categories";
 import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
@@ -14,6 +14,10 @@ import {
 
 export const Route = createFileRoute("/events/")({
   component: EventsPage,
+  validateSearch: (search: Record<string, unknown>): { category?: string; country?: string } => ({
+    category: typeof search.category === "string" ? search.category : undefined,
+    country: typeof search.country === "string" ? search.country : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Events — Moim" },
@@ -34,6 +38,7 @@ type EventItem = {
   title: string;
   description: string | null;
   categoryId: string;
+  country: string | null;
   startsAt: string;
   endsAt: string | null;
   timezone: string | null;
@@ -46,30 +51,53 @@ type EventItem = {
   organizerActorUrl: string | null;
 };
 
+type CountryOption = { code: string; name: string };
+
 function EventsPage() {
+  const { category, country } = Route.useSearch();
+  const navigate = useNavigate({ from: "/events/" });
   const [user, setUser] = useState<{ handle: string } | null>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
+  const [countries, setCountries] = useState<CountryOption[]>([]);
 
   useEffect(() => {
     fetch("/api/session")
       .then((r) => r.json())
       .then((data) => setUser(data.user))
       .catch(() => {});
+    fetch("/api/countries")
+      .then((r) => r.json())
+      .then((data) => setCountries(data.countries ?? []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     setLoading(true);
-    const url = tab === "past" ? "/api/events?past=1" : "/api/events";
-    fetch(url)
+    const params = new URLSearchParams();
+    if (tab === "past") params.set("past", "1");
+    if (category) params.set("category", category);
+    if (country) params.set("country", country);
+    const qs = params.toString();
+    fetch(`/api/events${qs ? `?${qs}` : ""}`)
       .then((r) => r.json())
       .then((data) => {
         setEvents(data.events ?? []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [tab]);
+  }, [tab, category, country]);
+
+  const updateSearch = (updates: { category?: string; country?: string }) => {
+    const next = { category, country, ...updates };
+    navigate({
+      search: {
+        ...(next.category ? { category: next.category } : {}),
+        ...(next.country ? { country: next.country } : {}),
+      },
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -105,6 +133,49 @@ function EventsPage() {
         </Button>
       </div>
 
+      {/* Category filter pills + Country dropdown */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-1.5">
+          <Button
+            variant={!category ? "default" : "outline"}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => updateSearch({ category: undefined })}
+          >
+            All
+          </Button>
+          {CATEGORIES.map((cat) => {
+            const isActive = category === cat.id;
+            return (
+              <Button
+                key={cat.id}
+                variant={isActive ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => updateSearch({ category: isActive ? undefined : cat.id })}
+              >
+                {cat.label}
+              </Button>
+            );
+          })}
+        </div>
+
+        {countries.length > 0 && (
+          <select
+            className="h-9 w-48 rounded-md border border-input bg-background px-3 text-sm"
+            value={country ?? ""}
+            onChange={(e) => updateSearch({ country: e.target.value || undefined })}
+          >
+            <option value="">All countries</option>
+            {countries.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name} ({c.code})
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
       {loading ? (
         <p className="text-muted-foreground">Loading...</p>
       ) : events.length === 0 ? (
@@ -123,7 +194,7 @@ function EventsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {events.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={event.id} event={event} onCategoryClick={(id) => updateSearch({ category: id })} />
           ))}
         </div>
       )}
@@ -131,7 +202,7 @@ function EventsPage() {
   );
 }
 
-function EventCard({ event }: { event: EventItem }) {
+function EventCard({ event, onCategoryClick }: { event: EventItem; onCategoryClick?: (id: string) => void }) {
   const start = new Date(event.startsAt);
   const eventTz = event.timezone ?? undefined;
   const dateStr = start.toLocaleDateString(undefined, {
@@ -176,9 +247,22 @@ function EventCard({ event }: { event: EventItem }) {
           {event.categoryId && (
             <Badge
               variant="secondary"
-              className="absolute bottom-3 left-4 bg-white/20 text-white border-white/30 text-xs"
+              className="absolute bottom-3 left-4 bg-white/20 text-white border-white/30 text-xs cursor-pointer hover:bg-white/30"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onCategoryClick?.(event.categoryId);
+              }}
             >
               {categoryMap.get(event.categoryId) ?? event.categoryId}
+            </Badge>
+          )}
+          {event.country && (
+            <Badge
+              variant="secondary"
+              className="absolute bottom-3 right-4 bg-white/20 text-white border-white/30 text-xs"
+            >
+              {event.country}
             </Badge>
           )}
         </div>

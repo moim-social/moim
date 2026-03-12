@@ -58,6 +58,7 @@ import { GET as listUsers } from "./routes/admin/users/-list";
 import { GET as userDetail } from "./routes/admin/users/-detail";
 import { GET as listAdminGroups, PATCH as toggleGroupVerified } from "./routes/admin/-groups";
 import { GET as listCountries, PUT as importCountries, DELETE as clearCountries } from "./routes/admin/-countries";
+import { GET as listPublicCountries } from "./routes/countries/-list";
 import { GET as getCarouselSlides } from "./routes/-carousel";
 import { POST as trackBannerClick } from "./routes/-banner-click";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
@@ -569,6 +570,10 @@ apiRouter.get("/admin/users/:userId", defineEventHandler(async (event) => {
   return userDetail({
     request: forwardGet(request, `/api/admin/users/${userId}`, { id: userId }),
   });
+}));
+
+apiRouter.get("/countries", defineEventHandler(async () => {
+  return listPublicCountries();
 }));
 
 apiRouter.get("/home/carousel", defineEventHandler(async () => {
