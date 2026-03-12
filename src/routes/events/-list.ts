@@ -7,12 +7,25 @@ export const GET = async ({ request }: { request: Request }) => {
   const past = url.searchParams.get("past") === "1";
   const category = url.searchParams.get("category");
   const country = url.searchParams.get("country");
+  const yearParam = url.searchParams.get("year");
+  const monthParam = url.searchParams.get("month");
   const now = new Date();
 
   const conditions: SQL[] = [eq(events.published, true)];
   if (category) conditions.push(eq(events.categoryId, category));
   if (country) conditions.push(eq(events.country, country));
-  conditions.push(past ? lt(events.startsAt, now) : gte(events.startsAt, now));
+
+  if (yearParam && monthParam) {
+    // Month-based filter: return events within the given month
+    const year = parseInt(yearParam, 10);
+    const month = parseInt(monthParam, 10); // 0-indexed
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 1);
+    conditions.push(gte(events.startsAt, monthStart));
+    conditions.push(lt(events.startsAt, monthEnd));
+  } else {
+    conditions.push(past ? lt(events.startsAt, now) : gte(events.startsAt, now));
+  }
 
   const organizerActors = aliasedTable(actors, "organizer_actors");
   const rows = await db
