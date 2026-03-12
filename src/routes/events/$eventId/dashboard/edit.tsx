@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useEventCategories } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Textarea } from "~/components/ui/textarea";
+import { MarkdownEditor } from "~/components/MarkdownEditor";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -294,15 +294,13 @@ function EditTab() {
         </div>
 
         {/* Description */}
-        <div className="space-y-1.5">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-          />
-        </div>
+        <MarkdownEditor
+          id="description"
+          label="Description"
+          value={description}
+          onChange={setDescription}
+          rows={6}
+        />
 
         {/* Category */}
         <div className="space-y-1.5">

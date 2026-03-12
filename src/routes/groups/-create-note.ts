@@ -3,6 +3,7 @@ import { db } from "~/server/db/client";
 import { actors, groupMembers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { createAndDeliverNote } from "~/server/fediverse/group";
+import { renderMarkdown } from "~/lib/markdown";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -52,12 +53,7 @@ export const POST = async ({ request }: { request: Request }) => {
   }
 
   try {
-    // Wrap plain text in <p> tags
-    const htmlContent = body.content
-      .trim()
-      .split(/\n\n+/)
-      .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-      .join("");
+    const htmlContent = renderMarkdown(body.content);
 
     const post = await createAndDeliverNote(group.handle, htmlContent);
 

@@ -4,7 +4,7 @@ import { usePostHog } from "posthog-js/react";
 import { useEventCategories } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Textarea } from "~/components/ui/textarea";
+import { MarkdownEditor } from "~/components/MarkdownEditor";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
@@ -434,16 +434,14 @@ function CreateEventPage() {
               </Alert>
 
               {/* Description */}
-              <div className="space-y-1.5">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="What is this event about?"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                />
-              </div>
+              <MarkdownEditor
+                id="description"
+                label="Description"
+                value={description}
+                onChange={setDescription}
+                placeholder="What is this event about?"
+                rows={6}
+              />
 
               {/* Header Image */}
               <div className="space-y-1.5">
