@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, events, users } from "~/server/db/schema";
 
@@ -30,6 +30,7 @@ export const GET = async ({ request }: { request: Request }) => {
         eq(events.placeId, placeId),
         isNotNull(events.groupActorId),
         eq(events.published, true),
+        isNull(events.deletedAt),
       ),
     )
     .orderBy(events.startsAt);

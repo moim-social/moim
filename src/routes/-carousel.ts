@@ -105,7 +105,7 @@ export const GET = async ({ request }: { request: Request }) => {
           eq(organizerActors.isLocal, false),
         ),
       )
-      .where(gte(events.startsAt, now))
+      .where(and(gte(events.startsAt, now), isNull(events.deletedAt)))
       .orderBy(events.startsAt)
       .limit(remainingSlots);
 
@@ -142,7 +142,7 @@ export const GET = async ({ request }: { request: Request }) => {
             eq(organizerActors.isLocal, false),
           ),
         )
-        .where(and(gte(events.startsAt, now), isNull(events.groupActorId)))
+        .where(and(gte(events.startsAt, now), isNull(events.groupActorId), isNull(events.deletedAt)))
         .orderBy(events.startsAt)
         .limit(personalSlots);
     }
