@@ -1,14 +1,20 @@
 import { aliasedTable, and, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { banners, events, actors, users, userFediverseAccounts } from "~/server/db/schema";
+import { computeH3Index, isWithinReach } from "~/server/geo/h3";
 
 const TOTAL_SLOTS = 5;
 
-export const GET = async () => {
+export const GET = async ({ request }: { request: Request }) => {
   const now = new Date();
+  const url = new URL(request.url);
+  const lat = parseFloat(url.searchParams.get("lat") ?? "");
+  const lng = parseFloat(url.searchParams.get("lng") ?? "");
+  const hasUserLocation = !Number.isNaN(lat) && !Number.isNaN(lng);
+  const userCell = hasUserLocation ? computeH3Index(lat, lng) : null;
 
   // 1. Fetch active commercial banners
-  const activeBanners = await db
+  const allActiveBanners = await db
     .select()
     .from(banners)
     .where(
@@ -18,8 +24,19 @@ export const GET = async () => {
         or(isNull(banners.endsAt), sql`now() < ${banners.endsAt}`),
       ),
     )
-    .orderBy(desc(banners.weight), banners.createdAt)
-    .limit(TOTAL_SLOTS);
+    .orderBy(desc(banners.weight), banners.createdAt);
+
+  // Filter banners by geotargeting
+  const activeBanners = allActiveBanners
+    .filter((b) => {
+      // Global banners (no h3Index) always shown
+      if (!b.h3Index) return true;
+      // If user has no location, only show global banners
+      if (!userCell) return false;
+      // Check if user is within banner's hop count reach
+      return isWithinReach(b.h3Index, userCell, b.hopCount ?? 0);
+    })
+    .slice(0, TOTAL_SLOTS);
 
   const remainingSlots = TOTAL_SLOTS - activeBanners.length;
   const organizerActors = aliasedTable(actors, "organizer_actors");

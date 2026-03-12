@@ -576,8 +576,8 @@ apiRouter.get("/countries", defineEventHandler(async () => {
   return listPublicCountries();
 }));
 
-apiRouter.get("/home/carousel", defineEventHandler(async () => {
-  return getCarouselSlides();
+apiRouter.get("/home/carousel", defineEventHandler(async (event) => {
+  return getCarouselSlides({ request: toWebRequest(event) });
 }));
 
 apiRouter.post("/banner-clicks", defineEventHandler(async (event) => {

@@ -13,6 +13,7 @@ import {
 } from "~/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { useAuth } from "~/routes/__root";
+import { useGeolocation } from "~/hooks/useGeolocation";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -94,7 +95,9 @@ function HomePage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [checkins, setCheckins] = useState<CheckinItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { location: geoLocation } = useGeolocation();
 
+  // Initial fetch (without geolocation)
   useEffect(() => {
     const fetchSlides = fetch("/api/home/carousel")
       .then((r) => r.json())
@@ -113,6 +116,16 @@ function HomePage() {
 
     Promise.all([fetchSlides, fetchEvents, fetchCheckins]).finally(() => setLoading(false));
   }, []);
+
+  // Re-fetch carousel with geolocation when available
+  useEffect(() => {
+    if (!geoLocation) return;
+    const qs = `?lat=${geoLocation.lat}&lng=${geoLocation.lng}`;
+    fetch(`/api/home/carousel${qs}`)
+      .then((r) => r.json())
+      .then((data) => setSlides(data.slides ?? []))
+      .catch(() => {});
+  }, [geoLocation]);
 
   const gridEvents = events.slice(0, 6);
 
