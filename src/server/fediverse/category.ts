@@ -5,7 +5,7 @@ import { db } from "~/server/db/client";
 import { actors, posts } from "~/server/db/schema";
 import { getI18n, resolveLocale } from "~/server/i18n";
 import { resolveTimezone, formatEventDateRange } from "~/server/timezone";
-import { CATEGORIES } from "~/shared/categories";
+import { getEventCategory } from "~/server/events/categories";
 import { getFederationContext } from "./federation";
 
 /**
@@ -22,7 +22,7 @@ export function categoryHandle(categoryId: string): string {
 export async function ensureCategoryActor(
   categoryId: string,
 ): Promise<typeof actors.$inferSelect> {
-  const category = CATEGORIES.find((c) => c.id === categoryId);
+  const category = await getEventCategory(categoryId);
   if (!category) throw new Error(`Unknown category: ${categoryId}`);
 
   const handle = categoryHandle(categoryId);
@@ -84,7 +84,7 @@ export async function ensureCountryCategoryActor(
   categoryId: string,
   countryCode: string,
 ): Promise<typeof actors.$inferSelect> {
-  const category = CATEGORIES.find((c) => c.id === categoryId);
+  const category = await getEventCategory(categoryId);
   if (!category) throw new Error(`Unknown category: ${categoryId}`);
 
   const handle = countryCategoryHandle(categoryId, countryCode);
