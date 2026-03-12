@@ -302,6 +302,11 @@ export const banners = pgTable("banners", {
   enabled: boolean("enabled").default(false).notNull(),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
   endsAt: timestamp("ends_at", { withTimezone: true }),
+  // Geotargeting: H3 cell index + hop count for coverage radius
+  latitude: varchar("latitude", { length: 32 }),
+  longitude: varchar("longitude", { length: 32 }),
+  h3Index: varchar("h3_index", { length: 15 }), // H3 resolution 7 cell
+  hopCount: integer("hop_count"), // k-ring radius; null = global (show everywhere)
   impressionCount: integer("impression_count").default(0).notNull(),
   clickCount: integer("click_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
