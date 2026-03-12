@@ -4,6 +4,7 @@ export type EventCategoryOption = {
   slug: string;
   label: string;
   emoji: string | null;
+  description: string | null;
 };
 
 let cachedCategories: EventCategoryOption[] | null = null;
@@ -42,6 +43,7 @@ export function useEventCategories() {
 
 export function useEventCategoryMap() {
   const { categories, loading } = useEventCategories();
-  const map = new Map(categories.map((c) => [c.slug, c.label]));
-  return { categoryMap: map, loading };
+  const categoryMap = new Map(categories.map((c) => [c.slug, c.label]));
+  const categoryDetailMap = new Map(categories.map((c) => [c.slug, c]));
+  return { categoryMap, categoryDetailMap, loading };
 }

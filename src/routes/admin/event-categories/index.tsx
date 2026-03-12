@@ -13,6 +13,7 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { Switch } from "~/components/ui/switch";
 import { Textarea } from "~/components/ui/textarea";
 
 export const Route = createFileRoute("/admin/event-categories/")({
@@ -257,7 +258,26 @@ function AdminEventCategoriesPage() {
                     {category.description ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-center">{category.sortOrder}</td>
-                  <td className="px-4 py-3 text-center">{category.enabled ? "Yes" : "No"}</td>
+                  <td className="px-4 py-3 text-center">
+                    <Switch
+                      checked={category.enabled}
+                      onCheckedChange={async (checked) => {
+                        setCategories((prev) =>
+                          prev.map((c) => (c.slug === category.slug ? { ...c, enabled: checked } : c)),
+                        );
+                        const res = await fetch(`/api/admin/event-categories/${category.slug}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ enabled: checked }),
+                        });
+                        if (!res.ok) {
+                          setCategories((prev) =>
+                            prev.map((c) => (c.slug === category.slug ? { ...c, enabled: !checked } : c)),
+                          );
+                        }
+                      }}
+                    />
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <Button variant="ghost" size="sm" onClick={() => openEdit(category)}>
                       <Pencil className="size-4" />

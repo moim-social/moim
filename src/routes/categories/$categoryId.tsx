@@ -21,12 +21,13 @@ export const Route = createFileRoute("/categories/$categoryId")({
   }),
   head: ({ params }) => {
     const label = slugToLabel(params.categoryId);
+    const fallbackDesc = `Discover ${label} events on Moim.`;
     return {
       meta: [
         { title: `${label} Events — Moim` },
-        { name: "description", content: `Discover ${label} events on Moim.` },
+        { name: "description", content: fallbackDesc },
         { property: "og:title", content: `${label} Events — Moim` },
-        { property: "og:description", content: `Discover ${label} events on Moim.` },
+        { property: "og:description", content: fallbackDesc },
         { property: "og:type", content: "website" },
       ],
     };
@@ -79,9 +80,9 @@ function CategoryDetailPage() {
   const { categoryId } = Route.useParams();
   const { country } = Route.useSearch();
   const navigate = useNavigate({ from: "/categories/$categoryId" });
-  const { categoryMap: dbCategoryMap } = useEventCategoryMap();
-  const categoryLabel = dbCategoryMap.get(categoryId);
-  const category = categoryLabel ? { slug: categoryId, label: categoryLabel } : null;
+  const { categoryDetailMap } = useEventCategoryMap();
+  const categoryDetail = categoryDetailMap.get(categoryId);
+  const category = categoryDetail ? { slug: categoryId, label: categoryDetail.label, description: categoryDetail.description } : null;
   const isMobile = useIsMobile();
 
   const now = new Date();
@@ -177,7 +178,7 @@ function CategoryDetailPage() {
         </Link>
         <h2 className="text-2xl font-bold mt-2">{category.label} Events</h2>
         <p className="text-white/80 text-sm mt-1">
-          Follow this feed from your fediverse account to get notified about new {category.label.toLowerCase()} events.
+          {category.description ?? `Follow this feed from your fediverse account to get notified about new ${category.label.toLowerCase()} events.`}
         </p>
 
         <div className="mt-4 flex items-center gap-3 flex-wrap">
