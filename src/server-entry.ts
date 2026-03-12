@@ -41,6 +41,7 @@ import { GET as placeCheckins } from "./routes/places/-checkins";
 import { GET as nearbyPlaces } from "./routes/places/-nearby";
 import { POST as findOrCreatePlace } from "./routes/places/-find-or-create";
 import { GET as listPlaceCategories } from "./routes/places/-categories";
+import { GET as listEventCategories } from "./routes/events/-categories";
 import { GET as placeEvents } from "./routes/places/-events";
 import { GET as serveMap } from "./routes/maps/-serve";
 import { GET as serveAvatar } from "./routes/avatars/-serve";
@@ -405,6 +406,10 @@ apiRouter.get("/places", defineEventHandler(async (event) => {
 
 apiRouter.get("/place-categories", defineEventHandler(async (event) => {
   return listPlaceCategories();
+}));
+
+apiRouter.get("/event-categories", defineEventHandler(async () => {
+  return listEventCategories();
 }));
 
 apiRouter.post("/places", defineEventHandler(async (event) => {
