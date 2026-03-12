@@ -306,3 +306,12 @@ export const banners = pgTable("banners", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const countries = pgTable("countries", {
+  code: varchar("code", { length: 2 }).primaryKey(), // ISO 3166-1 alpha-2
+  alpha3: varchar("alpha3", { length: 3 }).notNull(), // ISO 3166-1 alpha-3
+  name: varchar("name", { length: 200 }).notNull(),
+  geometry: jsonb("geometry").notNull(), // GeoJSON Polygon/MultiPolygon
+  bbox: jsonb("bbox").notNull(), // [minLng, minLat, maxLng, maxLat]
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
