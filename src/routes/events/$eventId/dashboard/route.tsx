@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useRouter, useRouterState } fr
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { useState, useCallback } from "react";
-import { CATEGORIES } from "~/shared/categories";
+import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import {
@@ -31,10 +31,6 @@ import {
   eventTiers,
 } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
-
-const categoryMap = new Map<string, string>(
-  CATEGORIES.map((c) => [c.id, c.label]),
-);
 
 // ── Shared types ────────────────────────────────────────────────────────────
 
@@ -302,6 +298,7 @@ export function useDashboard() {
 type NavItem = { to: string; icon: typeof LayoutDashboard; label: string; exact?: boolean };
 
 function DashboardLayout() {
+  const { categoryMap } = useEventCategoryMap();
   const { eventId } = Route.useParams();
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;

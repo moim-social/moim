@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { CATEGORIES } from "~/shared/categories";
+import { useEventCategories, useEventCategoryMap } from "~/hooks/useEventCategories";
 import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -29,9 +29,6 @@ export const Route = createFileRoute("/events/")({
   }),
 });
 
-const categoryMap = new Map<string, string>(
-  CATEGORIES.map((c) => [c.id, c.label]),
-);
 
 type EventItem = {
   id: string;
@@ -56,6 +53,8 @@ type CountryOption = { code: string; name: string };
 function EventsPage() {
   const { category, country } = Route.useSearch();
   const navigate = useNavigate({ from: "/events/" });
+  const { categories } = useEventCategories();
+  const categoryMap = new Map(categories.map(c => [c.slug, c.label]));
   const [user, setUser] = useState<{ handle: string } | null>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,15 +161,15 @@ function EventsPage() {
             >
               All
             </Button>
-            {CATEGORIES.map((cat) => {
-              const isActive = category === cat.id;
+            {categories.map((cat) => {
+              const isActive = category === cat.slug;
               return (
                 <Button
-                  key={cat.id}
+                  key={cat.slug}
                   variant={isActive ? "default" : "outline"}
                   size="sm"
                   className="h-7 text-xs shrink-0"
-                  onClick={() => updateSearch({ category: isActive ? undefined : cat.id })}
+                  onClick={() => updateSearch({ category: isActive ? undefined : cat.slug })}
                 >
                   {cat.label}
                 </Button>
@@ -220,6 +219,7 @@ function EventsPage() {
 }
 
 function EventCard({ event }: { event: EventItem }) {
+  const { categoryMap } = useEventCategoryMap();
   const start = new Date(event.startsAt);
   const eventTz = event.timezone ?? undefined;
   const dateStr = start.toLocaleDateString(undefined, {

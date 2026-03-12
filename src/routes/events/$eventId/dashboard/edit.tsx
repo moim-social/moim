@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
-import { CATEGORIES } from "~/shared/categories";
+import { useEventCategories } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
@@ -26,6 +26,7 @@ type QuestionItem = {
 };
 
 function EditTab() {
+  const { categories } = useEventCategories();
   const { eventId } = Route.useParams();
   const { refresh } = useDashboard();
 
@@ -317,8 +318,8 @@ function EditTab() {
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <option value="">Select a category</option>
-            {CATEGORIES.map((cat) => (
-              <option key={cat.id} value={cat.id}>
+            {categories.map((cat) => (
+              <option key={cat.slug} value={cat.slug}>
                 {cat.label}
               </option>
             ))}
