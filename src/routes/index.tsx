@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CATEGORIES } from "~/shared/categories";
+import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -19,9 +19,6 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-const categoryMap = new Map<string, string>(
-  CATEGORIES.map((c) => [c.id, c.label]),
-);
 
 type EventItem = {
   id: string;
@@ -91,6 +88,7 @@ function timeAgo(dateStr: string): string {
 
 function HomePage() {
   const { user } = useAuth();
+  const { categoryMap } = useEventCategoryMap();
   const [slides, setSlides] = useState<CarouselSlide[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [checkins, setCheckins] = useState<CheckinItem[]>([]);
@@ -394,6 +392,7 @@ function BannerSlideContent({ slide }: { slide: BannerSlide }) {
 /* ─── Event Slide Content ─── */
 
 function EventSlideContent({ slide }: { slide: EventSlide }) {
+  const { categoryMap } = useEventCategoryMap();
   const [gradFrom, gradTo] = pickGradient(slide.categoryId || slide.id);
   const start = new Date(slide.startsAt);
   const dateStr = start.toLocaleDateString(undefined, {
@@ -492,6 +491,7 @@ function FallbackHero({ user }: { user: { handle: string } | null }) {
 /* ─── Event Card (inline, same as /events page) ─── */
 
 function EventCard({ event }: { event: EventItem }) {
+  const { categoryMap } = useEventCategoryMap();
   const start = new Date(event.startsAt);
   const dateStr = start.toLocaleDateString(undefined, {
     weekday: "short",
