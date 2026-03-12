@@ -6,7 +6,7 @@ import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors } from "~/server/db/schema";
-import { CATEGORIES } from "~/shared/categories";
+import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { languageLabel } from "~/shared/languages";
 import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
@@ -62,10 +62,6 @@ export const Route = createFileRoute("/groups/$identifier/")({
   },
 });
 
-const categoryMap = new Map<string, string>(
-  CATEGORIES.map((c) => [c.id, c.label]),
-);
-
 type GroupData = {
   group: {
     id: string;
@@ -112,6 +108,7 @@ type FeedItem =
   | { type: "note"; date: Date; note: GroupData["posts"][number] };
 
 function ProfilePage() {
+  const { categoryMap } = useEventCategoryMap();
   const { identifier } = Route.useParams();
   const handle = identifier.replace(/^@/, "");
 
@@ -325,6 +322,7 @@ function TimelineEvent({
 }: {
   event: GroupData["events"][number];
 }) {
+  const { categoryMap } = useEventCategoryMap();
   const start = new Date(event.startsAt);
   const dateStr = start.toLocaleDateString(undefined, {
     weekday: "short",

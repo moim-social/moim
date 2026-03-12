@@ -2,9 +2,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, groupMembers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
-import { CATEGORIES } from "~/shared/categories";
-
-const validCategoryIds = new Set(CATEGORIES.map((c) => c.id));
+import { getEventCategories } from "~/server/events/categories";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -58,9 +56,9 @@ export const POST = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const categories = (body.categories ?? []).filter((c) =>
-    validCategoryIds.has(c as any),
-  );
+  const allCategories = await getEventCategories();
+  const validCategoryIds = new Set(allCategories.map((c) => c.slug));
+  const categories = (body.categories ?? []).filter((c) => validCategoryIds.has(c));
 
   try {
     const language = body.language?.trim() || null;

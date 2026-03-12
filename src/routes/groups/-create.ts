@@ -7,7 +7,7 @@ import { createGroupActor } from "~/server/fediverse/group";
 import { persistRemoteActor } from "~/server/fediverse/resolve";
 import { getFederationContext } from "~/server/fediverse/federation";
 import { env } from "~/server/env";
-import { CATEGORIES } from "~/shared/categories";
+import { getEventCategories } from "~/server/events/categories";
 
 const HANDLE_RE = /^[a-z0-9_]+$/;
 
@@ -41,8 +41,9 @@ export const POST = async ({ request }: { request: Request }) => {
     );
   }
 
-  const validCategoryIds = new Set(CATEGORIES.map((c) => c.id));
-  const categories = (body.categories ?? []).filter((c) => validCategoryIds.has(c as any));
+  const allCategories = await getEventCategories();
+  const validCategoryIds = new Set(allCategories.map((c) => c.slug));
+  const categories = (body.categories ?? []).filter((c) => validCategoryIds.has(c));
 
   const website = body.website?.trim() || undefined;
 
