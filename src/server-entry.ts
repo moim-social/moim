@@ -68,6 +68,9 @@ import { POST as webfingerLookup } from "./routes/api/-webfinger";
 import { GET as groupFeed } from "./routes/groups/-feed";
 import { GET as eventDashboard } from "./routes/events/-dashboard";
 import { GET as eventDashboardActivity } from "./routes/events/-dashboard-activity";
+import { GET as discussionDetail } from "./routes/events/-discussion-detail";
+import { POST as discussionReply } from "./routes/events/-discussion-reply";
+import { PATCH as discussionUpdate } from "./routes/events/-discussion-update";
 import { POST as uploadEventHeaderImage } from "./routes/events/-upload-header-image";
 import { POST as publishEvent } from "./routes/events/-publish";
 import { DELETE as deleteEvent } from "./routes/events/-delete";
@@ -368,6 +371,54 @@ apiRouter.get("/events/:eventId/dashboard/activity", defineEventHandler(async (e
   const eventId = event.context.params?.eventId;
   return eventDashboardActivity({
     request: forwardGet(request, `/api/events/${eventId}/dashboard/activity`, { eventId }),
+  });
+}));
+
+// --- Discussion endpoints (CRM) ---
+apiRouter.get("/events/:eventId/discussions", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  return listDiscussions({
+    request: forwardGet(request, `/api/events/${eventId}/discussions`, { eventId }),
+  });
+}));
+
+apiRouter.get("/events/:eventId/discussions/:inquiryId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  const inquiryId = event.context.params?.inquiryId;
+  return discussionDetail({
+    request: forwardGet(request, `/api/events/${eventId}/discussions/${inquiryId}`, { eventId, inquiryId }),
+  });
+}));
+
+apiRouter.post("/events/:eventId/discussions/:inquiryId/replies", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  const inquiryId = event.context.params?.inquiryId;
+  if (!eventId || !inquiryId) return Response.json({ error: "eventId and inquiryId are required" }, { status: 400 });
+
+  return discussionReply({
+    request: await forwardJson(request, `/api/events/${eventId}/discussions/${inquiryId}/replies`, "POST", (body) => ({
+      ...(body ?? {}),
+      eventId,
+      inquiryId,
+    })),
+  });
+}));
+
+apiRouter.patch("/events/:eventId/discussions/:inquiryId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  const inquiryId = event.context.params?.inquiryId;
+  if (!eventId || !inquiryId) return Response.json({ error: "eventId and inquiryId are required" }, { status: 400 });
+
+  return discussionUpdate({
+    request: await forwardJson(request, `/api/events/${eventId}/discussions/${inquiryId}`, "PATCH", (body) => ({
+      ...(body ?? {}),
+      eventId,
+      inquiryId,
+    })),
   });
 }));
 
