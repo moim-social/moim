@@ -21,6 +21,7 @@ type EventRow = {
   groupHandle: string | null;
   groupName: string | null;
   categoryLabel: string | null;
+  country: string | null;
 };
 
 const LIMIT = 50;
@@ -178,6 +179,7 @@ function AdminEventsPage() {
                   <th className="px-4 py-3 text-left font-medium">Organizer</th>
                   <th className="px-4 py-3 text-left font-medium">Group</th>
                   <th className="px-4 py-3 text-left font-medium">Category</th>
+                  <th className="px-4 py-3 text-left font-medium">Country</th>
                   <th className="px-4 py-3 text-left font-medium">Date</th>
                   <th className="px-4 py-3 text-center font-medium">Status</th>
                   <th className="px-4 py-3 text-center font-medium">Priority</th>
@@ -205,6 +207,9 @@ function AdminEventsPage() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {event.categoryLabel ?? "\u2014"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {event.country ?? "\u2014"}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
                       {formatDate(event.startsAt)}

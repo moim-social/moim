@@ -26,6 +26,7 @@ export const GET = async ({ request }: { request: Request }) => {
       groupHandle: actors.handle,
       groupName: actors.name,
       categoryLabel: eventCategories.label,
+      country: events.country,
     })
     .from(events)
     .innerJoin(users, eq(events.organizerId, users.id))
