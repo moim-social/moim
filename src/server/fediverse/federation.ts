@@ -414,6 +414,7 @@ federation.setObjectDispatcher(
     return new Note({
       id: ctx.getObjectUri(Note, { noteId }),
       attribution: ctx.getActorUri(actor.handle),
+      replyTarget: post.inReplyTo ? new URL(post.inReplyTo) : undefined,
       content: post.content,
       attachments,
       url: new URL(`/notes/${noteId}`, ctx.canonicalOrigin),
@@ -818,7 +819,12 @@ federation
       const noteId = extractNoteId(ctx, replyTo);
       if (noteId) {
         const [parentPost] = await db
-          .select({ id: posts.id, eventId: posts.eventId })
+          .select({
+            id: posts.id,
+            eventId: posts.eventId,
+            threadRootId: posts.threadRootId,
+            inReplyToPostId: posts.inReplyToPostId,
+          })
           .from(posts)
           .where(eq(posts.id, noteId))
           .limit(1);
@@ -828,17 +834,87 @@ federation
           if (!replyActor?.id) return;
           const actor = await ensureRemoteActor(replyActor);
 
+          // Determine visibility from AP Note's to/cc fields
+          // Use toIds/ccIds (synchronous) instead of getTos/getCcs (async resolution)
+          // so that PUBLIC_COLLECTION URI is included without actor resolution
+          const toUris = object.toIds.map((u) => u.href);
+          const ccUris = object.ccIds.map((u) => u.href);
+          let visibility: string = "direct";
+          if (toUris.includes(PUBLIC_COLLECTION.href)) {
+            visibility = "public";
+          } else if (ccUris.includes(PUBLIC_COLLECTION.href)) {
+            visibility = "unlisted";
+          } else if (toUris.length > 0 || ccUris.length > 0) {
+            visibility = "followers_only";
+          }
+
+          // Determine threading context
+          const isEventNote =
+            parentPost.eventId &&
+            !parentPost.inReplyToPostId &&
+            !parentPost.threadRootId;
+          const isInInquiry =
+            parentPost.threadRootId != null || // parent is within an inquiry
+            (parentPost.inReplyToPostId != null && parentPost.eventId != null); // parent is an inquiry root
+
+          let threadRootId: string | null = null;
+          let eventId: string | null = parentPost.eventId;
+          let threadStatus: string | null = null;
+
+          if (isEventNote) {
+            // Direct reply to event note → new inquiry root
+            threadRootId = null;
+            threadStatus = "new";
+          } else if (isInInquiry) {
+            // Reply within an existing inquiry
+            threadRootId = parentPost.threadRootId ?? parentPost.id;
+            // Inherit eventId from the thread root if not on parent
+            if (!eventId && threadRootId) {
+              const [rootPost] = await db
+                .select({ eventId: posts.eventId })
+                .from(posts)
+                .where(eq(posts.id, threadRootId))
+                .limit(1);
+              eventId = rootPost?.eventId ?? null;
+            }
+          }
+
           // Store reply as a new post
           const replyContent = object.content?.toString() ?? "";
+          const remoteApUri = object.id?.href ?? null;
           const [replyPost] = await db
             .insert(posts)
             .values({
               actorId: actor.id,
               content: replyContent,
+              apUri: remoteApUri,
               inReplyTo: replyTo.href,
+              inReplyToPostId: parentPost.id,
+              threadRootId,
+              threadStatus,
+              eventId: eventId ?? undefined,
+              visibility,
               published: new Date(),
             })
             .returning();
+
+          // Update inquiry root's lastRepliedAt and threadStatus
+          if (threadRootId) {
+            // Reply within existing inquiry — update the root
+            await db
+              .update(posts)
+              .set({
+                lastRepliedAt: new Date(),
+                threadStatus: "needs_response",
+              })
+              .where(eq(posts.id, threadRootId));
+          } else if (isEventNote && replyPost) {
+            // New inquiry root — set its own lastRepliedAt
+            await db
+              .update(posts)
+              .set({ lastRepliedAt: new Date() })
+              .where(eq(posts.id, replyPost.id));
+          }
 
           await db
             .insert(activityLogs)
@@ -846,7 +922,7 @@ federation
               type: "reply",
               actorId: actor.id,
               postId: parentPost.id,
-              eventId: parentPost.eventId,
+              eventId: eventId ?? parentPost.eventId,
               content: replyContent,
               replyPostId: replyPost.id,
               activityUrl: create.id?.href ?? null,
@@ -1039,6 +1115,9 @@ federation
           object: new Note({
             id: noteUri,
             attribution: ctx.getActorUri(identifier),
+            replyTarget: post.inReplyTo
+              ? new URL(post.inReplyTo)
+              : undefined,
             content: post.content,
             attachments: noteAttachments,
             published: Temporal.Instant.from(post.published.toISOString()),
