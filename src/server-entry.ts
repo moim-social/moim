@@ -68,9 +68,12 @@ import { POST as webfingerLookup } from "./routes/api/-webfinger";
 import { GET as groupFeed } from "./routes/groups/-feed";
 import { GET as eventDashboard } from "./routes/events/-dashboard";
 import { GET as eventDashboardActivity } from "./routes/events/-dashboard-activity";
+import { GET as listDiscussions } from "./routes/events/-discussions";
 import { GET as discussionDetail } from "./routes/events/-discussion-detail";
 import { POST as discussionReply } from "./routes/events/-discussion-reply";
 import { PATCH as discussionUpdate } from "./routes/events/-discussion-update";
+import { GET as listDiscussionsPublic } from "./routes/events/-discussions-public";
+import { GET as discussionDetailPublic } from "./routes/events/-discussion-detail-public";
 import { POST as uploadEventHeaderImage } from "./routes/events/-upload-header-image";
 import { POST as publishEvent } from "./routes/events/-publish";
 import { DELETE as deleteEvent } from "./routes/events/-delete";
@@ -380,6 +383,23 @@ apiRouter.get("/events/:eventId/discussions", defineEventHandler(async (event) =
   const eventId = event.context.params?.eventId;
   return listDiscussions({
     request: forwardGet(request, `/api/events/${eventId}/discussions`, { eventId }),
+  });
+}));
+
+apiRouter.get("/events/:eventId/discussions/public", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  return listDiscussionsPublic({
+    request: forwardGet(request, `/api/events/${eventId}/discussions/public`, { eventId }),
+  });
+}));
+
+apiRouter.get("/events/:eventId/discussions/public/:inquiryId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  const inquiryId = event.context.params?.inquiryId;
+  return discussionDetailPublic({
+    request: forwardGet(request, `/api/events/${eventId}/discussions/public/${inquiryId}`, { eventId, inquiryId }),
   });
 }));
 
