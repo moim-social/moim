@@ -91,6 +91,7 @@ export const posts = pgTable("posts", {
   id: uuid("id").defaultRandom().primaryKey(),
   actorId: uuid("actor_id").references(() => actors.id).notNull(),
   eventId: uuid("event_id").references(() => events.id),
+  apUri: text("ap_uri"), // original AP Note URI (for remote posts; local posts use /ap/notes/{id})
   inReplyTo: text("in_reply_to"), // AP URI of the post this is replying to
   inReplyToPostId: uuid("in_reply_to_post_id").references(
     (): AnyPgColumn => posts.id,
