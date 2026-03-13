@@ -232,6 +232,13 @@
       "when": 1773328850145,
       "tag": "0032_hard_pete_wisdom",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1773376219649,
+      "tag": "0033_clammy_masque",
+      "breakpoints": true
     }
   ]
 }
