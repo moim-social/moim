@@ -17,6 +17,7 @@ import {
   EyeOff,
   MoreHorizontal,
   Trash2,
+  MessageSquare,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -375,6 +376,7 @@ function DashboardLayout() {
     ...(isGroupEvent
       ? [
           { to: `${basePath}/tiers`, icon: Layers, label: "Ticket Management" },
+          { to: `${basePath}/discussions`, icon: MessageSquare, label: "Discussions" },
           { to: `${basePath}/activity`, icon: Activity, label: "Activity" },
         ]
       : []),
