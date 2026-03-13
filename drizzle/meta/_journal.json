@@ -239,6 +239,13 @@
       "when": 1773376219649,
       "tag": "0033_clammy_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1773389763024,
+      "tag": "0034_loose_gabe_jones",
+      "breakpoints": true
     }
   ]
 }

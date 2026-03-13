@@ -92,6 +92,15 @@ export const posts = pgTable("posts", {
   actorId: uuid("actor_id").references(() => actors.id).notNull(),
   eventId: uuid("event_id").references(() => events.id),
   inReplyTo: text("in_reply_to"), // AP URI of the post this is replying to
+  inReplyToPostId: uuid("in_reply_to_post_id").references(
+    (): AnyPgColumn => posts.id,
+  ), // local FK to direct parent post
+  threadRootId: uuid("thread_root_id").references(
+    (): AnyPgColumn => posts.id,
+  ), // FK to inquiry root (first direct reply to event note)
+  threadStatus: varchar("thread_status", { length: 32 }), // 'new' | 'needs_response' | 'resolved' (inquiry roots only)
+  lastRepliedAt: timestamp("last_replied_at", { withTimezone: true }), // denormalized, inquiry roots only
+  visibility: varchar("visibility", { length: 32 }).default("public"), // 'public' | 'unlisted' | 'followers_only' | 'direct'
   content: text("content").notNull(), // HTML
   imageUrl: text("image_url"), // attached image (e.g. map snapshot)
   published: timestamp("published", { withTimezone: true }).defaultNow().notNull(),
