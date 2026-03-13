@@ -59,6 +59,7 @@ import { POST as bulkRegeneratePlaceSnapshots } from "./routes/admin/-place-snap
 import { GET as listUsers } from "./routes/admin/users/-list";
 import { GET as userDetail } from "./routes/admin/users/-detail";
 import { GET as listAdminGroups, PATCH as toggleGroupVerified } from "./routes/admin/-groups";
+import { GET as listAdminEvents, PATCH as updateAdminEvent } from "./routes/admin/-events";
 import { GET as listCountries, PUT as importCountries, DELETE as clearCountries } from "./routes/admin/-countries";
 import { GET as listPublicCountries } from "./routes/countries/-list";
 import { GET as getCarouselSlides } from "./routes/-carousel";
@@ -498,6 +499,23 @@ apiRouter.get("/admin/groups", defineEventHandler(async (event) => {
 
 apiRouter.patch("/admin/groups", defineEventHandler(async (event) => {
   return toggleGroupVerified({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/admin/events", defineEventHandler(async (event) => {
+  return listAdminEvents({ request: toWebRequest(event) });
+}));
+
+apiRouter.patch("/admin/events/:eventId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  if (!eventId) return Response.json({ error: "eventId is required" }, { status: 400 });
+
+  return updateAdminEvent({
+    request: await forwardJson(request, `/api/admin/events/${eventId}`, "PATCH", (body) => ({
+      ...(body ?? {}),
+      id: eventId,
+    })),
+  });
 }));
 
 apiRouter.get("/admin/place-categories", defineEventHandler(async (event) => {

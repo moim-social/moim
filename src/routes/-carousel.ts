@@ -106,7 +106,7 @@ export const GET = async ({ request }: { request: Request }) => {
         ),
       )
       .where(and(gte(events.startsAt, now), isNull(events.deletedAt)))
-      .orderBy(events.startsAt)
+      .orderBy(desc(events.priority), events.startsAt)
       .limit(remainingSlots);
 
     const personalSlots = remainingSlots - groupEvents.length;
@@ -143,7 +143,7 @@ export const GET = async ({ request }: { request: Request }) => {
           ),
         )
         .where(and(gte(events.startsAt, now), isNull(events.groupActorId), isNull(events.deletedAt)))
-        .orderBy(events.startsAt)
+        .orderBy(desc(events.priority), events.startsAt)
         .limit(personalSlots);
     }
   }

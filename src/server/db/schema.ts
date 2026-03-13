@@ -138,6 +138,7 @@ export const events = pgTable("events", {
   country: varchar("country", { length: 2 }), // ISO 3166-1 alpha-2
   headerImageUrl: text("header_image_url"),
   published: boolean("published").default(false).notNull(),
+  priority: integer("priority").default(0).notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
