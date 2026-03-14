@@ -285,6 +285,39 @@ export const placeAuditLog = pgTable("place_audit_log", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// --- Polls ---
+
+export const polls = pgTable("polls", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  groupActorId: uuid("group_actor_id").references(() => actors.id).notNull(),
+  questionId: uuid("question_id").defaultRandom().notNull().unique(), // used in AP URI /ap/questions/{questionId}
+  question: text("question").notNull(),
+  type: varchar("type", { length: 16 }).notNull(), // 'single' | 'multiple'
+  closed: boolean("closed").default(false).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const pollOptions = pgTable("poll_options", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  pollId: uuid("poll_id").references(() => polls.id, { onDelete: "cascade" }).notNull(),
+  label: text("label").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const pollVotes = pgTable("poll_votes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  pollId: uuid("poll_id").references(() => polls.id).notNull(),
+  optionId: uuid("option_id").references(() => pollOptions.id).notNull(),
+  voterActorUrl: text("voter_actor_url").notNull(),
+  sourceInstance: text("source_instance"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueOptionVote: unique().on(table.pollId, table.optionId, table.voterActorUrl),
+}));
+
 export const otpChallenges = pgTable("otp_challenges", {
   id: uuid("id").defaultRandom().primaryKey(),
   handle: varchar("handle", { length: 128 }).notNull(),

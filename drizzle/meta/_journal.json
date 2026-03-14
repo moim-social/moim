@@ -253,6 +253,13 @@
       "when": 1773420755297,
       "tag": "0035_lethal_sauron",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1773464405202,
+      "tag": "0036_skinny_giant_man",
+      "breakpoints": true
     }
   ]
 }
