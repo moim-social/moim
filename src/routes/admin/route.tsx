@@ -4,6 +4,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { getSessionUser } from "~/server/auth";
 import { isAdmin } from "~/server/admin";
 import { AdminSidebar } from "~/components/AdminSidebar";
+import { DashboardShell } from "~/components/dashboard";
 
 const checkAdminAccess = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -26,11 +27,10 @@ export const Route = createFileRoute("/admin")({
 
 function AdminLayout() {
   return (
-    <div className="-mx-6 -my-8 flex min-h-[calc(100vh-3.5rem)]">
-      <AdminSidebar />
-      <div className="flex-1 overflow-auto p-6">
-        <Outlet />
-      </div>
-    </div>
+    <DashboardShell
+      sidebar={({ onClose }) => <AdminSidebar onClose={onClose} />}
+    >
+      <Outlet />
+    </DashboardShell>
   );
 }
