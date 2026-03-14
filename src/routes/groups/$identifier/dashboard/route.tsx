@@ -25,6 +25,7 @@ import { eq, and, isNull, sql, inArray } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import {
   actors,
+  users,
   groupMembers,
   events,
   follows,
@@ -37,6 +38,11 @@ import {
   pollVotes as pollVotesTable,
 } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
+import { persistRemoteActor } from "~/server/fediverse/resolve";
+import { getFederationContext } from "~/server/fediverse/federation";
+import { env } from "~/server/env";
+import { Create, Mention, Note } from "@fedify/fedify";
+import { Temporal } from "@js-temporal/polyfill";
 import type { PlaceCategorySummary } from "~/lib/place";
 
 // ── Shared types ────────────────────────────────────────────────────────────
@@ -55,15 +61,18 @@ export type GroupData = {
     createdAt: string;
   };
   members: {
+    memberActorId: string;
     role: string;
     handle: string;
     name: string | null;
+    avatarUrl: string | null;
     actorUrl: string;
     isLocal: boolean;
   }[];
   followers: {
     handle: string;
     name: string | null;
+    avatarUrl: string | null;
     actorUrl: string;
     domain: string | null;
     isLocal: boolean;
@@ -137,10 +146,10 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
 
     if (!group) throw redirect({ to: "/" });
 
-    // Check membership
+    // Check membership (fetch all to pick highest-privilege role across linked accounts)
     let currentUserRole: string | null = null;
     if (user) {
-      const [membership] = await db
+      const memberships = await db
         .select({ role: groupMembers.role })
         .from(groupMembers)
         .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
@@ -150,9 +159,10 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
             eq(actors.userId, user.id),
             eq(actors.type, "Person"),
           ),
-        )
-        .limit(1);
-      currentUserRole = membership?.role ?? null;
+        );
+      if (memberships.length > 0) {
+        currentUserRole = memberships.some((m) => m.role === "owner") ? "owner" : memberships[0].role;
+      }
     }
 
     if (!currentUserRole) {
@@ -162,14 +172,17 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
     // Get members
     const members = await db
       .select({
+        memberActorId: groupMembers.memberActorId,
         role: groupMembers.role,
         handle: actors.handle,
         name: actors.name,
+        avatarUrl: sql<string | null>`COALESCE(${users.avatarUrl}, ${actors.avatarUrl})`,
         actorUrl: actors.actorUrl,
         isLocal: actors.isLocal,
       })
       .from(groupMembers)
       .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+      .leftJoin(users, eq(actors.userId, users.id))
       .where(eq(groupMembers.groupActorId, group.id));
 
     // Get published events
@@ -199,12 +212,14 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
       .select({
         handle: actors.handle,
         name: actors.name,
+        avatarUrl: sql<string | null>`COALESCE(${users.avatarUrl}, ${actors.avatarUrl})`,
         actorUrl: actors.actorUrl,
         domain: actors.domain,
         isLocal: actors.isLocal,
       })
       .from(follows)
       .innerJoin(actors, eq(follows.followerId, actors.id))
+      .leftJoin(users, eq(actors.userId, users.id))
       .where(
         and(eq(follows.followingId, group.id), eq(follows.status, "accepted")),
       );
@@ -357,6 +372,143 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
       currentUserRole,
       pollsData,
     } as unknown as GroupData;
+  });
+
+// ── Add member server function ───────────────────────────────────────────────
+
+export const addGroupMemberFn = createServerFn({ method: "POST" })
+  .inputValidator(zodValidator(z.object({ groupActorId: z.string(), handle: z.string() })))
+  .handler(async ({ data: { groupActorId, handle } }) => {
+    const request = getRequest();
+    const user = await getSessionUser(request);
+    if (!user) throw new Error("Unauthorized");
+
+    // Check caller is owner
+    const memberships = await db
+      .select({ role: groupMembers.role })
+      .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+      .where(and(eq(groupMembers.groupActorId, groupActorId), eq(actors.userId, user.id), eq(actors.type, "Person")));
+
+    const callerRole = memberships.some((m) => m.role === "owner") ? "owner" : memberships[0]?.role;
+    if (callerRole !== "owner") throw new Error("Only owners can add members");
+
+    const cleanHandle = handle.startsWith("@") ? handle.slice(1) : handle;
+
+    // Resolve the actor
+    const modActor = await persistRemoteActor(cleanHandle);
+
+    // Check for duplicate membership
+    const [existing] = await db
+      .select({ id: groupMembers.id })
+      .from(groupMembers)
+      .where(and(eq(groupMembers.groupActorId, groupActorId), eq(groupMembers.memberActorId, modActor.id)))
+      .limit(1);
+
+    if (existing) throw new Error("This user is already a member of the group");
+
+    // Check for same identity via linked accounts
+    if (modActor.userId) {
+      const [sameUser] = await db
+        .select({ id: groupMembers.id, role: groupMembers.role })
+        .from(groupMembers)
+        .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+        .where(and(eq(groupMembers.groupActorId, groupActorId), eq(actors.userId, modActor.userId)))
+        .limit(1);
+
+      if (sameUser) throw new Error(`Already a member (as ${sameUser.role}) via another linked account`);
+    }
+
+    // Insert membership
+    await db.insert(groupMembers).values({
+      groupActorId,
+      memberActorId: modActor.id,
+      role: "moderator",
+    });
+
+    // Send ActivityPub mention notification
+    const [group] = await db
+      .select({ handle: actors.handle })
+      .from(actors)
+      .where(eq(actors.id, groupActorId))
+      .limit(1);
+
+    if (group && modActor.inboxUrl) {
+      try {
+        const ctx = getFederationContext();
+        const instanceHostname = new URL(env.federationOrigin).hostname;
+        const groupPageUrl = new URL(`/groups/@${group.handle}`, env.baseUrl).href;
+        const content = `<p>You have been added as a moderator of <a href="${groupPageUrl}">@${group.handle}</a>.</p>`;
+        const noteId = new URL(`/ap/notes/mention-${group.handle}-${Date.now()}`, env.baseUrl);
+
+        const note = new Note({
+          id: noteId,
+          attribution: ctx.getActorUri(instanceHostname),
+          content,
+          published: Temporal.Now.instant(),
+          to: new URL(modActor.actorUrl),
+          tags: [new Mention({ href: new URL(modActor.actorUrl), name: `@${cleanHandle}` })],
+        });
+
+        await ctx.sendActivity(
+          { identifier: instanceHostname },
+          { id: new URL(modActor.actorUrl), inboxId: new URL(modActor.inboxUrl) },
+          new Create({
+            id: new URL(`${noteId.href}#activity`),
+            actor: ctx.getActorUri(instanceHostname),
+            object: note,
+            published: Temporal.Now.instant(),
+            to: new URL(modActor.actorUrl),
+          }),
+        );
+      } catch (err) {
+        console.error(`Failed to send mention notification to ${cleanHandle}:`, err);
+      }
+    }
+
+    return {
+      memberActorId: modActor.id,
+      role: "moderator" as const,
+      handle: modActor.handle,
+      name: modActor.name,
+      actorUrl: modActor.actorUrl,
+      isLocal: modActor.isLocal,
+    };
+  });
+
+// ── Remove member server function ────────────────────────────────────────────
+
+export const removeGroupMemberFn = createServerFn({ method: "POST" })
+  .inputValidator(zodValidator(z.object({ groupActorId: z.string(), handle: z.string() })))
+  .handler(async ({ data: { groupActorId, handle } }) => {
+    const request = getRequest();
+    const user = await getSessionUser(request);
+    if (!user) throw new Error("Unauthorized");
+
+    // Check caller is owner
+    const memberships = await db
+      .select({ role: groupMembers.role })
+      .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+      .where(and(eq(groupMembers.groupActorId, groupActorId), eq(actors.userId, user.id), eq(actors.type, "Person")));
+
+    const callerRole = memberships.some((m) => m.role === "owner") ? "owner" : memberships[0]?.role;
+    if (callerRole !== "owner") throw new Error("Only owners can remove members");
+
+    const cleanHandle = handle.startsWith("@") ? handle.slice(1) : handle;
+
+    const [membership] = await db
+      .select({ id: groupMembers.id, role: groupMembers.role })
+      .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+      .where(and(eq(groupMembers.groupActorId, groupActorId), eq(actors.handle, cleanHandle)))
+      .limit(1);
+
+    if (!membership) throw new Error("Member not found");
+    if (membership.role === "owner") throw new Error("Cannot remove an owner");
+
+    await db.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+    return { ok: true };
   });
 
 // ── Route ───────────────────────────────────────────────────────────────────

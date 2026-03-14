@@ -15,7 +15,8 @@ export async function requireGroupMember(
     });
   }
 
-  const [membership] = await db
+  // Fetch all memberships for this user (may have multiple linked accounts)
+  const memberships = await db
     .select({ role: groupMembers.role })
     .from(groupMembers)
     .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
@@ -25,15 +26,17 @@ export async function requireGroupMember(
         eq(actors.userId, user.id),
         eq(actors.type, "Person"),
       ),
-    )
-    .limit(1);
+    );
 
-  if (!membership) {
+  if (memberships.length === 0) {
     throw new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  return { user, role: membership.role };
+  // Return highest-privilege role (owner > moderator)
+  const role = memberships.some((m) => m.role === "owner") ? "owner" : memberships[0].role;
+
+  return { user, role };
 }
