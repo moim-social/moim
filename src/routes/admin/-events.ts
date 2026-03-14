@@ -2,6 +2,7 @@ import { desc, eq, ilike, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, users, actors, eventCategories } from "~/server/db/schema";
 import { requireAdmin } from "~/server/admin";
+import { getEventCategories } from "~/server/events/categories";
 
 export const GET = async ({ request }: { request: Request }) => {
   await requireAdmin(request);
@@ -25,6 +26,7 @@ export const GET = async ({ request }: { request: Request }) => {
       organizerDisplayName: users.displayName,
       groupHandle: actors.handle,
       groupName: actors.name,
+      categoryId: events.categoryId,
       categoryLabel: eventCategories.label,
       country: events.country,
     })
@@ -66,11 +68,16 @@ export const PATCH = async ({ request }: { request: Request }) => {
   const body = (await request.json().catch(() => null)) as {
     id?: string;
     priority?: number;
+    categoryId?: string;
   } | null;
 
-  if (!body?.id || typeof body.priority !== "number") {
+  if (!body?.id) {
+    return Response.json({ error: "id is required" }, { status: 400 });
+  }
+
+  if (body.priority === undefined && body.categoryId === undefined) {
     return Response.json(
-      { error: "id and priority are required" },
+      { error: "At least one of priority or categoryId is required" },
       { status: 400 },
     );
   }
@@ -85,9 +92,24 @@ export const PATCH = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Event not found" }, { status: 404 });
   }
 
+  const updates: Record<string, unknown> = {};
+
+  if (body.priority !== undefined) {
+    updates.priority = body.priority;
+  }
+
+  if (body.categoryId !== undefined) {
+    const allCategories = await getEventCategories();
+    const validCategoryIds = new Set(allCategories.map((c) => c.slug));
+    if (!validCategoryIds.has(body.categoryId)) {
+      return Response.json({ error: "Invalid categoryId" }, { status: 400 });
+    }
+    updates.categoryId = body.categoryId;
+  }
+
   await db
     .update(events)
-    .set({ priority: body.priority })
+    .set(updates)
     .where(eq(events.id, body.id));
 
   return Response.json({ ok: true });

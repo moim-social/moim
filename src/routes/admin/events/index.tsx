@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEventCategories } from "~/hooks/useEventCategories";
 
 export const Route = createFileRoute("/admin/events/")({
   component: AdminEventsPage,
@@ -20,6 +21,7 @@ type EventRow = {
   organizerDisplayName: string;
   groupHandle: string | null;
   groupName: string | null;
+  categoryId: string | null;
   categoryLabel: string | null;
   country: string | null;
 };
@@ -27,6 +29,7 @@ type EventRow = {
 const LIMIT = 50;
 
 function AdminEventsPage() {
+  const { categories } = useEventCategories();
   const [events, setEvents] = useState<EventRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -126,6 +129,45 @@ function AdminEventsPage() {
     });
   }
 
+  async function saveCategory(eventId: string, categoryId: string) {
+    const prev = events.find((e) => e.id === eventId);
+    if (!prev || prev.categoryId === categoryId) return;
+
+    setSaving(eventId);
+    const newLabel = categories.find((c) => c.slug === categoryId)?.label ?? categoryId;
+    setEvents((list) =>
+      list.map((e) =>
+        e.id === eventId ? { ...e, categoryId, categoryLabel: newLabel } : e,
+      ),
+    );
+
+    try {
+      const res = await fetch(`/api/admin/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryId }),
+      });
+      if (!res.ok) {
+        setEvents((list) =>
+          list.map((e) =>
+            e.id === eventId
+              ? { ...e, categoryId: prev.categoryId, categoryLabel: prev.categoryLabel }
+              : e,
+          ),
+        );
+      }
+    } catch {
+      setEvents((list) =>
+        list.map((e) =>
+          e.id === eventId
+            ? { ...e, categoryId: prev.categoryId, categoryLabel: prev.categoryLabel }
+            : e,
+        ),
+      );
+    }
+    setSaving(null);
+  }
+
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString(undefined, {
       year: "numeric",
@@ -205,8 +247,20 @@ function AdminEventsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {event.groupName ?? event.groupHandle ?? "\u2014"}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {event.categoryLabel ?? "\u2014"}
+                    <td className="px-4 py-3">
+                      <select
+                        className="h-8 w-36 rounded-md border border-input bg-background px-2 text-sm"
+                        value={event.categoryId ?? ""}
+                        onChange={(e) => saveCategory(event.id, e.target.value)}
+                        disabled={saving === event.id}
+                      >
+                        <option value="" disabled>—</option>
+                        {categories.map((cat) => (
+                          <option key={cat.slug} value={cat.slug}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {event.country ?? "\u2014"}
