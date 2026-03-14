@@ -1,6 +1,7 @@
 import { eq, and, or, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, posts } from "~/server/db/schema";
+import { env } from "~/server/env";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -53,6 +54,7 @@ export const GET = async ({ request }: { request: Request }) => {
       content: posts.content,
       createdAt: posts.createdAt,
       inReplyToPostId: posts.inReplyToPostId,
+      apUri: posts.apUri,
       actorHandle: actors.handle,
       actorName: actors.name,
       actorAvatarUrl: actors.avatarUrl,
@@ -68,5 +70,10 @@ export const GET = async ({ request }: { request: Request }) => {
     )
     .orderBy(sql`${posts.createdAt} ASC`);
 
-  return Response.json({ messages });
+  const messagesWithApUrl = messages.map((m) => ({
+    ...m,
+    apUrl: m.apUri ?? `${env.baseUrl}/ap/notes/${m.id}`,
+  }));
+
+  return Response.json({ messages: messagesWithApUrl });
 };
