@@ -1,6 +1,7 @@
 import { eq, and, or, sql, isNull, isNotNull } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, posts } from "~/server/db/schema";
+import { env } from "~/server/env";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -58,6 +59,7 @@ export const GET = async ({ request }: { request: Request }) => {
       createdAt: posts.createdAt,
       threadStatus: posts.threadStatus,
       lastRepliedAt: posts.lastRepliedAt,
+      apUri: posts.apUri,
       actorHandle: actors.handle,
       actorName: actors.name,
       actorAvatarUrl: actors.avatarUrl,
@@ -83,5 +85,11 @@ export const GET = async ({ request }: { request: Request }) => {
     .limit(limit)
     .offset(offset);
 
-  return Response.json({ inquiries, total });
+  // Resolve AP URIs: remote posts have apUri set, local posts construct from id
+  const inquiriesWithApUrl = inquiries.map((inq) => ({
+    ...inq,
+    apUrl: inq.apUri ?? `${env.baseUrl}/ap/notes/${inq.id}`,
+  }));
+
+  return Response.json({ inquiries: inquiriesWithApUrl, total });
 };

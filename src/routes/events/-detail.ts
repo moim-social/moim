@@ -1,7 +1,8 @@
 import { aliasedTable, and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { events, actors, eventOrganizers, eventTiers, groupMembers, rsvps, eventQuestions, rsvpAnswers, users, places, userFediverseAccounts } from "~/server/db/schema";
+import { events, actors, eventOrganizers, eventTiers, groupMembers, rsvps, eventQuestions, rsvpAnswers, users, places, userFediverseAccounts, posts } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
+import { env } from "~/server/env";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -185,6 +186,26 @@ export const GET = async ({ request }: { request: Request }) => {
     }
   }
 
+  // Get event note AP URL (the post created when event is published)
+  let eventNoteApUrl: string | null = null;
+  if (event.published) {
+    const [eventNote] = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(
+        and(
+          eq(posts.eventId, eventId),
+          isNull(posts.inReplyToPostId),
+          isNull(posts.threadRootId),
+          isNull(posts.threadStatus),
+        ),
+      )
+      .limit(1);
+    if (eventNote) {
+      eventNoteApUrl = `${env.baseUrl}/ap/notes/${eventNote.id}`;
+    }
+  }
+
   return Response.json({
     event,
     organizers,
@@ -193,5 +214,6 @@ export const GET = async ({ request }: { request: Request }) => {
     questions,
     tiers,
     canEdit,
+    eventNoteApUrl,
   });
 };
