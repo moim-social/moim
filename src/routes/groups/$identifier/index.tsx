@@ -155,26 +155,28 @@ function ProfilePage() {
       {/* Header */}
       <Card className="rounded-lg">
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Avatar className="size-14 shrink-0">
-              {group.avatarUrl && <AvatarImage src={group.avatarUrl} alt={group.name ?? handle} />}
-              <AvatarFallback className="text-xl font-semibold bg-primary/10 text-primary">
-                {(group.name ?? handle).charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold tracking-tight truncate">
-                  {group.name ?? `@${handle}`}
-                </h2>
-                {group.verified && (
-                  <BadgeCheck className="size-5 text-primary shrink-0" />
-                )}
-                <Badge variant="secondary" className="shrink-0">Group</Badge>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="size-14 shrink-0">
+                {group.avatarUrl && <AvatarImage src={group.avatarUrl} alt={group.name ?? handle} />}
+                <AvatarFallback className="text-xl font-semibold bg-primary/10 text-primary">
+                  {(group.name ?? handle).charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold tracking-tight truncate">
+                    {group.name ?? `@${handle}`}
+                  </h2>
+                  {group.verified && (
+                    <BadgeCheck className="size-5 text-primary shrink-0" />
+                  )}
+                  <Badge variant="secondary" className="shrink-0">Group</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">@{handle}</p>
               </div>
-              <p className="text-sm text-muted-foreground">@{handle}</p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               {currentUserRole && (
                 <Button variant="outline" size="sm" asChild>
                   <Link
