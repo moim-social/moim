@@ -85,6 +85,7 @@ import { GET as listPolls } from "./routes/polls/-list";
 import { GET as pollDetail } from "./routes/polls/-detail";
 import { POST as castVote } from "./routes/polls/-vote";
 import { POST as closePoll } from "./routes/polls/-close";
+import { GET as icsFeed } from "./routes/events/-ics";
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -823,6 +824,45 @@ app.use(
       const handle = decodeURIComponent(feedMatch[1]);
       return groupFeed({
         request: forwardGet(request, "/groups/feed", { handle }),
+      });
+    }
+
+    // ICS calendar feed for groups
+    const groupIcsMatch = url.pathname.match(/^\/groups\/@([^/]+)\/events\.ics$/);
+    if (groupIcsMatch) {
+      const handle = decodeURIComponent(groupIcsMatch[1]);
+      const [group] = await db
+        .select({ id: actors.id, name: actors.name, handle: actors.handle })
+        .from(actors)
+        .where(and(eq(actors.handle, handle), eq(actors.type, "Group")))
+        .limit(1);
+      if (group) {
+        const calendarName = group.name ?? `@${group.handle}`;
+        return icsFeed({
+          request: forwardGet(request, "/events/ics", {
+            groupActorId: group.id,
+            calendarName,
+          }),
+        });
+      }
+      return new Response("Group not found", { status: 404 });
+    }
+    // ICS calendar feed for categories (optionally filtered by country)
+    const categoryIcsMatch = url.pathname.match(
+      /^\/categories\/([^/]+)(?:\/countries\/([A-Z]{2}))?\/events\.ics$/,
+    );
+    if (categoryIcsMatch) {
+      const slug = decodeURIComponent(categoryIcsMatch[1]);
+      const country = categoryIcsMatch[2] ?? undefined;
+      const calendarName = country
+        ? `${slug} (${country}) — Moim`
+        : `${slug} — Moim`;
+      return icsFeed({
+        request: forwardGet(request, "/events/ics", {
+          categoryId: slug,
+          country,
+          calendarName,
+        }),
       });
     }
 
