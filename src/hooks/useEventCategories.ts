@@ -5,6 +5,7 @@ export type EventCategoryOption = {
   label: string;
   emoji: string | null;
   description: string | null;
+  enabled: boolean;
 };
 
 let cachedCategories: EventCategoryOption[] | null = null;
@@ -16,7 +17,9 @@ function fetchCategories(): Promise<EventCategoryOption[]> {
   fetchPromise = fetch("/api/event-categories")
     .then((r) => r.json())
     .then((data) => {
-      cachedCategories = data.categories ?? [];
+      cachedCategories = (data.categories ?? []).filter(
+        (c: EventCategoryOption) => c.enabled,
+      );
       fetchPromise = null;
       return cachedCategories!;
     })
