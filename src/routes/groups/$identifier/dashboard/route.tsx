@@ -595,7 +595,7 @@ function GroupDashboardLayout() {
 
   return (
     <DashboardShell
-      sidebar={
+      sidebar={({ onClose }) => (
         <DashboardSidebar
           backTo={`/groups/${identifier}`}
           backLabel="Back to Group"
@@ -609,6 +609,7 @@ function GroupDashboardLayout() {
             </div>
           }
           sections={sections}
+          onClose={onClose}
           footer={
             <>
               <a
@@ -628,7 +629,7 @@ function GroupDashboardLayout() {
             </>
           }
         />
-      }
+      )}
     >
       <Outlet />
     </DashboardShell>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { useState, useCallback } from "react";
@@ -10,7 +10,6 @@ import {
   Users,
   Activity,
   Layers,
-  ArrowLeft,
   ExternalLink,
   Pencil,
   Eye,
@@ -19,6 +18,8 @@ import {
   Trash2,
   MessageSquare,
 } from "lucide-react";
+import { DashboardShell, DashboardSidebar } from "~/components/dashboard";
+import type { NavSection } from "~/components/dashboard";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -314,13 +315,9 @@ export function useDashboard() {
 
 // ── Layout ──────────────────────────────────────────────────────────────────
 
-type NavItem = { to: string; icon: typeof LayoutDashboard; label: string; exact?: boolean };
-
 function DashboardLayout() {
   const { categoryMap } = useEventCategoryMap();
   const { eventId } = Route.useParams();
-  const routerState = useRouterState();
-  const currentPath = routerState.location.pathname;
   const data = Route.useLoaderData();
 
   const [publishing, setPublishing] = useState(false);
@@ -370,136 +367,120 @@ function DashboardLayout() {
 
   const isGroupEvent = !!event.groupActorId;
   const basePath = `/events/${eventId}/dashboard`;
-  const NAV_ITEMS: NavItem[] = [
-    { to: basePath, icon: LayoutDashboard, label: "Overview", exact: true },
-    { to: `${basePath}/attendees`, icon: Users, label: "Attendees" },
-    ...(isGroupEvent
-      ? [
-          { to: `${basePath}/tiers`, icon: Layers, label: "Ticket Management" },
-          { to: `${basePath}/discussions`, icon: MessageSquare, label: "Discussions" },
-          { to: `${basePath}/activity`, icon: Activity, label: "Activity" },
-        ]
-      : []),
-    { to: `${basePath}/edit`, icon: Pencil, label: "Edit Event" },
+  const sections: NavSection[] = [
+    {
+      items: [
+        { to: basePath, icon: LayoutDashboard, label: "Overview", exact: true },
+        { to: `${basePath}/attendees`, icon: Users, label: "Attendees" },
+        ...(isGroupEvent
+          ? [
+              { to: `${basePath}/tiers`, icon: Layers, label: "Ticket Management" },
+              { to: `${basePath}/discussions`, icon: MessageSquare, label: "Discussions" },
+              { to: `${basePath}/activity`, icon: Activity, label: "Activity" },
+            ]
+          : []),
+        { to: `${basePath}/edit`, icon: Pencil, label: "Edit Event" },
+      ],
+    },
   ];
 
   return (
-    <div className="-mx-6 -my-8 flex min-h-[calc(100vh-3.5rem)]">
-      {/* Sidebar */}
-      <aside className="flex w-56 shrink-0 flex-col border-r bg-muted/30">
-        <div className="border-b p-4">
-          <Link
-            to="/events/$eventId"
-            params={{ eventId }}
-            className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            Back to Event
-          </Link>
-          <h1 className="mt-3 text-base font-semibold truncate" title={event.title}>
-            {event.title}
-          </h1>
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <Badge variant={statusVariant[event.status]} className="text-xs">
-              {event.status}
-            </Badge>
-            {!event.published && (
-              <Badge variant="outline" className="text-xs">
-                Draft
-              </Badge>
-            )}
-            {event.categoryId && categoryMap.has(event.categoryId) && (
-              <Badge variant="outline" className="text-xs">
-                {categoryMap.get(event.categoryId)}
-              </Badge>
-            )}
-          </div>
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            {new Date(event.startsAt).toLocaleDateString(undefined, {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
-          {isGroupEvent && (
-            <Button
-              variant={event.published ? "outline" : "default"}
-              size="sm"
-              className="mt-3 w-full text-xs"
-              disabled={publishing}
-              onClick={handleTogglePublish}
-            >
-              {event.published ? (
-                <>
-                  <EyeOff className="size-3.5 mr-1.5" />
-                  {publishing ? "Unpublishing..." : "Unpublish"}
-                </>
-              ) : (
-                <>
-                  <Eye className="size-3.5 mr-1.5" />
-                  {publishing ? "Publishing..." : "Publish"}
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-
-        <nav className="flex-1 space-y-0.5 p-3">
-          {NAV_ITEMS.map((item) => {
-            const isActive = item.exact
-              ? currentPath === item.to
-              : currentPath.startsWith(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
-                  isActive
-                    ? "bg-accent font-medium text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                }`}
-              >
-                <item.icon className="size-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="border-t p-3 space-y-1">
-          <Link
-            to="/events/$eventId"
-            params={{ eventId }}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-          >
-            <ExternalLink className="size-4" />
-            Public Page
-          </Link>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-              >
-                <MoreHorizontal className="size-4" />
-                More Actions
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top">
-              <DropdownMenuItem
-                disabled={data.hasRsvps}
-                onClick={() => setShowDeleteDialog(true)}
-                className="text-destructive focus:text-destructive"
-                title={data.hasRsvps ? "Cannot delete event with RSVPs" : undefined}
-              >
-                <Trash2 className="size-4" />
-                Delete Event
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </aside>
+    <>
+      <DashboardShell
+        sidebar={({ onClose }) => (
+          <DashboardSidebar
+            backTo={`/events/${eventId}`}
+            backLabel="Back to Event"
+            title={event.title}
+            headerExtra={
+              <>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <Badge variant={statusVariant[event.status]} className="text-xs">
+                    {event.status}
+                  </Badge>
+                  {!event.published && (
+                    <Badge variant="outline" className="text-xs">
+                      Draft
+                    </Badge>
+                  )}
+                  {event.categoryId && categoryMap.has(event.categoryId) && (
+                    <Badge variant="outline" className="text-xs">
+                      {categoryMap.get(event.categoryId)}
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  {new Date(event.startsAt).toLocaleDateString(undefined, {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                {isGroupEvent && (
+                  <Button
+                    variant={event.published ? "outline" : "default"}
+                    size="sm"
+                    className="mt-3 w-full text-xs"
+                    disabled={publishing}
+                    onClick={handleTogglePublish}
+                  >
+                    {event.published ? (
+                      <>
+                        <EyeOff className="size-3.5 mr-1.5" />
+                        {publishing ? "Unpublishing..." : "Unpublish"}
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="size-3.5 mr-1.5" />
+                        {publishing ? "Publishing..." : "Publish"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            }
+            sections={sections}
+            onClose={onClose}
+            footer={
+              <>
+                <Link
+                  to="/events/$eventId"
+                  params={{ eventId }}
+                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+                >
+                  <ExternalLink className="size-4" />
+                  Public Page
+                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+                    >
+                      <MoreHorizontal className="size-4" />
+                      More Actions
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="top">
+                    <DropdownMenuItem
+                      disabled={data.hasRsvps}
+                      onClick={() => setShowDeleteDialog(true)}
+                      className="text-destructive focus:text-destructive"
+                      title={data.hasRsvps ? "Cannot delete event with RSVPs" : undefined}
+                    >
+                      <Trash2 className="size-4" />
+                      Delete Event
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            }
+          />
+        )}
+      >
+        <Outlet />
+      </DashboardShell>
 
       {/* Delete confirmation dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -524,11 +505,6 @@ function DashboardLayout() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <Outlet />
-      </div>
-    </div>
+    </>
   );
 }
