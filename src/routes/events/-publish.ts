@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, events, eventOrganizers, groupMembers } from "~/server/db/schema";
+import { actors, events, eventOrganizers, groupMembers, userFediverseAccounts } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { announceEvent } from "~/server/fediverse/category";
 
@@ -106,7 +106,15 @@ export const POST = async ({ request }: { request: Request }) => {
         const [remoteActor] = await db
           .select({ handle: actors.handle, actorUrl: actors.actorUrl, inboxUrl: actors.inboxUrl })
           .from(actors)
-          .where(and(eq(actors.userId, user.id), eq(actors.isLocal, false)))
+          .innerJoin(
+            userFediverseAccounts,
+            eq(actors.handle, userFediverseAccounts.fediverseHandle),
+          )
+          .where(and(
+            eq(actors.userId, user.id),
+            eq(actors.isLocal, false),
+            eq(userFediverseAccounts.isPrimary, true),
+          ))
           .limit(1);
         if (remoteActor?.inboxUrl) {
           creatorMention = { handle: remoteActor.handle, actorUrl: remoteActor.actorUrl, inboxUrl: remoteActor.inboxUrl };

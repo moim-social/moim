@@ -27,7 +27,16 @@ export async function postCheckin(
     db
       .select({ actorUrl: actors.actorUrl, inboxUrl: actors.inboxUrl })
       .from(actors)
-      .where(and(eq(actors.userId, userId), eq(actors.type, "Person"), eq(actors.isLocal, false)))
+      .innerJoin(
+        userFediverseAccounts,
+        eq(actors.handle, userFediverseAccounts.fediverseHandle),
+      )
+      .where(and(
+        eq(actors.userId, userId),
+        eq(actors.type, "Person"),
+        eq(actors.isLocal, false),
+        eq(userFediverseAccounts.isPrimary, true),
+      ))
       .limit(1),
     db
       .select({ fediverseHandle: userFediverseAccounts.fediverseHandle })
