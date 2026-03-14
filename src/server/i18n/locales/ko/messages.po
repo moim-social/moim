@@ -2,11 +2,8 @@ msgid ""
 msgstr ""
 "Language: ko\n"
 
-msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}"
-msgstr "<a href=\"{placeUrl}\">{placeName}</a>에 체크인{mentionHtml}"
-
-msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}</p><p>{note}"
-msgstr "<a href=\"{placeUrl}\">{placeName}</a>에 체크인{mentionHtml}</p><p>{note}"
+msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
+msgstr "<a href=\"{placeUrl}\">{placeName}</a>에 체크인"
 
 msgid "Map of {placeName}"
 msgstr "{placeName} 지도"

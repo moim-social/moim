@@ -61,10 +61,13 @@ export async function postCheckin(
     : "";
 
   // Build HTML content
-  const checkinMsg = checkin.note
-    ? i18n._("Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}</p><p>{note}", { placeUrl, placeName: place.name, mentionHtml, note: checkin.note })
-    : i18n._("Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}", { placeUrl, placeName: place.name, mentionHtml });
-  const content = `<p>${checkinMsg}</p>`;
+  const checkinText = i18n._("Checked in at <a href=\"{placeUrl}\">{placeName}</a>", {
+    placeUrl,
+    placeName: place.name,
+  });
+  const content = checkin.note
+    ? `<p>${checkinText}${mentionHtml}</p>\n<p>${checkin.note}</p>`
+    : `<p>${checkinText}${mentionHtml}</p>`;
 
   // Build Mention tags array
   const tags: Mention[] = [];
@@ -110,7 +113,10 @@ export async function postCheckin(
 
   // Always public (same pattern as announceEvent)
   const to = PUBLIC_COLLECTION;
-  const ccs = [PUBLIC_COLLECTION, ctx.getFollowersUri(proxyHandle)];
+  const ccs: (typeof PUBLIC_COLLECTION | URL)[] = [PUBLIC_COLLECTION, ctx.getFollowersUri(proxyHandle)];
+  if (remoteActor?.actorUrl) {
+    ccs.push(new URL(remoteActor.actorUrl));
+  }
 
   // Build image attachment if map snapshot is available
   const attachments: Image[] = [];

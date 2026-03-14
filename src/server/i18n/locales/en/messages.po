@@ -2,11 +2,8 @@ msgid ""
 msgstr ""
 "Language: en\n"
 
-msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}"
-msgstr "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}"
-
-msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}</p><p>{note}"
-msgstr "Checked in at <a href=\"{placeUrl}\">{placeName}</a>{mentionHtml}</p><p>{note}"
+msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
+msgstr "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
 
 msgid "Map of {placeName}"
 msgstr "Map of {placeName}"
