@@ -221,6 +221,7 @@ apiRouter.post("/actors/resolve", defineEventHandler(async (event) => {
   return resolveModerator({ request: toWebRequest(event) });
 }));
 
+
 apiRouter.post("/groups", defineEventHandler(async (event) => {
   return createGroup({ request: toWebRequest(event) });
 }));

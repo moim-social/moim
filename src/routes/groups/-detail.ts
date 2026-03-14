@@ -1,6 +1,6 @@
 import { eq, and, isNull, sql, inArray } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, groupMembers, events, follows, posts, groupPlaces, places, placeCategories, activityLogs } from "~/server/db/schema";
+import { actors, users, groupMembers, events, follows, posts, groupPlaces, places, placeCategories, activityLogs } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
 export const GET = async ({ request }: { request: Request }) => {
@@ -25,14 +25,17 @@ export const GET = async ({ request }: { request: Request }) => {
   // Get members with their actor info
   const members = await db
     .select({
+      memberActorId: groupMembers.memberActorId,
       role: groupMembers.role,
       handle: actors.handle,
       name: actors.name,
+      avatarUrl: sql<string | null>`COALESCE(${users.avatarUrl}, ${actors.avatarUrl})`,
       actorUrl: actors.actorUrl,
       isLocal: actors.isLocal,
     })
     .from(groupMembers)
     .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+    .leftJoin(users, eq(actors.userId, users.id))
     .where(eq(groupMembers.groupActorId, group.id));
 
   // Get events for this group
@@ -57,12 +60,14 @@ export const GET = async ({ request }: { request: Request }) => {
     .select({
       handle: actors.handle,
       name: actors.name,
+      avatarUrl: sql<string | null>`COALESCE(${users.avatarUrl}, ${actors.avatarUrl})`,
       actorUrl: actors.actorUrl,
       domain: actors.domain,
       isLocal: actors.isLocal,
     })
     .from(follows)
     .innerJoin(actors, eq(follows.followerId, actors.id))
+    .leftJoin(users, eq(actors.userId, users.id))
     .where(and(eq(follows.followingId, group.id), eq(follows.status, "accepted")));
 
   // Get posts by this group actor
@@ -151,7 +156,7 @@ export const GET = async ({ request }: { request: Request }) => {
   let currentUserRole: string | null = null;
   const user = await getSessionUser(request);
   if (user) {
-    const [membership] = await db
+    const memberships = await db
       .select({ role: groupMembers.role })
       .from(groupMembers)
       .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
@@ -161,9 +166,11 @@ export const GET = async ({ request }: { request: Request }) => {
           eq(actors.userId, user.id),
           eq(actors.type, "Person"),
         ),
-      )
-      .limit(1);
-    currentUserRole = membership?.role ?? null;
+      );
+    // Return highest-privilege role (owner > moderator)
+    if (memberships.length > 0) {
+      currentUserRole = memberships.some((m) => m.role === "owner") ? "owner" : memberships[0].role;
+    }
   }
 
   return Response.json({
