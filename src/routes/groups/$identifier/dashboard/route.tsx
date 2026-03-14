@@ -38,6 +38,8 @@ import {
   pollVotes as pollVotesTable,
 } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
+import { createAndDeliverNote } from "~/server/fediverse/group";
+import { renderMarkdown } from "~/lib/markdown";
 import { persistRemoteActor } from "~/server/fediverse/resolve";
 import { getFederationContext } from "~/server/fediverse/federation";
 import { env } from "~/server/env";
@@ -372,6 +374,37 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
       currentUserRole,
       pollsData,
     } as unknown as GroupData;
+  });
+
+// ── Post note server function ────────────────────────────────────────────────
+
+export const postGroupNoteFn = createServerFn({ method: "POST" })
+  .inputValidator(zodValidator(z.object({ groupActorId: z.string(), content: z.string().min(1) })))
+  .handler(async ({ data: { groupActorId, content } }) => {
+    const request = getRequest();
+    const user = await getSessionUser(request);
+    if (!user) throw new Error("Unauthorized");
+
+    // Find group
+    const [group] = await db
+      .select({ id: actors.id, handle: actors.handle })
+      .from(actors)
+      .where(and(eq(actors.id, groupActorId), eq(actors.type, "Group")))
+      .limit(1);
+    if (!group) throw new Error("Group not found");
+
+    // Verify membership
+    const [membership] = await db
+      .select({ role: groupMembers.role })
+      .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+      .where(and(eq(groupMembers.groupActorId, group.id), eq(actors.userId, user.id), eq(actors.type, "Person")))
+      .limit(1);
+    if (!membership) throw new Error("Forbidden");
+
+    const htmlContent = renderMarkdown(content);
+    const post = await createAndDeliverNote(group.handle, htmlContent);
+    return { id: post.id, content: post.content, published: post.published };
   });
 
 // ── Add member server function ───────────────────────────────────────────────
