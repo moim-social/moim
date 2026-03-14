@@ -5,9 +5,10 @@ import {
   defaultStreamHandler,
 } from "@tanstack/react-start/server";
 import { integrateFederation, onError } from "@fedify/h3";
-import { Note, Place, respondWithObjectIfAcceptable } from "@fedify/fedify";
+import { Note, Place, Question, respondWithObjectIfAcceptable } from "@fedify/fedify";
 import { federation } from "./server/fediverse/federation";
 import { db } from "./server/db/client";
+import { polls } from "./server/db/schema";
 import { actors } from "./server/db/schema";
 import { POST as requestOtp } from "./routes/auth/-request-otp";
 import { POST as verifyOtp } from "./routes/auth/-verify-otp";
@@ -65,6 +66,7 @@ import { GET as listPublicCountries } from "./routes/countries/-list";
 import { GET as getCarouselSlides } from "./routes/-carousel";
 import { POST as trackBannerClick } from "./routes/-banner-click";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
+import { POST as instanceLookup } from "./routes/api/-instance-lookup";
 import { GET as groupFeed } from "./routes/groups/-feed";
 import { GET as eventDashboard } from "./routes/events/-dashboard";
 import { GET as eventDashboardActivity } from "./routes/events/-dashboard-activity";
@@ -781,6 +783,10 @@ apiRouter.post("/webfinger", defineEventHandler(async (event) => {
   return webfingerLookup({ request: toWebRequest(event) });
 }));
 
+apiRouter.post("/instance-lookup", defineEventHandler(async (event) => {
+  return instanceLookup({ request: toWebRequest(event) });
+}));
+
 app.use("/api", useBase("/api", apiRouter.handler));
 
 // Map image routes
@@ -837,6 +843,23 @@ app.use(
       if (place) {
         const response = await respondWithObjectIfAcceptable(place, request);
         if (response) return response;
+      }
+    }
+    // Content negotiation for /polls/{pollId} → AP Question
+    const pollMatch = url.pathname.match(/^\/polls\/([0-9a-f-]{36})$/);
+    if (pollMatch) {
+      const [poll] = await db
+        .select({ questionId: polls.questionId })
+        .from(polls)
+        .where(eq(polls.id, pollMatch[1]))
+        .limit(1);
+      if (poll) {
+        const ctx = federation.createContext(request, undefined);
+        const question = await ctx.getObject(Question, { questionId: poll.questionId });
+        if (question) {
+          const response = await respondWithObjectIfAcceptable(question, request);
+          if (response) return response;
+        }
       }
     }
     return startFetch(request);

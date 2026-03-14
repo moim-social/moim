@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -111,7 +111,13 @@ function PollsTab() {
                 className="rounded-lg border p-4 space-y-3"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">{poll.question}</p>
+                  <Link
+                    to="/polls/$pollId"
+                    params={{ pollId: poll.id }}
+                    className="text-sm font-medium hover:underline"
+                  >
+                    {poll.question}
+                  </Link>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Badge variant="secondary" className="text-xs">
                       {poll.type === "single"
