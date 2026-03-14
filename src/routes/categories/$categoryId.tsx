@@ -8,7 +8,7 @@ import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
 import { EventCalendar, type CalendarEvent } from "~/components/EventCalendar";
 import { UpcomingEventList } from "~/components/UpcomingEventList";
 import { useIsMobile } from "~/hooks/useIsMobile";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
 
 function slugToLabel(slug: string) {
   return slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -181,17 +181,27 @@ function CategoryDetailPage() {
           {category.description ?? `Follow this feed from your fediverse account to get notified about new ${category.label.toLowerCase()} events.`}
         </p>
 
-        <div className="mt-4 flex items-center gap-3 flex-wrap">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-white/60">@{feedHandle}</span>
-            <RemoteFollowDialog actorHandle={feedHandle} className="bg-white text-gray-900 border-white hover:bg-white/90" />
+        <div className="mt-4 flex items-center justify-between">
+          <span className="text-xs text-white/60">@{feedHandle}</span>
+          <div className="flex items-center gap-2">
+            <RemoteFollowDialog actorHandle={feedHandle}>
+              <button
+                title={`Remote follow @${feedHandle}`}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <UserPlus className="size-5" />
+              </button>
+            </RemoteFollowDialog>
+            <a
+              href={country
+                ? `/categories/${categoryId}/countries/${country}/events.ics`
+                : `/categories/${categoryId}/events.ics`}
+              title={`Subscribe to ${category.label}${country ? ` (${country})` : ""} calendar`}
+              className="text-white/70 hover:text-white transition-colors"
+            >
+              <CalendarPlus className="size-5" />
+            </a>
           </div>
-          {country && (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-white/60">@feed_{categoryId} (global)</span>
-              <RemoteFollowDialog actorHandle={`feed_${categoryId}`} className="bg-white/20 text-white border-white/40 hover:bg-white/30" />
-            </div>
-          )}
         </div>
       </div>
 
