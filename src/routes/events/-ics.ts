@@ -1,6 +1,6 @@
 import { and, eq, gte, isNull, isNotNull, asc, type SQL } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { events, places } from "~/server/db/schema";
+import { actors, events, places } from "~/server/db/schema";
 import { env } from "~/server/env";
 
 const ICS_LIMIT = 100;
@@ -41,13 +41,17 @@ export const GET = async ({
       id: events.id,
       title: events.title,
       description: events.description,
+      externalUrl: events.externalUrl,
       startsAt: events.startsAt,
       endsAt: events.endsAt,
       location: events.location,
       placeName: places.name,
       placeAddress: places.address,
+      groupName: actors.name,
+      groupHandle: actors.handle,
     })
     .from(events)
+    .innerJoin(actors, eq(events.groupActorId, actors.id))
     .leftJoin(places, eq(events.placeId, places.id))
     .where(and(...conditions))
     .orderBy(asc(events.startsAt))
@@ -73,7 +77,10 @@ export const GET = async ({
       const plain = e.description.replace(/<[^>]*>/g, "");
       lines.push(`DESCRIPTION:${escapeIcs(plain)}`);
     }
-    lines.push(`URL:${baseUrl}/events/${e.id}`);
+    const organizer = e.groupName ?? `@${e.groupHandle}`;
+    lines.push(`ORGANIZER;CN=${escapeIcs(organizer)}:mailto:noreply@${new URL(baseUrl).hostname}`);
+    const eventUrl = e.externalUrl || `${baseUrl}/events/${e.id}`;
+    lines.push(`URL:${eventUrl}`);
     lines.push("END:VEVENT");
     return lines.join("\r\n");
   });
