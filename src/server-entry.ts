@@ -5,7 +5,7 @@ import {
   defaultStreamHandler,
 } from "@tanstack/react-start/server";
 import { integrateFederation, onError } from "@fedify/h3";
-import { Note, Place, Question, respondWithObjectIfAcceptable } from "@fedify/fedify";
+import { Note, Place, respondWithObjectIfAcceptable } from "@fedify/fedify";
 import { federation } from "./server/fediverse/federation";
 import { db } from "./server/db/client";
 import { polls } from "./server/db/schema";
@@ -845,20 +845,40 @@ app.use(
         if (response) return response;
       }
     }
-    // Content negotiation for /polls/{pollId} → AP Question
+    // /ap/questions/{questionId} + browser → redirect to /polls/{pollId}
+    const apQuestionMatch = url.pathname.match(/^\/ap\/questions\/([0-9a-f-]{36})$/);
+    if (apQuestionMatch) {
+      const accept = request.headers.get("Accept") ?? "";
+      const isAP = accept.includes("application/activity+json")
+        || accept.includes("application/ld+json");
+      if (!isAP) {
+        const [poll] = await db
+          .select({ id: polls.id })
+          .from(polls)
+          .where(eq(polls.questionId, apQuestionMatch[1]))
+          .limit(1);
+        if (poll) {
+          return Response.redirect(new URL(`/polls/${poll.id}`, url.origin), 302);
+        }
+      }
+    }
+    // /polls/{pollId} + AP Accept → redirect to /ap/questions/{questionId}
     const pollMatch = url.pathname.match(/^\/polls\/([0-9a-f-]{36})$/);
     if (pollMatch) {
-      const [poll] = await db
-        .select({ questionId: polls.questionId })
-        .from(polls)
-        .where(eq(polls.id, pollMatch[1]))
-        .limit(1);
-      if (poll) {
-        const ctx = federation.createContext(request, undefined);
-        const question = await ctx.getObject(Question, { questionId: poll.questionId });
-        if (question) {
-          const response = await respondWithObjectIfAcceptable(question, request);
-          if (response) return response;
+      const accept = request.headers.get("Accept") ?? "";
+      const isAP = accept.includes("application/activity+json")
+        || accept.includes("application/ld+json");
+      if (isAP) {
+        const [poll] = await db
+          .select({ questionId: polls.questionId })
+          .from(polls)
+          .where(eq(polls.id, pollMatch[1]))
+          .limit(1);
+        if (poll) {
+          return Response.redirect(
+            new URL(`/ap/questions/${poll.questionId}`, url.origin),
+            302,
+          );
         }
       }
     }
