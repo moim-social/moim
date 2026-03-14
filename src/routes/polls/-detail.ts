@@ -1,6 +1,7 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { polls, pollOptions, pollVotes } from "~/server/db/schema";
+import { polls, pollOptions, pollVotes, actors } from "~/server/db/schema";
+import { env } from "~/server/env";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -17,6 +18,20 @@ export const GET = async ({ request }: { request: Request }) => {
 
   if (!poll) {
     return Response.json({ error: "Poll not found" }, { status: 404 });
+  }
+
+  const [groupActor] = await db
+    .select({
+      handle: actors.handle,
+      name: actors.name,
+      type: actors.type,
+    })
+    .from(actors)
+    .where(and(eq(actors.id, poll.groupActorId), eq(actors.type, "Group")))
+    .limit(1);
+
+  if (!groupActor) {
+    return Response.json({ error: "Not found" }, { status: 404 });
   }
 
   const options = await db
@@ -47,6 +62,7 @@ export const GET = async ({ request }: { request: Request }) => {
       expiresAt: poll.expiresAt,
       createdAt: poll.createdAt,
       groupActorId: poll.groupActorId,
+      apUrl: `${env.baseUrl}/ap/questions/${poll.questionId}`,
       options: options.map((o) => ({
         id: o.id,
         label: o.label,
@@ -55,5 +71,6 @@ export const GET = async ({ request }: { request: Request }) => {
       })),
       totalVoters: voterCount?.count ?? 0,
     },
+    group: groupActor ?? null,
   });
 };

@@ -65,6 +65,7 @@ import { GET as listPublicCountries } from "./routes/countries/-list";
 import { GET as getCarouselSlides } from "./routes/-carousel";
 import { POST as trackBannerClick } from "./routes/-banner-click";
 import { POST as webfingerLookup } from "./routes/api/-webfinger";
+import { POST as instanceLookup } from "./routes/api/-instance-lookup";
 import { GET as groupFeed } from "./routes/groups/-feed";
 import { GET as eventDashboard } from "./routes/events/-dashboard";
 import { GET as eventDashboardActivity } from "./routes/events/-dashboard-activity";
@@ -779,6 +780,10 @@ apiRouter.post("/banner-clicks", defineEventHandler(async (event) => {
 
 apiRouter.post("/webfinger", defineEventHandler(async (event) => {
   return webfingerLookup({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/instance-lookup", defineEventHandler(async (event) => {
+  return instanceLookup({ request: toWebRequest(event) });
 }));
 
 app.use("/api", useBase("/api", apiRouter.handler));
