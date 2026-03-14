@@ -78,6 +78,11 @@ import { POST as uploadEventHeaderImage } from "./routes/events/-upload-header-i
 import { POST as publishEvent } from "./routes/events/-publish";
 import { DELETE as deleteEvent } from "./routes/events/-delete";
 import { GET as serveEventHeader } from "./routes/event-headers/-serve";
+import { POST as createPoll } from "./routes/polls/-create";
+import { GET as listPolls } from "./routes/polls/-list";
+import { GET as pollDetail } from "./routes/polls/-detail";
+import { POST as castVote } from "./routes/polls/-vote";
+import { POST as closePoll } from "./routes/polls/-close";
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -438,6 +443,62 @@ apiRouter.patch("/events/:eventId/discussions/:inquiryId", defineEventHandler(as
       ...(body ?? {}),
       eventId,
       inquiryId,
+    })),
+  });
+}));
+
+// --- Poll endpoints ---
+apiRouter.post("/groups/:groupActorId/polls", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const groupActorId = event.context.params?.groupActorId;
+  if (!groupActorId) return Response.json({ error: "groupActorId is required" }, { status: 400 });
+
+  return createPoll({
+    request: await forwardJson(request, `/api/groups/${groupActorId}/polls`, "POST", (body) => ({
+      ...(body ?? {}),
+      groupActorId,
+    })),
+  });
+}));
+
+apiRouter.get("/groups/:groupActorId/polls", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const groupActorId = event.context.params?.groupActorId;
+  return listPolls({
+    request: forwardGet(request, `/api/groups/${groupActorId}/polls`, { groupActorId }),
+  });
+}));
+
+apiRouter.get("/polls/:pollId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const pollId = event.context.params?.pollId;
+  return pollDetail({
+    request: forwardGet(request, `/api/polls/${pollId}`, { pollId }),
+  });
+}));
+
+apiRouter.post("/polls/:pollId/vote", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const pollId = event.context.params?.pollId;
+  if (!pollId) return Response.json({ error: "pollId is required" }, { status: 400 });
+
+  return castVote({
+    request: await forwardJson(request, `/api/polls/${pollId}/vote`, "POST", (body) => ({
+      ...(body ?? {}),
+      pollId,
+    })),
+  });
+}));
+
+apiRouter.post("/polls/:pollId/close", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const pollId = event.context.params?.pollId;
+  if (!pollId) return Response.json({ error: "pollId is required" }, { status: 400 });
+
+  return closePoll({
+    request: await forwardJson(request, `/api/polls/${pollId}/close`, "POST", (body) => ({
+      ...(body ?? {}),
+      pollId,
     })),
   });
 }));

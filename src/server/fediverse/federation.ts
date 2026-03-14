@@ -30,11 +30,12 @@ import type { Context, RequestContext } from "@fedify/fedify";
 import { Temporal } from "@js-temporal/polyfill";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, activityLogs, follows, groupMembers, keypairs, otpChallenges, otpVotes, places, posts, users } from "~/server/db/schema";
+import { actors, activityLogs, follows, groupMembers, keypairs, otpChallenges, otpVotes, places, polls, pollOptions, pollVotes as pollVotesTable, posts, users } from "~/server/db/schema";
 import { ensureRemoteActor } from "~/server/fediverse/actor-cache";
 import { env } from "~/server/env";
 import { getI18n } from "~/server/i18n";
 import { EMOJI_SET } from "~/server/fediverse/otp";
+import { buildPollQuestion } from "~/server/fediverse/poll";
 
 // --- Instance actor key (parsed once at startup) ---
 let instanceKeyPair: CryptoKeyPair | undefined;
@@ -425,11 +426,28 @@ federation.setObjectDispatcher(
   },
 );
 
-// --- Question object dispatcher (for OTP polls) ---
+// --- Question object dispatcher (for OTP challenges + polls) ---
 federation.setObjectDispatcher(
   Question,
   "/ap/questions/{questionId}",
   async (ctx, { questionId }) => {
+    // Try poll first
+    const [poll] = await db
+      .select()
+      .from(polls)
+      .where(eq(polls.questionId, questionId))
+      .limit(1);
+    if (poll) {
+      const [groupActor] = await db
+        .select()
+        .from(actors)
+        .where(eq(actors.id, poll.groupActorId))
+        .limit(1);
+      if (!groupActor) return null;
+      return buildPollQuestion(ctx, poll, groupActor);
+    }
+
+    // Fall back to OTP challenge
     const [challenge] = await db
       .select()
       .from(otpChallenges)
@@ -811,6 +829,67 @@ federation
           })
           .onConflictDoNothing();
         return;
+      }
+    }
+
+    // --- Poll vote handling ---
+    if (replyTo) {
+      let questionId: string | null = null;
+      const parsedUri = ctx.parseUri(replyTo);
+      if (parsedUri?.type === "object" && "questionId" in parsedUri.values) {
+        questionId = parsedUri.values.questionId as string;
+      } else {
+        const match = replyTo.href?.match(/\/ap\/questions\/(.+)$/);
+        if (match) questionId = match[1];
+      }
+      if (questionId) {
+        const [poll] = await db
+          .select()
+          .from(polls)
+          .where(eq(polls.questionId, questionId))
+          .limit(1);
+        if (poll) {
+          // Check if poll is still open
+          if (poll.closed) return;
+          if (poll.expiresAt && new Date(poll.expiresAt).getTime() < Date.now()) return;
+
+          const voteName = object.name?.toString();
+          if (!voteName) return;
+
+          // Match option by label
+          const [option] = await db
+            .select()
+            .from(pollOptions)
+            .where(and(eq(pollOptions.pollId, poll.id), eq(pollOptions.label, voteName)))
+            .limit(1);
+          if (!option) return;
+
+          const voterActorUrl = create.actorId?.href;
+          if (!voterActorUrl) return;
+
+          const sourceInstance = new URL(voterActorUrl).hostname;
+
+          // For single-choice: delete existing votes, then insert
+          if (poll.type === "single") {
+            await db
+              .delete(pollVotesTable)
+              .where(and(
+                eq(pollVotesTable.pollId, poll.id),
+                eq(pollVotesTable.voterActorUrl, voterActorUrl),
+              ));
+          }
+
+          await db
+            .insert(pollVotesTable)
+            .values({
+              pollId: poll.id,
+              optionId: option.id,
+              voterActorUrl,
+              sourceInstance,
+            })
+            .onConflictDoNothing();
+          return;
+        }
       }
     }
 
