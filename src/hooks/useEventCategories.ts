@@ -5,6 +5,7 @@ export type EventCategoryOption = {
   label: string;
   emoji: string | null;
   description: string | null;
+  sortOrder: number;
   enabled: boolean;
 };
 
@@ -17,9 +18,12 @@ function fetchCategories(): Promise<EventCategoryOption[]> {
   fetchPromise = fetch("/api/event-categories")
     .then((r) => r.json())
     .then((data) => {
-      cachedCategories = (data.categories ?? []).filter(
-        (c: EventCategoryOption) => c.enabled,
-      );
+      cachedCategories = (data.categories ?? [])
+        .filter((c: EventCategoryOption) => c.enabled)
+        .sort(
+          (a: EventCategoryOption, b: EventCategoryOption) =>
+            a.sortOrder - b.sortOrder || a.label.localeCompare(b.label),
+        );
       fetchPromise = null;
       return cachedCategories!;
     })
