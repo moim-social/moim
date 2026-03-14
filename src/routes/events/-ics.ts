@@ -73,13 +73,17 @@ export const GET = async ({
     if (location) {
       lines.push(`LOCATION:${escapeIcs(location)}`);
     }
+    const organizer = e.groupName ?? `@${e.groupHandle}`;
+    const eventUrl = e.externalUrl || `${baseUrl}/events/${e.id}`;
+    const descParts: string[] = [];
+    descParts.push(`Hosted by: ${organizer}`);
+    descParts.push(`Link: ${eventUrl}`);
     if (e.description) {
       const plain = e.description.replace(/<[^>]*>/g, "");
-      lines.push(`DESCRIPTION:${escapeIcs(plain)}`);
+      descParts.push("", plain);
     }
-    const organizer = e.groupName ?? `@${e.groupHandle}`;
+    lines.push(`DESCRIPTION:${escapeIcs(descParts.join("\n"))}`);
     lines.push(`ORGANIZER;CN=${escapeIcs(organizer)}:mailto:noreply@${new URL(baseUrl).hostname}`);
-    const eventUrl = e.externalUrl || `${baseUrl}/events/${e.id}`;
     lines.push(`URL:${eventUrl}`);
     lines.push("END:VEVENT");
     return lines.join("\r\n");
