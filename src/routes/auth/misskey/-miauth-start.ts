@@ -1,5 +1,11 @@
 import { randomUUID } from "crypto";
 import { env } from "~/server/env";
+import { createMiAuthSession } from "~/server/miauth-sessions";
+
+function validateInstanceHostname(instance: string): boolean {
+  // Basic hostname validation: no spaces, slashes, or special chars that could enable SSRF
+  return /^[a-z0-9.-]+$/i.test(instance) && !instance.includes("//") && !instance.includes("@");
+}
 
 export const POST = async ({ request }: { request: Request }) => {
   const body = await request.json().catch(() => null) as { instance?: string } | null;
@@ -9,7 +15,18 @@ export const POST = async ({ request }: { request: Request }) => {
   }
 
   const instance = body.instance.replace(/^https?:\/\//, "").replace(/\/$/, "");
+
+  // Validate instance hostname format to prevent SSRF
+  if (!validateInstanceHostname(instance)) {
+    return Response.json({ error: "invalid_instance" }, { status: 400 });
+  }
+
   const sessionId = randomUUID();
+  
+  // Store session server-side for verification during callback
+  const ttlSeconds = parseInt(process.env.MIAUTH_SESSION_TTL_SECONDS ?? "300", 10); // 5 min default
+  createMiAuthSession(sessionId, instance, ttlSeconds);
+
   const callbackUrl = `${env.baseUrl}/auth/misskey/miauth-callback?instance=${encodeURIComponent(instance)}&session=${encodeURIComponent(sessionId)}`;
 
   const miAuthUrl = new URL(`https://${instance}/miauth/${sessionId}`);

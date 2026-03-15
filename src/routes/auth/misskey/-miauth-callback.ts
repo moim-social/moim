@@ -10,7 +10,10 @@ export const GET = async ({ request }: { request: Request }) => {
   }
 
   // Properly escape JSON values
-  const payload = JSON.stringify({ session: sessionId, instance });
+  const payload = JSON.stringify({ session: sessionId, instance })
+  .replace(/</g, "\\u003c")
+  .replace(/>/g, "\\u003e")
+  .replace(/&/g, "\\u0026");
 
   const html = `
     <!DOCTYPE html>
@@ -22,10 +25,15 @@ export const GET = async ({ request }: { request: Request }) => {
     </head>
     <body>
       <p>Processing authentication...</p>
+      <script id="miauth-payload" type="application/json">${payload}</script>
       <script>
         (async () => {
           try {
-            const payload = ${payload};
+            const payloadNode = document.getElementById("miauth-payload");
+            if (!payloadNode || !payloadNode.textContent) {
+              throw new Error("Missing MiAuth payload");
+            }
+            const payload = JSON.parse(payloadNode.textContent);
             console.log('Sending payload:', payload);
             
             const response = await fetch('/api/auth/misskey/miauth-callback', {

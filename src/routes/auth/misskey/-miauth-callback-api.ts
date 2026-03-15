@@ -3,6 +3,12 @@ import { eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { sessions, users, userFediverseAccounts } from "~/server/db/schema";
 import { toProxyHandle } from "~/server/fediverse/handles";
+import { verifyAndConsumeMiAuthSession } from "~/server/miauth-sessions";
+
+function validateInstanceHostname(instance: string): boolean {
+  // Basic hostname validation: no spaces, slashes, or special chars that could enable SSRF
+  return /^[a-z0-9.-]+$/i.test(instance) && !instance.includes("//") && !instance.includes("@");
+}
 
 export const POST = async ({ request }: { request: Request }) => {
   const body = (await request.json().catch(() => null)) as {
@@ -19,6 +25,19 @@ export const POST = async ({ request }: { request: Request }) => {
   }
 
   const { session: sessionId, instance } = body;
+
+  // Validate instance hostname format to prevent SSRF
+  if (!validateInstanceHostname(instance)) {
+    return Response.json({ error: "invalid_instance" }, { status: 400 });
+  }
+
+  // Verify session was created by this server and matches the instance
+  const sessionVerification = verifyAndConsumeMiAuthSession(sessionId, instance);
+  if (!sessionVerification.valid) {
+    const reason = sessionVerification.reason || "unknown";
+    console.warn(`[MiAuth Callback] Session verification failed: ${reason}`, { sessionId, instance });
+    return Response.json({ error: "invalid_session", reason }, { status: 401 });
+  }
 
   try {
     const checkRes = await fetch(`https://${instance}/api/miauth/${sessionId}/check`, {
@@ -44,42 +63,78 @@ export const POST = async ({ request }: { request: Request }) => {
       return Response.json({ error: "not_authorized" }, { status: 401 });
     }
 
-    const handle = mkUser.host
-      ? `${mkUser.username}@${mkUser.host}`
-      : `${mkUser.username}@${instance}`;
+    const handle = `${mkUser.username}@${instance}`;
 
     const proxyHandle = toProxyHandle(handle);
 
     // Find or create user
+    let user: typeof users.$inferSelect | undefined;
+
+    // First check userFediverseAccounts for existing link
     const [linked] = await db
       .select({ userId: userFediverseAccounts.userId })
       .from(userFediverseAccounts)
       .where(eq(userFediverseAccounts.fediverseHandle, handle))
       .limit(1);
 
-    let [user] = linked
-      ? await db.select().from(users).where(eq(users.id, linked.userId)).limit(1)
-      : [];
+    if (linked) {
+      const [found] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, linked.userId))
+        .limit(1);
+      user = found;
+    }
+
+    // If not found via userFediverseAccounts, check for legacy user with fediverseHandle
+    if (!user) {
+      const [legacyUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.fediverseHandle, handle))
+        .limit(1);
+
+      if (legacyUser) {
+        // Backfill userFediverseAccounts for legacy user in transaction
+        await db.transaction(async (tx) => {
+          await tx.insert(userFediverseAccounts).values({
+            userId: legacyUser.id,
+            fediverseHandle: handle,
+            proxyHandle,
+            isPrimary: true,
+          });
+        });
+        user = legacyUser;
+      }
+    }
+
+    // If still not found, create new user with userFediverseAccounts in transaction
+    if (!user) {
+      await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(users)
+          .values({
+            handle: proxyHandle,
+            fediverseHandle: handle,
+            displayName: mkUser.name ?? mkUser.username,
+            avatarUrl: mkUser.avatarUrl ?? null,
+            summary: null,
+          })
+          .returning();
+
+        await tx.insert(userFediverseAccounts).values({
+          userId: created.id,
+          fediverseHandle: handle,
+          proxyHandle,
+          isPrimary: true,
+        });
+
+        user = created;
+      });
+    }
 
     if (!user) {
-      const [created] = await db
-        .insert(users)
-        .values({
-          handle: proxyHandle,
-          fediverseHandle: handle,
-          displayName: mkUser.name ?? mkUser.username,
-          avatarUrl: mkUser.avatarUrl ?? null,
-          summary: null,
-        })
-        .returning();
-      user = created;
-
-      await db.insert(userFediverseAccounts).values({
-        userId: user.id,
-        fediverseHandle: handle,
-        proxyHandle,
-        isPrimary: true,
-      });
+      throw new Error("Failed to find or create user");
     }
 
     // Create session
@@ -93,7 +148,7 @@ export const POST = async ({ request }: { request: Request }) => {
     const headers = new Headers();
     headers.set(
       "Set-Cookie",
-      `session_token=${sessionToken}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`
+      `session_token=${sessionToken}; HttpOnly; Secure; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`
     );
 
     return new Response(
