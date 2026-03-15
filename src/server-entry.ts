@@ -885,6 +885,19 @@ app.use(
         if (response) return response;
       }
     }
+    // /ap/notes/{noteId} + browser → redirect to /notes/{noteId}
+    const apNoteMatch = url.pathname.match(/^\/ap\/notes\/([0-9a-f-]{36})$/);
+    if (apNoteMatch) {
+      const accept = request.headers.get("Accept") ?? "";
+      const isAP = accept.includes("application/activity+json")
+        || accept.includes("application/ld+json");
+      if (!isAP) {
+        return Response.redirect(
+          new URL(`/notes/${apNoteMatch[1]}`, url.origin),
+          302,
+        );
+      }
+    }
     // /ap/questions/{questionId} + browser → redirect to /polls/{pollId}
     const apQuestionMatch = url.pathname.match(/^\/ap\/questions\/([0-9a-f-]{36})$/);
     if (apQuestionMatch) {
