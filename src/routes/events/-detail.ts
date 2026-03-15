@@ -119,6 +119,18 @@ export const GET = async ({ request }: { request: Request }) => {
     declined: rsvpCountRows.find((c) => c.status === "declined")?.count ?? 0,
   };
 
+  // Get attendee preview (first 5 accepted RSVPs for public display)
+  const attendeePreview = await db
+    .select({
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(rsvps)
+    .innerJoin(users, eq(rsvps.userId, users.id))
+    .where(and(eq(rsvps.eventId, eventId), eq(rsvps.status, "accepted")))
+    .orderBy(rsvps.createdAt)
+    .limit(5);
+
   // Get questions with answer counts
   const questions = await db
     .select({
@@ -210,6 +222,7 @@ export const GET = async ({ request }: { request: Request }) => {
     event,
     organizers,
     rsvpCounts,
+    attendeePreview,
     questionCount,
     questions,
     tiers,
