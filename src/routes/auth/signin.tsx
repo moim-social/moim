@@ -11,7 +11,7 @@ export const Route = createFileRoute("/auth/signin")({
   component: SignInPage,
 });
 
-type Phase = "handle" | "challenge" | "waiting" | "success" | "error";
+type Phase = "handle" | "challenge" | "waiting" | "success" | "error" | "miauth";
 
 function SignInPage() {
   const navigate = useNavigate();
@@ -24,6 +24,7 @@ function SignInPage() {
   const [allEmojis, setAllEmojis] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  const [miAuthInstance, setMiAuthInstance] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Redirect authenticated users away from sign-in
@@ -58,6 +59,31 @@ function SignInPage() {
       setAllEmojis(data.allEmojis);
       setExpiresAt(data.expiresAt);
       setPhase("challenge");
+    } catch {
+      setError("Network error");
+    }
+  }
+
+  async function startMiAuth() {
+    setError("");
+    const instance = miAuthInstance.trim();
+    if (!instance) {
+      setError("Please enter a Misskey instance");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/misskey/miauth-start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instance }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Failed to start Misskey login");
+        return;
+      }
+      window.location.href = data.redirectUrl;
     } catch {
       setError("Network error");
     }
@@ -127,6 +153,7 @@ function SignInPage() {
     setAllEmojis([]);
     setError("");
     setExpiresAt("");
+    setMiAuthInstance("");
   }
 
   return (
@@ -138,6 +165,34 @@ function SignInPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+
+      {error && phase === "miauth" && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex gap-2 mb-6">
+        <Button
+          variant={phase === "handle" || phase === "challenge" || phase === "waiting" ? "default" : "outline"}
+          onClick={() => {
+            if (phase !== "handle" && phase !== "challenge" && phase !== "waiting") {
+              reset();
+            }
+          }}
+        >
+          Fediverse
+        </Button>
+        <Button
+          variant={phase === "miauth" ? "default" : "outline"}
+          onClick={() => {
+            setError("");
+            setPhase("miauth");
+          }}
+        >
+          Misskey
+        </Button>
+      </div>
 
       {phase === "handle" && (
         <form
@@ -159,6 +214,29 @@ function SignInPage() {
             />
           </div>
           <Button type="submit">Request OTP</Button>
+        </form>
+      )}
+
+      {phase === "miauth" && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            startMiAuth();
+          }}
+          className="space-y-4"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="instance">Misskey instance</Label>
+            <Input
+              id="instance"
+              type="text"
+              placeholder="misskey.io"
+              value={miAuthInstance}
+              onChange={(e) => setMiAuthInstance(e.target.value)}
+              required
+            />
+          </div>
+          <Button type="submit">Login with Misskey</Button>
         </form>
       )}
 

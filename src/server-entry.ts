@@ -86,6 +86,9 @@ import { GET as pollDetail } from "./routes/polls/-detail";
 import { POST as castVote } from "./routes/polls/-vote";
 import { POST as closePoll } from "./routes/polls/-close";
 import { GET as icsFeed } from "./routes/events/-ics";
+import { POST as miauthStart } from "./routes/auth/misskey/-miauth-start"
+import { GET as miauthCallback } from "./routes/auth/misskey/-miauth-callback"
+import { POST as miauthCallbackApi } from "./routes/auth/misskey/-miauth-callback-api"
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -174,6 +177,14 @@ apiRouter.post("/auth/otp-verifications", defineEventHandler(async (event) => {
 
 apiRouter.post("/auth/otp-check", defineEventHandler(async (event) => {
   return otpCheck({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/auth/misskey/miauth-start", defineEventHandler(async (event) => {
+  return miauthStart({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/auth/misskey/miauth-callback", defineEventHandler(async (event) => {
+  return miauthCallbackApi({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/session", defineEventHandler(async (event) => {
@@ -789,6 +800,11 @@ apiRouter.post("/instance-lookup", defineEventHandler(async (event) => {
 }));
 
 app.use("/api", useBase("/api", apiRouter.handler));
+
+// MiAuth callback (outside /api)
+app.use("/auth/misskey/miauth-callback", defineEventHandler(async (event) => {
+  return miauthCallback({ request: toWebRequest(event) });
+}));
 
 // Map image routes
 app.use("/maps", defineEventHandler(async (event) => {
