@@ -33,7 +33,7 @@ import { Separator } from "~/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { usePostHog } from "posthog-js/react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Users } from "lucide-react";
 import { RemoteDiscussionDialog } from "~/components/RemoteDiscussionDialog";
 
 const getEventMeta = createServerFn({ method: "GET" })
@@ -134,6 +134,7 @@ type EventData = {
     isLocal: boolean;
   }[];
   rsvpCounts: { accepted: number; declined: number };
+  attendeePreview: { displayName: string; avatarUrl: string | null }[];
   questionCount: number;
   canEdit: boolean;
 };
@@ -612,6 +613,42 @@ function EventDetailPage() {
                 />
               </button>
             )}
+          </div>
+        )}
+
+        {/* Attendee preview */}
+        {data?.attendeePreview && data.attendeePreview.length > 0 && (
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 size-5 shrink-0 text-muted-foreground">
+              <Users className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center">
+                {data.attendeePreview.map((a, i) => (
+                  <Avatar
+                    key={i}
+                    className={`size-7 border-2 border-background ${i > 0 ? "-ml-2" : ""}`}
+                  >
+                    {a.avatarUrl ? (
+                      <AvatarImage src={a.avatarUrl} alt={a.displayName} />
+                    ) : null}
+                    <AvatarFallback className="text-xs">
+                      {a.displayName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+                {attendeeCount > 5 && (
+                  <span className="ml-1.5 text-xs text-muted-foreground">
+                    +{attendeeCount - 5}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {attendeeCount <= 3
+                  ? data.attendeePreview.map((a) => a.displayName).join(", ")
+                  : `${data.attendeePreview.slice(0, 3).map((a) => a.displayName).join(", ")} and ${attendeeCount - 3} others`}
+              </p>
+            </div>
           </div>
         )}
       </div>
