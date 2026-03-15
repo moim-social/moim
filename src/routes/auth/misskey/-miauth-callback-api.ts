@@ -3,12 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { sessions, users, userFediverseAccounts } from "~/server/db/schema";
 import { toProxyHandle } from "~/server/fediverse/handles";
-import { verifyAndConsumeMiAuthSession } from "~/server/miauth-sessions";
-
-function validateInstanceHostname(instance: string): boolean {
-  // Basic hostname validation: no spaces, slashes, or special chars that could enable SSRF
-  return /^[a-z0-9.-]+$/i.test(instance) && !instance.includes("//") && !instance.includes("@");
-}
+import { verifyAndConsumeMiAuthSession, validateInstanceHostname } from "~/server/miauth-sessions";
 
 export const POST = async ({ request }: { request: Request }) => {
   const body = (await request.json().catch(() => null)) as {
@@ -40,11 +35,28 @@ export const POST = async ({ request }: { request: Request }) => {
   }
 
   try {
-    const checkRes = await fetch(`https://${instance}/api/miauth/${sessionId}/check`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+    const controller = new AbortController();
+    const timeoutMs = 10000; // 10 seconds
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
+
+    let checkRes: Response;
+    try {
+      checkRes = await fetch(`https://${instance}/api/miauth/${sessionId}/check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+        return Response.json({ error: "miauth_failed" }, { status: 401 });
+      }
+      throw fetchError;
+    }
 
     if (!checkRes.ok) {
       const errorText = await checkRes.text();
@@ -102,7 +114,7 @@ export const POST = async ({ request }: { request: Request }) => {
             fediverseHandle: handle,
             proxyHandle,
             isPrimary: true,
-          });
+          }).onConflictDoNothing();
         });
         user = legacyUser;
       }
@@ -157,6 +169,6 @@ export const POST = async ({ request }: { request: Request }) => {
     );
   } catch (error) {
     console.error("[MiAuth Callback] Error:", error);
-    return Response.json({ error: "server_error", details: String(error) }, { status: 500 });
+    return Response.json({ error: "server_error" }, { status: 500 });
   }
 };
