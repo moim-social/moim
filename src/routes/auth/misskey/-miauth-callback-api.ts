@@ -59,7 +59,10 @@ export const POST = async ({ request }: { request: Request }) => {
     }
 
     if (!checkRes.ok) {
-      const errorText = await checkRes.text();
+      console.error(
+        `[MiAuth Callback] Check endpoint returned ${checkRes.status}`,
+        { status: checkRes.status, instance, sessionId }
+      );
       return Response.json({ error: "miauth_failed" }, { status: 401 });
     }
 

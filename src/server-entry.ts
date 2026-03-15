@@ -89,11 +89,16 @@ import { GET as icsFeed } from "./routes/events/-ics";
 import { POST as miauthStart } from "./routes/auth/misskey/-miauth-start"
 import { GET as miauthCallback } from "./routes/auth/misskey/-miauth-callback"
 import { POST as miauthCallbackApi } from "./routes/auth/misskey/-miauth-callback-api"
+import { startCleanupInterval } from "./server/miauth-sessions"
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
 const app = createApp({ onError });
 app.use(integrateFederation(federation, () => undefined));
+
+// Start the MiAuth session cleanup interval
+startCleanupInterval();
+
 const apiRouter = createRouter();
 
 function buildForwardUrl(
