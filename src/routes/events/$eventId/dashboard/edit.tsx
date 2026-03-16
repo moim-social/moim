@@ -67,6 +67,7 @@ function EditTab() {
   const [endsAt, setEndsAt] = useState("");
   const [timezone, setTimezone] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+  const [venueDetail, setVenueDetail] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
@@ -104,6 +105,7 @@ function EditTab() {
         setTimezone(e.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
         setStartsAt(e.startsAt ? utcToDatetimeLocal(e.startsAt, e.timezone) : "");
         setEndsAt(e.endsAt ? utcToDatetimeLocal(e.endsAt, e.timezone) : "");
+        setVenueDetail(e.venueDetail ?? "");
         if (e.placeId) {
           setSelectedPlace({
             id: e.placeId,
@@ -154,6 +156,7 @@ function EditTab() {
           timezone: timezone || undefined,
           placeId: selectedPlace?.id || undefined,
           location: selectedPlace?.name || undefined,
+          venueDetail: venueDetail.trim() || undefined,
           externalUrl: externalUrl.trim() || undefined,
           groupActorId,
           questions: questions
@@ -206,6 +209,7 @@ function EditTab() {
           timezone: timezone || undefined,
           placeId: selectedPlace?.id || undefined,
           location: selectedPlace?.name || undefined,
+          venueDetail: venueDetail.trim() || undefined,
           externalUrl: externalUrl.trim() || undefined,
           questions: questions
             .filter((q) => q.question.trim())
@@ -567,12 +571,24 @@ function EditTab() {
         </div>
 
         {/* Location */}
-        <div className="space-y-1.5">
-          <Label>Location (optional)</Label>
-          <PlacePicker
-            value={selectedPlace}
-            onChange={setSelectedPlace}
-          />
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Location (optional)</Label>
+            <PlacePicker
+              value={selectedPlace}
+              onChange={setSelectedPlace}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="venueDetail">Venue detail (optional)</Label>
+            <Input
+              id="venueDetail"
+              type="text"
+              placeholder="e.g. 3F, Room 301"
+              value={venueDetail}
+              onChange={(e) => setVenueDetail(e.target.value)}
+            />
+          </div>
         </div>
 
         {/* External registration URL */}

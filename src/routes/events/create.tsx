@@ -79,6 +79,7 @@ function CreateEventPage() {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+  const [venueDetail, setVenueDetail] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -188,6 +189,7 @@ function CreateEventPage() {
           description: description || undefined,
           placeId: selectedPlace?.id || undefined,
           location: selectedPlace?.name || undefined,
+          venueDetail: venueDetail.trim() || undefined,
           externalUrl: externalUrl || undefined,
           categoryId: categoryId || undefined,
           groupActorId: groupActorId || undefined,
@@ -318,6 +320,8 @@ function CreateEventPage() {
           <WhereCard
             selectedPlace={selectedPlace}
             onSelectedPlaceChange={setSelectedPlace}
+            venueDetail={venueDetail}
+            onVenueDetailChange={setVenueDetail}
             groupActorId={groupActorId || undefined}
           />
 
