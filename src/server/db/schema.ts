@@ -165,8 +165,11 @@ export const eventTiers = pgTable("event_tiers", {
   id: uuid("id").defaultRandom().primaryKey(),
   eventId: uuid("event_id").references(() => events.id).notNull(),
   name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  price: varchar("price", { length: 64 }), // display label e.g. "Free", "¥1000", "$25"
   opensAt: timestamp("opens_at", { withTimezone: true }),
   closesAt: timestamp("closes_at", { withTimezone: true }),
+  capacity: integer("capacity"), // null = unlimited
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

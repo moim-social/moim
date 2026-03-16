@@ -3,6 +3,7 @@ import { db } from "~/server/db/client";
 import { actors, events, eventQuestions, eventTiers, groupMembers, rsvpAnswers, rsvps } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { getEventCategories } from "~/server/events/categories";
+import { getAcceptedCount, autoPromoteWaitlist } from "~/server/events/waitlist";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -33,9 +34,12 @@ export const POST = async ({ request }: { request: Request }) => {
     tiers?: Array<{
       id?: string;
       name: string;
+      description?: string | null;
+      price?: string | null;
       sortOrder: number;
       opensAt?: string | null;
       closesAt?: string | null;
+      capacity?: number | null;
     }>;
   } | null;
 
@@ -231,23 +235,51 @@ export const POST = async ({ request }: { request: Request }) => {
 
       // Upsert submitted tiers
       for (const t of body.tiers) {
+        const newCapacity = t.capacity === 0 ? null : (t.capacity ?? null);
+
         if (t.id && existingTiers.some((e) => e.id === t.id)) {
+          // Read old capacity before updating
+          const [oldTier] = await db
+            .select({ capacity: eventTiers.capacity })
+            .from(eventTiers)
+            .where(eq(eventTiers.id, t.id));
+          const oldCapacity = oldTier?.capacity ?? null;
+
           await db
             .update(eventTiers)
             .set({
               name: t.name,
+              description: t.description !== undefined ? (t.description?.trim() || null) : undefined,
+              price: t.price !== undefined ? (t.price?.trim() || null) : undefined,
               sortOrder: t.sortOrder,
               opensAt: t.opensAt ? new Date(t.opensAt) : null,
               closesAt: t.closesAt ? new Date(t.closesAt) : null,
+              capacity: newCapacity,
             })
             .where(eq(eventTiers.id, t.id));
+
+          // Auto-promote waitlisted RSVPs if capacity increased or removed
+          if (newCapacity === null && oldCapacity !== null) {
+            // Capacity removed → promote all waitlisted
+            await autoPromoteWaitlist(db as any, t.id);
+          } else if (newCapacity !== null && oldCapacity !== null && newCapacity > oldCapacity) {
+            // Capacity increased → promote up to the new available spots
+            const accepted = await getAcceptedCount(db as any, t.id);
+            const spotsToFill = newCapacity - accepted;
+            if (spotsToFill > 0) {
+              await autoPromoteWaitlist(db as any, t.id, spotsToFill);
+            }
+          }
         } else {
           await db.insert(eventTiers).values({
             eventId: event.id,
             name: t.name,
+            description: t.description?.trim() || null,
+            price: t.price?.trim() || null,
             sortOrder: t.sortOrder,
             opensAt: t.opensAt ? new Date(t.opensAt) : null,
             closesAt: t.closesAt ? new Date(t.closesAt) : null,
+            capacity: newCapacity,
           });
         }
       }

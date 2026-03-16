@@ -33,9 +33,12 @@ export const POST = async ({ request }: { request: Request }) => {
     }>;
     tiers?: Array<{
       name: string;
+      description?: string;
+      price?: string;
       sortOrder?: number;
       opensAt?: string;
       closesAt?: string;
+      capacity?: number;
     }>;
     published?: boolean;
   } | null;
@@ -154,9 +157,12 @@ export const POST = async ({ request }: { request: Request }) => {
       ? body.tiers.map((t, idx) => ({
           eventId: event.id,
           name: t.name,
+          description: t.description ?? null,
+          price: t.price ?? null,
           sortOrder: t.sortOrder ?? idx,
           opensAt: t.opensAt ? new Date(t.opensAt) : null,
           closesAt: t.closesAt ? new Date(t.closesAt) : null,
+          capacity: t.capacity ?? null,
         }))
       : [{ eventId: event.id, name: "General", sortOrder: 0 }];
     await db.insert(eventTiers).values(tiersToInsert);

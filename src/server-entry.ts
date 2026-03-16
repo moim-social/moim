@@ -34,6 +34,7 @@ import { POST as submitRsvp } from "./routes/events/-rsvp";
 import { POST as updateEvent } from "./routes/events/-update";
 import { GET as rsvpStatus } from "./routes/events/-rsvp-status";
 import { GET as eventAttendees } from "./routes/events/-attendees";
+import { PATCH as manageRsvp } from "./routes/events/-rsvp-manage";
 import { GET as noteDetail } from "./routes/notes/-detail";
 import { GET as listPlaces } from "./routes/places/-list";
 import { GET as placeDetail } from "./routes/places/-detail";
@@ -388,6 +389,19 @@ apiRouter.put("/events/:eventId/rsvp", defineEventHandler(async (event) => {
       ...(body ?? {}),
       eventId,
     })),
+  });
+}));
+
+apiRouter.patch("/events/:eventId/rsvps/:userId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  const userId = event.context.params?.userId;
+  if (!eventId || !userId) return Response.json({ error: "eventId and userId are required" }, { status: 400 });
+
+  return manageRsvp({
+    request: await forwardJson(request, `/api/events/${eventId}/rsvps/${userId}`, "PATCH", (body) => body ?? {}),
+    eventId,
+    userId,
   });
 }));
 

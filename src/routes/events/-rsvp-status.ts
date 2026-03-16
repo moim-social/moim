@@ -1,4 +1,4 @@
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, lt } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { rsvps, rsvpAnswers, eventQuestions, eventTiers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
@@ -23,13 +23,16 @@ export const GET = async ({ request }: { request: Request }) => {
     .where(eq(eventQuestions.eventId, eventId))
     .orderBy(eventQuestions.sortOrder);
 
-  // Get event tiers
+  // Get event tiers with capacity
   const tiers = await db
     .select({
       id: eventTiers.id,
       name: eventTiers.name,
+      description: eventTiers.description,
+      price: eventTiers.price,
       opensAt: eventTiers.opensAt,
       closesAt: eventTiers.closesAt,
+      capacity: eventTiers.capacity,
       sortOrder: eventTiers.sortOrder,
     })
     .from(eventTiers)
@@ -49,6 +52,7 @@ export const GET = async ({ request }: { request: Request }) => {
   const rsvpCounts = {
     accepted: counts.find((c) => c.status === "accepted")?.count ?? 0,
     declined: counts.find((c) => c.status === "declined")?.count ?? 0,
+    waitlisted: counts.find((c) => c.status === "waitlisted")?.count ?? 0,
   };
 
   // Get per-tier RSVP counts
@@ -63,11 +67,16 @@ export const GET = async ({ request }: { request: Request }) => {
     .groupBy(rsvps.tierId, rsvps.status);
 
   // Check current user's RSVP
-  let userRsvp: { status: string; tierId: string | null; answers: Array<{ questionId: string; answer: string }> } | null = null;
+  let userRsvp: {
+    status: string;
+    tierId: string | null;
+    answers: Array<{ questionId: string; answer: string }>;
+    waitlistPosition: number | null;
+  } | null = null;
   const user = await getSessionUser(request);
   if (user) {
     const [rsvp] = await db
-      .select({ status: rsvps.status, tierId: rsvps.tierId })
+      .select({ status: rsvps.status, tierId: rsvps.tierId, createdAt: rsvps.createdAt })
       .from(rsvps)
       .where(and(eq(rsvps.userId, user.id), eq(rsvps.eventId, eventId)))
       .limit(1);
@@ -85,7 +94,24 @@ export const GET = async ({ request }: { request: Request }) => {
             eq(rsvpAnswers.eventId, eventId),
           ),
         );
-      userRsvp = { status: rsvp.status!, tierId: rsvp.tierId, answers };
+
+      // Compute waitlist position if waitlisted
+      let waitlistPosition: number | null = null;
+      if (rsvp.status === "waitlisted" && rsvp.tierId && rsvp.createdAt) {
+        const [posRow] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(rsvps)
+          .where(
+            and(
+              eq(rsvps.tierId, rsvp.tierId),
+              eq(rsvps.status, "waitlisted"),
+              lt(rsvps.createdAt, rsvp.createdAt),
+            ),
+          );
+        waitlistPosition = (posRow?.count ?? 0) + 1;
+      }
+
+      userRsvp = { status: rsvp.status!, tierId: rsvp.tierId, answers, waitlistPosition };
     }
   }
 

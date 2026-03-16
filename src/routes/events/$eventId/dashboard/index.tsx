@@ -21,6 +21,9 @@ function OverviewTab() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Attending" value={rsvpCounts.accepted} />
+        {rsvpCounts.waitlisted > 0 && (
+          <StatCard label="Waitlisted" value={rsvpCounts.waitlisted} />
+        )}
         <StatCard label="Total RSVPs" value={rsvpCounts.total} />
         {isGroupEvent && (
           <>

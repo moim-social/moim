@@ -1,7 +1,8 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { rsvps, rsvpAnswers, eventQuestions, events, eventTiers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
+import { autoPromoteWaitlist } from "~/server/events/waitlist";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -37,9 +38,15 @@ export const POST = async ({ request }: { request: Request }) => {
 
   // Resolve tier
   let resolvedTierId: string | null = null;
+  let tierCapacity: number | null = null;
   if (body.status === "accepted") {
     const tiers = await db
-      .select({ id: eventTiers.id, opensAt: eventTiers.opensAt, closesAt: eventTiers.closesAt })
+      .select({
+        id: eventTiers.id,
+        opensAt: eventTiers.opensAt,
+        closesAt: eventTiers.closesAt,
+        capacity: eventTiers.capacity,
+      })
       .from(eventTiers)
       .where(eq(eventTiers.eventId, body.eventId))
       .orderBy(eventTiers.sortOrder);
@@ -60,6 +67,7 @@ export const POST = async ({ request }: { request: Request }) => {
           return Response.json({ error: "This tier is no longer open for registration" }, { status: 400 });
         }
         resolvedTierId = tier.id;
+        tierCapacity = tier.capacity;
       } else if (tiers.length === 1) {
         const tier = tiers[0];
         const now = new Date();
@@ -71,6 +79,7 @@ export const POST = async ({ request }: { request: Request }) => {
           return Response.json({ error: "Registration is closed" }, { status: 400 });
         }
         resolvedTierId = tier.id;
+        tierCapacity = tier.capacity;
       } else {
         return Response.json({ error: "tierId is required for multi-tier events" }, { status: 400 });
       }
@@ -101,21 +110,102 @@ export const POST = async ({ request }: { request: Request }) => {
     }
   }
 
+  // Check for existing active RSVP
+  if (body.status === "accepted") {
+    const [existing] = await db
+      .select({ status: rsvps.status })
+      .from(rsvps)
+      .where(and(eq(rsvps.userId, user.id), eq(rsvps.eventId, body.eventId)))
+      .limit(1);
+
+    if (existing && (existing.status === "accepted" || existing.status === "waitlisted")) {
+      return Response.json(
+        { error: "You are already registered for this event" },
+        { status: 409 },
+      );
+    }
+  }
+
   try {
+    let finalStatus: string = body.status;
+
     await db.transaction(async (tx) => {
-      // Upsert RSVP
-      await tx
-        .insert(rsvps)
-        .values({
-          userId: user.id,
-          eventId: body.eventId!,
-          tierId: resolvedTierId,
-          status: body.status!,
-        })
-        .onConflictDoUpdate({
-          target: [rsvps.userId, rsvps.eventId],
-          set: { status: body.status!, tierId: resolvedTierId },
-        });
+      if (body.status === "declined") {
+        // Read current RSVP before updating
+        const [currentRsvp] = await tx
+          .select({ status: rsvps.status, tierId: rsvps.tierId })
+          .from(rsvps)
+          .where(and(eq(rsvps.userId, user.id), eq(rsvps.eventId, body.eventId!)))
+          .limit(1);
+
+        // Upsert to declined
+        await tx
+          .insert(rsvps)
+          .values({
+            userId: user.id,
+            eventId: body.eventId!,
+            tierId: null,
+            status: "declined",
+          })
+          .onConflictDoUpdate({
+            target: [rsvps.userId, rsvps.eventId],
+            set: { status: "declined", tierId: null },
+          });
+
+        // Auto-promote if an accepted RSVP was declined
+        if (currentRsvp?.status === "accepted" && currentRsvp.tierId) {
+          await autoPromoteWaitlist(tx, currentRsvp.tierId, 1);
+        }
+
+        finalStatus = "declined";
+      } else {
+        // Accepting: check capacity
+        let effectiveStatus: "accepted" | "waitlisted" = "accepted";
+
+        if (resolvedTierId && tierCapacity != null && tierCapacity > 0) {
+          // Lock and count accepted RSVPs for this tier to prevent races
+          const [countRow] = await tx
+            .select({ count: sql<number>`count(*)::int` })
+            .from(rsvps)
+            .where(
+              and(
+                eq(rsvps.tierId, resolvedTierId),
+                eq(rsvps.status, "accepted"),
+              ),
+            );
+          const acceptedCount = countRow?.count ?? 0;
+
+          // If user already has an accepted RSVP for this tier, don't count them again
+          const [existingRsvp] = await tx
+            .select({ status: rsvps.status, tierId: rsvps.tierId })
+            .from(rsvps)
+            .where(and(eq(rsvps.userId, user.id), eq(rsvps.eventId, body.eventId!)))
+            .limit(1);
+
+          const alreadyAcceptedInTier =
+            existingRsvp?.status === "accepted" && existingRsvp.tierId === resolvedTierId;
+
+          if (!alreadyAcceptedInTier && acceptedCount >= tierCapacity) {
+            effectiveStatus = "waitlisted";
+          }
+        }
+
+        // Upsert RSVP
+        await tx
+          .insert(rsvps)
+          .values({
+            userId: user.id,
+            eventId: body.eventId!,
+            tierId: resolvedTierId,
+            status: effectiveStatus,
+          })
+          .onConflictDoUpdate({
+            target: [rsvps.userId, rsvps.eventId],
+            set: { status: effectiveStatus, tierId: resolvedTierId },
+          });
+
+        finalStatus = effectiveStatus;
+      }
 
       // Delete old answers
       await tx
@@ -127,7 +217,7 @@ export const POST = async ({ request }: { request: Request }) => {
           ),
         );
 
-      // Insert new answers (if accepting)
+      // Insert new answers (if accepting or waitlisted)
       if (body.status === "accepted" && body.answers && body.answers.length > 0) {
         const validAnswers = body.answers.filter((a) => a.answer.trim());
         if (validAnswers.length > 0) {
@@ -143,7 +233,7 @@ export const POST = async ({ request }: { request: Request }) => {
       }
     });
 
-    return Response.json({ ok: true, status: body.status });
+    return Response.json({ ok: true, status: finalStatus });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to submit RSVP";
     return Response.json({ error: message }, { status: 500 });
