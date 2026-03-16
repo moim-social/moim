@@ -46,8 +46,6 @@ type AuthProviderDef = {
   id: string;
   name: string;
   icon: string;
-  dialogTitle: string;
-  dialogDescription: string;
   DialogForm: React.ComponentType<{ onClose: () => void }>;
 };
 
@@ -56,18 +54,12 @@ const AUTH_PROVIDERS: AuthProviderDef[] = [
     id: "mastodon",
     name: "Mastodon",
     icon: "🐘",
-    dialogTitle: "Sign in with Mastodon",
-    dialogDescription:
-      "You'll be redirected to authorize on your Mastodon instance.",
     DialogForm: MastodonDialogForm,
   },
   {
     id: "misskey",
     name: "Misskey",
     icon: "🔑",
-    dialogTitle: "Sign in with Misskey",
-    dialogDescription:
-      "You'll be redirected to authorize on your Misskey instance.",
     DialogForm: MiAuthDialogForm,
   },
 ];
@@ -127,6 +119,7 @@ function StepIndicator({ phase }: { phase: Phase }) {
 function MastodonDialogForm({ onClose: _onClose }: { onClose: () => void }) {
   const [instance, setInstance] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function submit() {
     setError("");
@@ -136,6 +129,7 @@ function MastodonDialogForm({ onClose: _onClose }: { onClose: () => void }) {
       return;
     }
 
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/mastodon/oauth-start", {
         method: "POST",
@@ -145,52 +139,78 @@ function MastodonDialogForm({ onClose: _onClose }: { onClose: () => void }) {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Failed to start Mastodon login");
+        setLoading(false);
         return;
       }
       window.location.href = data.redirectUrl;
     } catch {
       setError("Network error");
+      setLoading(false);
     }
   }
 
-  return (
-    <>
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+  const trimmed = instance.trim();
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-        className="space-y-4"
-      >
-        <div className="space-y-2">
-          <Label htmlFor="mastodon-instance">Instance URL</Label>
-          <Input
-            id="mastodon-instance"
-            type="text"
-            placeholder="mastodon.social"
-            value={instance}
-            onChange={(e) => setInstance(e.target.value)}
-            required
-            autoFocus
-          />
-        </div>
-        <Button type="submit" className="w-full">
-          Continue to Mastodon
-        </Button>
-      </form>
-    </>
+  return (
+    <div className="flex flex-col sm:flex-row gap-6">
+      <div className="flex flex-col items-center justify-center sm:w-40 sm:shrink-0 sm:border-r sm:pr-6">
+        <span className="text-5xl">🐘</span>
+        <p className="mt-2 text-lg font-semibold">Mastodon</p>
+        <p className="text-xs text-muted-foreground text-center mt-1">
+          OAuth authorization
+        </p>
+      </div>
+
+      <div className="flex-1 space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+          className="space-y-4"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="mastodon-instance">Your instance</Label>
+            <Input
+              id="mastodon-instance"
+              type="text"
+              placeholder="mastodon.social"
+              value={instance}
+              onChange={(e) => setInstance(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+
+          {trimmed && (
+            <p className="text-xs text-muted-foreground">
+              → You'll be redirected to <strong>{trimmed}</strong> to authorize
+            </p>
+          )}
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Redirecting..." : "Continue →"}
+          </Button>
+        </form>
+
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <span>🔒</span> Read-only access — we never post on your behalf
+        </p>
+      </div>
+    </div>
   );
 }
 
 function MiAuthDialogForm({ onClose: _onClose }: { onClose: () => void }) {
   const [instance, setInstance] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function submit() {
     setError("");
@@ -200,6 +220,7 @@ function MiAuthDialogForm({ onClose: _onClose }: { onClose: () => void }) {
       return;
     }
 
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/misskey/miauth-start", {
         method: "POST",
@@ -209,46 +230,71 @@ function MiAuthDialogForm({ onClose: _onClose }: { onClose: () => void }) {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Failed to start Misskey login");
+        setLoading(false);
         return;
       }
       window.location.href = data.redirectUrl;
     } catch {
       setError("Network error");
+      setLoading(false);
     }
   }
 
-  return (
-    <>
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+  const trimmed = instance.trim();
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-        className="space-y-4"
-      >
-        <div className="space-y-2">
-          <Label htmlFor="miauth-instance">Instance URL</Label>
-          <Input
-            id="miauth-instance"
-            type="text"
-            placeholder="misskey.io"
-            value={instance}
-            onChange={(e) => setInstance(e.target.value)}
-            required
-            autoFocus
-          />
-        </div>
-        <Button type="submit" className="w-full">
-          Continue to Misskey
-        </Button>
-      </form>
-    </>
+  return (
+    <div className="flex flex-col sm:flex-row gap-6">
+      <div className="flex flex-col items-center justify-center sm:w-40 sm:shrink-0 sm:border-r sm:pr-6">
+        <span className="text-5xl">🔑</span>
+        <p className="mt-2 text-lg font-semibold">Misskey</p>
+        <p className="text-xs text-muted-foreground text-center mt-1">
+          MiAuth authorization
+        </p>
+      </div>
+
+      <div className="flex-1 space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+          className="space-y-4"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="miauth-instance">Your instance</Label>
+            <Input
+              id="miauth-instance"
+              type="text"
+              placeholder="misskey.io"
+              value={instance}
+              onChange={(e) => setInstance(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+
+          {trimmed && (
+            <p className="text-xs text-muted-foreground">
+              → You'll be redirected to <strong>{trimmed}</strong> to authorize
+            </p>
+          )}
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Redirecting..." : "Continue →"}
+          </Button>
+        </form>
+
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <span>🔒</span> Read-only access — we never post on your behalf
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -576,11 +622,11 @@ function SignInPage() {
           open={openProviderId === provider.id}
           onOpenChange={(open) => setOpenProviderId(open ? provider.id : null)}
         >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{provider.dialogTitle}</DialogTitle>
+          <DialogContent className="sm:max-w-xl">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Sign in with {provider.name}</DialogTitle>
               <DialogDescription>
-                {provider.dialogDescription}
+                Authorize via your {provider.name} instance
               </DialogDescription>
             </DialogHeader>
             <provider.DialogForm
