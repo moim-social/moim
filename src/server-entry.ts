@@ -90,6 +90,10 @@ import { POST as miauthStart } from "./routes/auth/misskey/-miauth-start"
 import { GET as miauthCallback } from "./routes/auth/misskey/-miauth-callback"
 import { POST as miauthCallbackApi } from "./routes/auth/misskey/-miauth-callback-api"
 import { startCleanupInterval } from "./server/miauth-sessions"
+import { POST as mastodonOAuthStart } from "./routes/auth/mastodon/-oauth-start"
+import { GET as mastodonOAuthCallback } from "./routes/auth/mastodon/-oauth-callback"
+import { POST as mastodonOAuthCallbackApi } from "./routes/auth/mastodon/-oauth-callback-api"
+import { startOAuthCleanupInterval } from "./server/mastodon-oauth-sessions"
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -98,6 +102,7 @@ app.use(integrateFederation(federation, () => undefined));
 
 // Start the MiAuth session cleanup interval
 startCleanupInterval();
+startOAuthCleanupInterval();
 
 const apiRouter = createRouter();
 
@@ -190,6 +195,14 @@ apiRouter.post("/auth/misskey/miauth-start", defineEventHandler(async (event) =>
 
 apiRouter.post("/auth/misskey/miauth-callback", defineEventHandler(async (event) => {
   return miauthCallbackApi({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/auth/mastodon/oauth-start", defineEventHandler(async (event) => {
+  return mastodonOAuthStart({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/auth/mastodon/oauth-callback", defineEventHandler(async (event) => {
+  return mastodonOAuthCallbackApi({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/session", defineEventHandler(async (event) => {
@@ -809,6 +822,11 @@ app.use("/api", useBase("/api", apiRouter.handler));
 // MiAuth callback (outside /api)
 app.use("/auth/misskey/miauth-callback", defineEventHandler(async (event) => {
   return miauthCallback({ request: toWebRequest(event) });
+}));
+
+// Mastodon OAuth callback (outside /api)
+app.use("/auth/mastodon/oauth-callback", defineEventHandler(async (event) => {
+  return mastodonOAuthCallback({ request: toWebRequest(event) });
 }));
 
 // Map image routes

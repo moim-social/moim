@@ -53,6 +53,15 @@ type AuthProviderDef = {
 
 const AUTH_PROVIDERS: AuthProviderDef[] = [
   {
+    id: "mastodon",
+    name: "Mastodon",
+    icon: "🐘",
+    dialogTitle: "Sign in with Mastodon",
+    dialogDescription:
+      "You'll be redirected to authorize on your Mastodon instance.",
+    DialogForm: MastodonDialogForm,
+  },
+  {
     id: "misskey",
     name: "Misskey",
     icon: "🔑",
@@ -61,15 +70,6 @@ const AUTH_PROVIDERS: AuthProviderDef[] = [
       "You'll be redirected to authorize on your Misskey instance.",
     DialogForm: MiAuthDialogForm,
   },
-  // To add a new provider:
-  // {
-  //   id: "email",
-  //   name: "Email",
-  //   icon: "✉️",
-  //   dialogTitle: "Sign in with Email",
-  //   dialogDescription: "We'll send a magic link to your inbox.",
-  //   DialogForm: EmailDialogForm,
-  // },
 ];
 
 // ─── OTP Step Indicator ─────────────────────────────────────────────────────
@@ -123,6 +123,70 @@ function StepIndicator({ phase }: { phase: Phase }) {
 }
 
 // ─── Provider Dialog Forms ──────────────────────────────────────────────────
+
+function MastodonDialogForm({ onClose: _onClose }: { onClose: () => void }) {
+  const [instance, setInstance] = useState("");
+  const [error, setError] = useState("");
+
+  async function submit() {
+    setError("");
+    const trimmed = instance.trim();
+    if (!trimmed) {
+      setError("Please enter a Mastodon instance");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/mastodon/oauth-start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instance: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Failed to start Mastodon login");
+        return;
+      }
+      window.location.href = data.redirectUrl;
+    } catch {
+      setError("Network error");
+    }
+  }
+
+  return (
+    <>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+        className="space-y-4"
+      >
+        <div className="space-y-2">
+          <Label htmlFor="mastodon-instance">Instance URL</Label>
+          <Input
+            id="mastodon-instance"
+            type="text"
+            placeholder="mastodon.social"
+            value={instance}
+            onChange={(e) => setInstance(e.target.value)}
+            required
+            autoFocus
+          />
+        </div>
+        <Button type="submit" className="w-full">
+          Continue to Mastodon
+        </Button>
+      </form>
+    </>
+  );
+}
 
 function MiAuthDialogForm({ onClose: _onClose }: { onClose: () => void }) {
   const [instance, setInstance] = useState("");
