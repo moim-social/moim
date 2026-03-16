@@ -24,6 +24,7 @@ export const POST = async ({ request }: { request: Request }) => {
     location?: string;
     externalUrl?: string;
     placeId?: string;
+    venueDetail?: string;
     organizerHandles?: string[];
     questions?: Array<{
       question: string;
@@ -139,6 +140,7 @@ export const POST = async ({ request }: { request: Request }) => {
         location: body.location ?? null,
         externalUrl: body.externalUrl ?? "",
         placeId: body.placeId ?? null,
+        venueDetail: body.venueDetail?.trim() || null,
         country,
         published: body.published ?? (isPersonalEvent ? true : false),
         startsAt,

@@ -22,6 +22,7 @@ export const POST = async ({ request }: { request: Request }) => {
     location?: string;
     externalUrl?: string;
     placeId?: string | null;
+    venueDetail?: string | null;
     headerImageUrl?: string | null;
     questions?: Array<{
       id?: string;
@@ -146,6 +147,7 @@ export const POST = async ({ request }: { request: Request }) => {
         location: body.location?.trim() || null,
         externalUrl: body.externalUrl?.trim() || "",
         placeId: body.placeId !== undefined ? (body.placeId || null) : undefined,
+        venueDetail: body.venueDetail !== undefined ? (body.venueDetail?.trim() || null) : undefined,
         headerImageUrl: body.headerImageUrl !== undefined ? (body.headerImageUrl || null) : undefined,
         ...(convertingToGroup
           ? { groupActorId: body.groupActorId!, published: false }

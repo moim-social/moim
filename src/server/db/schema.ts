@@ -145,6 +145,7 @@ export const events = pgTable("events", {
   location: text("location"),
   externalUrl: text("external_url").default("").notNull(),
   placeId: uuid("place_id").references(() => places.id),
+  venueDetail: text("venue_detail"),
   country: varchar("country", { length: 2 }), // ISO 3166-1 alpha-2
   headerImageUrl: text("header_image_url"),
   published: boolean("published").default(false).notNull(),

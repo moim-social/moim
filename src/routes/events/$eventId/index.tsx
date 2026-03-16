@@ -114,6 +114,7 @@ type EventData = {
     timezone: string | null;
     location: string | null;
     placeId: string | null;
+    venueDetail: string | null;
     placeName: string | null;
     placeAddress: string | null;
     placeLatitude: string | null;
@@ -588,6 +589,9 @@ function EventDetailPage() {
                 )}
                 {event.placeAddress && event.placeAddress !== event.placeName && (
                   <p className="text-xs text-muted-foreground">{event.placeAddress}</p>
+                )}
+                {event.venueDetail && (
+                  <p className="text-xs text-muted-foreground">{event.venueDetail}</p>
                 )}
               </div>
             </div>
