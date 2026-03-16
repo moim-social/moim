@@ -267,6 +267,20 @@
       "when": 1773653834604,
       "tag": "0037_certain_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1773658352332,
+      "tag": "0038_high_thaddeus_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1773659309573,
+      "tag": "0039_mean_rafael_vega",
+      "breakpoints": true
     }
   ]
 }
