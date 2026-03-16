@@ -54,8 +54,6 @@ export async function purgeExpiredAnonymousPii(): Promise<number> {
       await db
         .update(rsvps)
         .set({
-          token: null,
-          displayName: null,
           email: null,
           phone: null,
         })
