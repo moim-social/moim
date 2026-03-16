@@ -23,16 +23,12 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
-import { usePostHog } from "posthog-js/react";
 import { ExternalLink, Users } from "lucide-react";
 import { RemoteDiscussionDialog } from "~/components/RemoteDiscussionDialog";
 
@@ -134,7 +130,7 @@ type EventData = {
     domain: string | null;
     isLocal: boolean;
   }[];
-  rsvpCounts: { accepted: number; declined: number };
+  rsvpCounts: { accepted: number; declined: number; waitlisted: number };
   attendeePreview: { displayName: string; avatarUrl: string | null }[];
   questionCount: number;
   canEdit: boolean;
@@ -143,8 +139,13 @@ type EventData = {
 type TierInfo = {
   id: string;
   name: string;
+  description: string | null;
+  price: string | null;
   opensAt: string | null;
   closesAt: string | null;
+  capacity: number | null;
+  acceptedCount: number;
+  waitlistedCount: number;
   sortOrder: number;
 };
 
@@ -172,19 +173,20 @@ type RsvpData = {
     required: boolean;
   }>;
   tiers: TierInfo[];
-  rsvpCounts: { accepted: number; declined: number };
+  rsvpCounts: { accepted: number; declined: number; waitlisted: number };
   tierCounts: Array<{ tierId: string; status: string; count: number }>;
   userRsvp: {
     status: string;
     tierId: string | null;
     answers: Array<{ questionId: string; answer: string }>;
+    waitlistPosition: number | null;
   } | null;
   isAuthenticated: boolean;
 };
 
 function EventDetailPage() {
   const { categoryMap } = useEventCategoryMap();
-  const posthog = usePostHog();
+
   const { eventId } = Route.useParams();
   const [data, setData] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -198,11 +200,6 @@ function EventDetailPage() {
 
   // RSVP state
   const [rsvpData, setRsvpData] = useState<RsvpData | null>(null);
-  const [rsvpDialogOpen, setRsvpDialogOpen] = useState(false);
-  const [rsvpSubmitting, setRsvpSubmitting] = useState(false);
-  const [rsvpError, setRsvpError] = useState("");
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [selectedTierId, setSelectedTierId] = useState<string>("");
 
   useEffect(() => {
     fetch(`/api/events/${eventId}`)
@@ -223,22 +220,7 @@ function EventDetailPage() {
   useEffect(() => {
     fetch(`/api/events/${eventId}/rsvp`)
       .then((r) => r.json())
-      .then((d) => {
-        setRsvpData(d);
-        if (d.userRsvp?.answers) {
-          const prefilled: Record<string, string> = {};
-          for (const a of d.userRsvp.answers) {
-            prefilled[a.questionId] = a.answer;
-          }
-          setAnswers(prefilled);
-        }
-        // Pre-select tier
-        if (d.userRsvp?.tierId) {
-          setSelectedTierId(d.userRsvp.tierId);
-        } else if (d.tiers?.length === 1) {
-          setSelectedTierId(d.tiers[0].id);
-        }
-      })
+      .then((d) => setRsvpData(d))
       .catch(() => {});
   }, [eventId]);
 
@@ -312,48 +294,6 @@ function EventDetailPage() {
       .catch(() => {});
   }, [eventId]);
 
-  async function submitRsvp(status: "accepted" | "declined") {
-    setRsvpSubmitting(true);
-    setRsvpError("");
-    try {
-      const res = await fetch(`/api/events/${eventId}/rsvp`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId,
-          status,
-          tierId: selectedTierId || undefined,
-          answers: Object.entries(answers).map(([questionId, answer]) => ({
-            questionId,
-            answer,
-          })),
-        }),
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        setRsvpError(result.error ?? "Failed to submit RSVP");
-        setRsvpSubmitting(false);
-        return;
-      }
-      setRsvpDialogOpen(false);
-      posthog?.capture("rsvp_submitted", { eventId, status });
-      // Refresh RSVP data
-      const refreshRes = await fetch(`/api/events/${eventId}/rsvp`);
-      const refreshData = await refreshRes.json();
-      setRsvpData(refreshData);
-      if (refreshData.userRsvp?.answers) {
-        const prefilled: Record<string, string> = {};
-        for (const a of refreshData.userRsvp.answers) {
-          prefilled[a.questionId] = a.answer;
-        }
-        setAnswers(prefilled);
-      }
-    } catch {
-      setRsvpError("Network error");
-    }
-    setRsvpSubmitting(false);
-  }
-
   const attendeeCount = rsvpData?.rsvpCounts?.accepted ?? data?.rsvpCounts?.accepted ?? 0;
 
   const bottomBarContent = useMemo(() => {
@@ -379,8 +319,15 @@ function EventDetailPage() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">{attendeeCount} attending</span>
               {rsvpData.userRsvp && (
-                <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"} className="text-xs">
-                  {rsvpData.userRsvp.status === "accepted" ? "Going" : "Not going"}
+                <Badge
+                  variant={rsvpData.userRsvp.status === "accepted" ? "default" : rsvpData.userRsvp.status === "waitlisted" ? "outline" : "secondary"}
+                  className="text-xs"
+                >
+                  {rsvpData.userRsvp.status === "accepted"
+                    ? "Going"
+                    : rsvpData.userRsvp.status === "waitlisted"
+                      ? `Waitlisted (#${rsvpData.userRsvp.waitlistPosition ?? "?"})`
+                      : "Not going"}
                 </Badge>
               )}
             </div>
@@ -395,19 +342,19 @@ function EventDetailPage() {
               <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
             </Button>
           ) : rsvpData.userRsvp ? (
-            <Button size="sm" variant="outline" onClick={() => setRsvpDialogOpen(true)}>
-              Change RSVP
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/events/$eventId/register" params={{ eventId }}>Change RSVP</Link>
             </Button>
           ) : (
-            <Button size="sm" onClick={() => setRsvpDialogOpen(true)}>
-              RSVP
+            <Button size="sm" asChild>
+              <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
             </Button>
           )}
         </div>
       );
     }
     return null;
-  }, [data, rsvpData, attendeeCount, setRsvpDialogOpen]);
+  }, [data, rsvpData, attendeeCount, eventId]);
 
   useBottomBarSlot(bottomBarContent);
 
@@ -495,8 +442,14 @@ function EventDetailPage() {
             {attendeeCount} attending
           </span>
           {rsvpData.userRsvp && (
-            <Badge variant={rsvpData.userRsvp.status === "accepted" ? "default" : "secondary"}>
-              {rsvpData.userRsvp.status === "accepted" ? "Attending" : "Not attending"}
+            <Badge
+              variant={rsvpData.userRsvp.status === "accepted" ? "default" : rsvpData.userRsvp.status === "waitlisted" ? "outline" : "secondary"}
+            >
+              {rsvpData.userRsvp.status === "accepted"
+                ? "Attending"
+                : rsvpData.userRsvp.status === "waitlisted"
+                  ? `Waitlisted (#${rsvpData.userRsvp.waitlistPosition ?? "?"})`
+                  : "Not attending"}
             </Badge>
           )}
         </div>
@@ -511,12 +464,12 @@ function EventDetailPage() {
           <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
         </Button>
       ) : rsvpData.userRsvp ? (
-        <Button variant="outline" className="w-full" onClick={() => setRsvpDialogOpen(true)}>
-          Change RSVP
+        <Button variant="outline" className="w-full" asChild>
+          <Link to="/events/$eventId/register" params={{ eventId }}>Change RSVP</Link>
         </Button>
       ) : (
-        <Button className="w-full" onClick={() => setRsvpDialogOpen(true)}>
-          RSVP
+        <Button className="w-full" asChild>
+          <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
         </Button>
       )}
     </>
@@ -1039,110 +992,6 @@ function EventDetailPage() {
         </Dialog>
       )}
 
-      {/* RSVP Dialog — only for events without external URL */}
-      {!event.externalUrl && <Dialog open={rsvpDialogOpen} onOpenChange={setRsvpDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>RSVP to {event.title}</DialogTitle>
-            <DialogDescription>
-              {rsvpData?.questions?.length
-                ? "Please answer the questions below."
-                : "Confirm your attendance."}
-            </DialogDescription>
-          </DialogHeader>
-
-          {rsvpError && (
-            <p className="text-sm text-destructive">{rsvpError}</p>
-          )}
-
-          {rsvpData?.tiers && rsvpData.tiers.length > 1 && (
-            <div className="space-y-1.5">
-              <Label>Ticket Type</Label>
-              <div className="space-y-2">
-                {rsvpData.tiers.map((t) => {
-                  const now = new Date();
-                  const isOpen = (!t.opensAt || new Date(t.opensAt) <= now)
-                              && (!t.closesAt || new Date(t.closesAt) > now);
-                  const fmt = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-                  return (
-                    <label
-                      key={t.id}
-                      className={`flex items-center gap-3 rounded-md border p-3 cursor-pointer transition-colors ${
-                        selectedTierId === t.id ? "border-primary bg-accent/50" : ""
-                      } ${!isOpen ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                      <input
-                        type="radio"
-                        name="tier"
-                        value={t.id}
-                        checked={selectedTierId === t.id}
-                        disabled={!isOpen}
-                        onChange={(e) => setSelectedTierId(e.target.value)}
-                        className="shrink-0"
-                      />
-                      <div>
-                        <span className="text-sm font-medium">
-                          {t.name}{!isOpen ? " (closed)" : ""}
-                        </span>
-                        {(t.opensAt || t.closesAt) && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {t.opensAt && t.closesAt
-                              ? `${fmt(t.opensAt)} – ${fmt(t.closesAt)}`
-                              : t.opensAt
-                                ? `Opens ${fmt(t.opensAt)}`
-                                : `Closes ${fmt(t.closesAt!)}`}
-                          </p>
-                        )}
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {rsvpData?.questions && rsvpData.questions.length > 0 && (
-            <div className="space-y-4">
-              {rsvpData.questions.map((q) => (
-                <div key={q.id} className="space-y-1.5">
-                  <Label>
-                    {q.question}
-                    {q.required && <span className="text-destructive ml-1">*</span>}
-                  </Label>
-                  <Input
-                    value={answers[q.id] ?? ""}
-                    onChange={(e) =>
-                      setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
-                    }
-                    placeholder="Your answer..."
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-
-          <DialogFooter>
-            {rsvpData?.userRsvp?.status === "accepted" ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => submitRsvp("declined")}
-                  disabled={rsvpSubmitting}
-                >
-                  Not attending
-                </Button>
-                <Button onClick={() => submitRsvp("accepted")} disabled={rsvpSubmitting}>
-                  {rsvpSubmitting ? "Submitting..." : "Update"}
-                </Button>
-              </>
-            ) : (
-              <Button onClick={() => submitRsvp("accepted")} disabled={rsvpSubmitting}>
-                {rsvpSubmitting ? "Submitting..." : "Attend"}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>}
     </div>
   );
 }
