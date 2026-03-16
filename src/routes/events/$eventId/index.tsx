@@ -182,6 +182,9 @@ type RsvpData = {
     waitlistPosition: number | null;
   } | null;
   isAuthenticated: boolean;
+  allowAnonymousRsvp: boolean;
+  anonymousContactFields: { email?: string; phone?: string } | null;
+  anonymousCount: number;
 };
 
 function EventDetailPage() {
@@ -295,6 +298,10 @@ function EventDetailPage() {
   }, [eventId]);
 
   const attendeeCount = rsvpData?.rsvpCounts?.accepted ?? data?.rsvpCounts?.accepted ?? 0;
+  const anonymousCount = rsvpData?.anonymousCount ?? 0;
+  const attendeeLabel = anonymousCount > 0
+    ? `${attendeeCount} attending (${anonymousCount} anonymous)`
+    : `${attendeeCount} attending`;
 
   const bottomBarContent = useMemo(() => {
     if (!data) return null;
@@ -317,7 +324,7 @@ function EventDetailPage() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{attendeeCount} attending</span>
+              <span className="text-sm font-medium">{attendeeLabel}</span>
               {rsvpData.userRsvp && (
                 <Badge
                   variant={rsvpData.userRsvp.status === "accepted" ? "default" : rsvpData.userRsvp.status === "waitlisted" ? "outline" : "secondary"}
@@ -338,9 +345,21 @@ function EventDetailPage() {
             )}
           </div>
           {!rsvpData.isAuthenticated ? (
-            <Button size="sm" asChild>
-              <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
-            </Button>
+            rsvpData.allowAnonymousRsvp ? (
+              rsvpData.userRsvp ? (
+                <Button size="sm" variant="outline" asChild>
+                  <Link to="/events/$eventId/register" params={{ eventId }}>View Registration</Link>
+                </Button>
+              ) : (
+                <Button size="sm" asChild>
+                  <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
+                </Button>
+              )
+            ) : (
+              <Button size="sm" asChild>
+                <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
+              </Button>
+            )
           ) : rsvpData.userRsvp ? (
             <Button size="sm" variant="outline" asChild>
               <Link to="/events/$eventId/register" params={{ eventId }}>Change RSVP</Link>
@@ -439,7 +458,7 @@ function EventDetailPage() {
       <div>
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
-            {attendeeCount} attending
+            {attendeeLabel}
           </span>
           {rsvpData.userRsvp && (
             <Badge
@@ -460,9 +479,21 @@ function EventDetailPage() {
         )}
       </div>
       {!rsvpData.isAuthenticated ? (
-        <Button asChild className="w-full">
-          <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
-        </Button>
+        rsvpData.allowAnonymousRsvp ? (
+          rsvpData.userRsvp ? (
+            <Button variant="outline" className="w-full" asChild>
+              <Link to="/events/$eventId/register" params={{ eventId }}>View Registration</Link>
+            </Button>
+          ) : (
+            <Button className="w-full" asChild>
+              <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
+            </Button>
+          )
+        ) : (
+          <Button asChild className="w-full">
+            <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
+          </Button>
+        )
       ) : rsvpData.userRsvp ? (
         <Button variant="outline" className="w-full" asChild>
           <Link to="/events/$eventId/register" params={{ eventId }}>Change RSVP</Link>

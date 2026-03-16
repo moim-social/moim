@@ -15,7 +15,7 @@ function AttendeesTab() {
   const { data, eventId, refresh } = useDashboard();
   const { attendees } = data;
   const [search, setSearch] = useState("");
-  const [managingUserId, setManagingUserId] = useState<string | null>(null);
+  const [managingRsvpId, setManagingRsvpId] = useState<string | null>(null);
 
   const filteredAttendees = attendees.filter((a) => {
     if (!search) return true;
@@ -30,10 +30,10 @@ function AttendeesTab() {
   const waitlisted = filteredAttendees.filter((a) => a.status === "waitlisted");
   const declined = filteredAttendees.filter((a) => a.status === "declined");
 
-  async function handleStatusChange(userId: string, newStatus: "accepted" | "waitlisted") {
-    setManagingUserId(userId);
+  async function handleStatusChange(rsvpId: string, newStatus: "accepted" | "waitlisted") {
+    setManagingRsvpId(rsvpId);
     try {
-      const res = await fetch(`/api/events/${eventId}/rsvps/${userId}`, {
+      const res = await fetch(`/api/events/${eventId}/rsvps/${rsvpId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
@@ -44,10 +44,10 @@ function AttendeesTab() {
     } catch {
       // ignore
     }
-    setManagingUserId(null);
+    setManagingRsvpId(null);
   }
 
-  function statusBadge(status: string) {
+  function statusBadge(status: string, isAnonymous?: boolean) {
     if (status === "accepted") return <Badge variant="default">Attending</Badge>;
     if (status === "waitlisted") return <Badge variant="outline">Waitlisted</Badge>;
     return <Badge variant="secondary">Not attending</Badge>;
@@ -55,7 +55,7 @@ function AttendeesTab() {
 
   function AttendeeRow({ a, showActions }: { a: (typeof attendees)[0]; showActions?: "promote" | "demote" }) {
     return (
-      <tr key={a.userId} className="border-b last:border-0 hover:bg-muted/30">
+      <tr key={a.rsvpId} className="border-b last:border-0 hover:bg-muted/30">
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
             <Avatar className="size-8">
@@ -67,20 +67,31 @@ function AttendeesTab() {
             <div>
               <div>
                 <span className="font-medium">{a.displayName}</span>
+                {a.isAnonymous && (
+                  <Badge variant="outline" className="ml-1.5 text-[10px] px-1 py-0">Anonymous</Badge>
+                )}
                 {a.handle && (
                   <span className="text-muted-foreground ml-1.5 text-xs">
                     @{a.handle}
                   </span>
                 )}
               </div>
-              {a.tierName && (
-                <span className="text-xs text-muted-foreground">{a.tierName}</span>
-              )}
+              <div className="flex items-center gap-2">
+                {a.tierName && (
+                  <span className="text-xs text-muted-foreground">{a.tierName}</span>
+                )}
+                {a.isAnonymous && a.email && (
+                  <span className="text-xs text-muted-foreground">{a.email}</span>
+                )}
+                {a.isAnonymous && a.phone && (
+                  <span className="text-xs text-muted-foreground">{a.phone}</span>
+                )}
+              </div>
             </div>
           </div>
         </td>
         <td className="px-4 py-3">
-          {statusBadge(a.status)}
+          {statusBadge(a.status, a.isAnonymous)}
         </td>
         <td className="px-4 py-3 text-muted-foreground text-xs">
           {new Date(a.createdAt).toLocaleDateString()}
@@ -90,20 +101,20 @@ function AttendeesTab() {
             <Button
               size="sm"
               variant="outline"
-              disabled={managingUserId === a.userId}
-              onClick={() => handleStatusChange(a.userId, "accepted")}
+              disabled={managingRsvpId === a.rsvpId}
+              onClick={() => handleStatusChange(a.rsvpId, "accepted")}
             >
-              {managingUserId === a.userId ? "..." : "Promote"}
+              {managingRsvpId === a.rsvpId ? "..." : "Promote"}
             </Button>
           )}
           {showActions === "demote" && (
             <Button
               size="sm"
               variant="ghost"
-              disabled={managingUserId === a.userId}
-              onClick={() => handleStatusChange(a.userId, "waitlisted")}
+              disabled={managingRsvpId === a.rsvpId}
+              onClick={() => handleStatusChange(a.rsvpId, "waitlisted")}
             >
-              {managingUserId === a.userId ? "..." : "Move to Waitlist"}
+              {managingRsvpId === a.rsvpId ? "..." : "Move to Waitlist"}
             </Button>
           )}
         </td>
@@ -111,12 +122,15 @@ function AttendeesTab() {
     );
   }
 
+  const anonymousAccepted = accepted.filter((a) => a.isAnonymous).length;
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Attendees</h2>
         <p className="mt-1 text-muted-foreground">
           {accepted.length} attending
+          {anonymousAccepted > 0 && ` (${anonymousAccepted} anonymous)`}
           {waitlisted.length > 0 && ` · ${waitlisted.length} waitlisted`}
           {declined.length > 0 && ` · ${declined.length} declined`}
         </p>
@@ -154,7 +168,7 @@ function AttendeesTab() {
                   </thead>
                   <tbody>
                     {accepted.map((a) => (
-                      <AttendeeRow key={a.userId} a={a} showActions="demote" />
+                      <AttendeeRow key={a.rsvpId} a={a} showActions="demote" />
                     ))}
                   </tbody>
                 </table>
@@ -178,7 +192,7 @@ function AttendeesTab() {
                   </thead>
                   <tbody>
                     {waitlisted.map((a) => (
-                      <AttendeeRow key={a.userId} a={a} showActions="promote" />
+                      <AttendeeRow key={a.rsvpId} a={a} showActions="promote" />
                     ))}
                   </tbody>
                 </table>
@@ -202,7 +216,7 @@ function AttendeesTab() {
                   </thead>
                   <tbody>
                     {declined.map((a) => (
-                      <AttendeeRow key={a.userId} a={a} />
+                      <AttendeeRow key={a.rsvpId} a={a} />
                     ))}
                   </tbody>
                 </table>

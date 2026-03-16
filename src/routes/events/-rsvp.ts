@@ -1,8 +1,9 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { rsvps, rsvpAnswers, eventQuestions, events, eventTiers } from "~/server/db/schema";
+import { rsvps, rsvpAnswers, events } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { autoPromoteWaitlist } from "~/server/events/waitlist";
+import { resolveTier, validateRequiredAnswers, checkCapacityAndDetermineStatus } from "~/server/events/rsvp-helpers";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -40,74 +41,16 @@ export const POST = async ({ request }: { request: Request }) => {
   let resolvedTierId: string | null = null;
   let tierCapacity: number | null = null;
   if (body.status === "accepted") {
-    const tiers = await db
-      .select({
-        id: eventTiers.id,
-        opensAt: eventTiers.opensAt,
-        closesAt: eventTiers.closesAt,
-        capacity: eventTiers.capacity,
-      })
-      .from(eventTiers)
-      .where(eq(eventTiers.eventId, body.eventId))
-      .orderBy(eventTiers.sortOrder);
-
-    if (tiers.length > 0) {
-      if (body.tierId) {
-        const tier = tiers.find((t) => t.id === body.tierId);
-        if (!tier) {
-          return Response.json({ error: "Invalid tier for this event" }, { status: 400 });
-        }
-        // Validate date range
-        const now = new Date();
-        if (tier.opensAt && now < tier.opensAt) {
-          return Response.json({ error: "This tier is not yet open for registration" }, { status: 400 });
-        }
-        const closesAt = tier.closesAt ?? event.startsAt;
-        if (now > closesAt) {
-          return Response.json({ error: "This tier is no longer open for registration" }, { status: 400 });
-        }
-        resolvedTierId = tier.id;
-        tierCapacity = tier.capacity;
-      } else if (tiers.length === 1) {
-        const tier = tiers[0];
-        const now = new Date();
-        if (tier.opensAt && now < tier.opensAt) {
-          return Response.json({ error: "Registration is not yet open" }, { status: 400 });
-        }
-        const closesAt = tier.closesAt ?? event.startsAt;
-        if (now > closesAt) {
-          return Response.json({ error: "Registration is closed" }, { status: 400 });
-        }
-        resolvedTierId = tier.id;
-        tierCapacity = tier.capacity;
-      } else {
-        return Response.json({ error: "tierId is required for multi-tier events" }, { status: 400 });
-      }
-    }
+    const tierResult = await resolveTier(body.eventId, body.tierId, event.startsAt);
+    if (tierResult instanceof Response) return tierResult;
+    resolvedTierId = tierResult.tierId;
+    tierCapacity = tierResult.capacity;
   }
 
   // If accepting, validate required questions are answered
   if (body.status === "accepted") {
-    const questions = await db
-      .select({ id: eventQuestions.id, required: eventQuestions.required })
-      .from(eventQuestions)
-      .where(eq(eventQuestions.eventId, body.eventId));
-
-    const requiredIds = new Set(
-      questions.filter((q) => q.required).map((q) => q.id),
-    );
-    const answeredIds = new Set(
-      (body.answers ?? []).filter((a) => a.answer.trim()).map((a) => a.questionId),
-    );
-
-    for (const reqId of requiredIds) {
-      if (!answeredIds.has(reqId)) {
-        return Response.json(
-          { error: "All required questions must be answered" },
-          { status: 400 },
-        );
-      }
-    }
+    const validationError = await validateRequiredAnswers(body.eventId, body.answers);
+    if (validationError) return validationError;
   }
 
   // Check for existing active RSVP
@@ -133,7 +76,7 @@ export const POST = async ({ request }: { request: Request }) => {
       if (body.status === "declined") {
         // Read current RSVP before updating
         const [currentRsvp] = await tx
-          .select({ status: rsvps.status, tierId: rsvps.tierId })
+          .select({ id: rsvps.id, status: rsvps.status, tierId: rsvps.tierId })
           .from(rsvps)
           .where(and(eq(rsvps.userId, user.id), eq(rsvps.eventId, body.eventId!)))
           .limit(1);
@@ -149,6 +92,7 @@ export const POST = async ({ request }: { request: Request }) => {
           })
           .onConflictDoUpdate({
             target: [rsvps.userId, rsvps.eventId],
+            targetWhere: sql`user_id IS NOT NULL`,
             set: { status: "declined", tierId: null },
           });
 
@@ -162,36 +106,24 @@ export const POST = async ({ request }: { request: Request }) => {
         // Accepting: check capacity
         let effectiveStatus: "accepted" | "waitlisted" = "accepted";
 
+        // Find existing RSVP for capacity exclusion
+        const [existingRsvp] = await tx
+          .select({ id: rsvps.id, status: rsvps.status, tierId: rsvps.tierId })
+          .from(rsvps)
+          .where(and(eq(rsvps.userId, user.id), eq(rsvps.eventId, body.eventId!)))
+          .limit(1);
+
         if (resolvedTierId && tierCapacity != null && tierCapacity > 0) {
-          // Lock and count accepted RSVPs for this tier to prevent races
-          const [countRow] = await tx
-            .select({ count: sql<number>`count(*)::int` })
-            .from(rsvps)
-            .where(
-              and(
-                eq(rsvps.tierId, resolvedTierId),
-                eq(rsvps.status, "accepted"),
-              ),
-            );
-          const acceptedCount = countRow?.count ?? 0;
-
-          // If user already has an accepted RSVP for this tier, don't count them again
-          const [existingRsvp] = await tx
-            .select({ status: rsvps.status, tierId: rsvps.tierId })
-            .from(rsvps)
-            .where(and(eq(rsvps.userId, user.id), eq(rsvps.eventId, body.eventId!)))
-            .limit(1);
-
-          const alreadyAcceptedInTier =
-            existingRsvp?.status === "accepted" && existingRsvp.tierId === resolvedTierId;
-
-          if (!alreadyAcceptedInTier && acceptedCount >= tierCapacity) {
-            effectiveStatus = "waitlisted";
-          }
+          effectiveStatus = await checkCapacityAndDetermineStatus(
+            tx,
+            resolvedTierId,
+            tierCapacity,
+            existingRsvp?.id,
+          );
         }
 
         // Upsert RSVP
-        await tx
+        const [upsertedRsvp] = await tx
           .insert(rsvps)
           .values({
             userId: user.id,
@@ -201,34 +133,32 @@ export const POST = async ({ request }: { request: Request }) => {
           })
           .onConflictDoUpdate({
             target: [rsvps.userId, rsvps.eventId],
+            targetWhere: sql`user_id IS NOT NULL`,
             set: { status: effectiveStatus, tierId: resolvedTierId },
-          });
+          })
+          .returning({ id: rsvps.id });
 
         finalStatus = effectiveStatus;
-      }
 
-      // Delete old answers
-      await tx
-        .delete(rsvpAnswers)
-        .where(
-          and(
-            eq(rsvpAnswers.userId, user.id),
-            eq(rsvpAnswers.eventId, body.eventId!),
-          ),
-        );
+        // Delete old answers
+        await tx
+          .delete(rsvpAnswers)
+          .where(eq(rsvpAnswers.rsvpId, upsertedRsvp.id));
 
-      // Insert new answers (if accepting or waitlisted)
-      if (body.status === "accepted" && body.answers && body.answers.length > 0) {
-        const validAnswers = body.answers.filter((a) => a.answer.trim());
-        if (validAnswers.length > 0) {
-          await tx.insert(rsvpAnswers).values(
-            validAnswers.map((a) => ({
-              userId: user.id,
-              eventId: body.eventId!,
-              questionId: a.questionId,
-              answer: a.answer,
-            })),
-          );
+        // Insert new answers (if accepting or waitlisted)
+        if (body.status === "accepted" && body.answers && body.answers.length > 0) {
+          const validAnswers = body.answers.filter((a) => a.answer.trim());
+          if (validAnswers.length > 0) {
+            await tx.insert(rsvpAnswers).values(
+              validAnswers.map((a) => ({
+                rsvpId: upsertedRsvp.id,
+                userId: user.id,
+                eventId: body.eventId!,
+                questionId: a.questionId,
+                answer: a.answer,
+              })),
+            );
+          }
         }
       }
     });

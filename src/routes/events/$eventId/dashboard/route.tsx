@@ -108,10 +108,14 @@ export type DashboardData = {
 };
 
 export type Attendee = {
-  userId: string;
+  rsvpId: string;
+  userId: string | null;
+  isAnonymous: boolean;
   handle: string | null;
   displayName: string;
   avatarUrl: string | null;
+  email: string | null;
+  phone: string | null;
   status: string;
   tierName: string | null;
   createdAt: string;
@@ -194,16 +198,20 @@ const getDashboardData = createServerFn({ method: "GET" })
 
     const attendeeRows = await db
       .select({
+        rsvpId: rsvps.id,
         userId: rsvps.userId,
         status: rsvps.status,
         createdAt: rsvps.createdAt,
         handle: userFediverseAccounts.fediverseHandle,
-        displayName: users.displayName,
+        userDisplayName: users.displayName,
         avatarUrl: users.avatarUrl,
         tierName: eventTiers.name,
+        anonDisplayName: rsvps.displayName,
+        anonEmail: rsvps.email,
+        anonPhone: rsvps.phone,
       })
       .from(rsvps)
-      .innerJoin(users, eq(rsvps.userId, users.id))
+      .leftJoin(users, eq(rsvps.userId, users.id))
       .leftJoin(userFediverseAccounts, and(
         eq(userFediverseAccounts.userId, users.id),
         eq(userFediverseAccounts.isPrimary, true),
@@ -270,8 +278,8 @@ const getDashboardData = createServerFn({ method: "GET" })
         closesAt: eventTiers.closesAt,
         capacity: eventTiers.capacity,
         sortOrder: eventTiers.sortOrder,
-        acceptedCount: sql<number>`count(${rsvps.userId}) filter (where ${rsvps.status} = 'accepted')::int`,
-        waitlistedCount: sql<number>`count(${rsvps.userId}) filter (where ${rsvps.status} = 'waitlisted')::int`,
+        acceptedCount: sql<number>`count(${rsvps.id}) filter (where ${rsvps.status} = 'accepted')::int`,
+        waitlistedCount: sql<number>`count(${rsvps.id}) filter (where ${rsvps.status} = 'waitlisted')::int`,
       })
       .from(eventTiers)
       .leftJoin(rsvps, eq(rsvps.tierId, eventTiers.id))
@@ -290,7 +298,19 @@ const getDashboardData = createServerFn({ method: "GET" })
     return {
       event: { ...event, status },
       rsvpCounts,
-      attendees: attendeeRows,
+      attendees: attendeeRows.map((r) => ({
+        rsvpId: r.rsvpId,
+        userId: r.userId,
+        isAnonymous: r.userId === null,
+        handle: r.handle,
+        displayName: r.userDisplayName ?? r.anonDisplayName ?? "Anonymous",
+        avatarUrl: r.avatarUrl,
+        email: r.anonEmail,
+        phone: r.anonPhone,
+        status: r.status,
+        tierName: r.tierName,
+        createdAt: r.createdAt,
+      })),
       engagementCounts,
       recentActivity: recentActivityRows,
       participantEngagement: participantEngagementRows,
