@@ -87,3 +87,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Ensure heading hierarchy is visually distinct in prose-sm */
+.prose-sm :where(h1):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  font-size: 1.5em;
+  font-weight: 700;
+}
+.prose-sm :where(h2):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  font-size: 1.25em;
+  font-weight: 600;
+}
+.prose-sm :where(h3):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  font-size: 1.1em;
+  font-weight: 600;
+}

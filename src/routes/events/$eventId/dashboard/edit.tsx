@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useEventCategories } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
@@ -10,6 +10,21 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 import { TimezonePicker } from "~/components/TimezonePicker";
 import { ImageCropper } from "~/components/ImageCropper";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "~/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { utcToDatetimeLocal, datetimeLocalToUTC } from "~/lib/timezone";
 import { useDashboard } from "./route";
 
@@ -26,6 +41,7 @@ type QuestionItem = {
 };
 
 function EditTab() {
+  const navigate = useNavigate();
   const { categories } = useEventCategories();
   const { eventId } = Route.useParams();
   const { refresh } = useDashboard();
@@ -33,8 +49,14 @@ function EditTab() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showSavedDialog, setShowSavedDialog] = useState(false);
 
   const [isGroupEvent, setIsGroupEvent] = useState(false);
+  const [groupActorId, setGroupActorId] = useState<string | null>(null);
+  const [groups, setGroups] = useState<
+    { id: string; handle: string; name: string | null; timezone: string | null }[]
+  >([]);
+  const [groupsLoaded, setGroupsLoaded] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -50,6 +72,18 @@ function EditTab() {
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+
+  // Fetch user's groups for personal→group conversion
+  useEffect(() => {
+    fetch("/api/me/groups")
+      .then((r) => r.json())
+      .then((data) => {
+        setGroups(data.groups ?? []);
+        setGroupsLoaded(true);
+      })
+      .catch(() => setGroupsLoaded(true));
+  }, []);
 
   useEffect(() => {
     fetch(`/api/events/${eventId}`)
@@ -94,10 +128,63 @@ function EditTab() {
       });
   }, [eventId]);
 
+  const willBeGroupEvent = isGroupEvent || !!groupActorId;
+
+  async function handleConvertToGroup() {
+    if (!groupActorId || !title.trim() || !startsAt) return;
+
+    setShowConvertDialog(false);
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim() || undefined,
+          categoryId: categoryId || undefined,
+          startsAt: datetimeLocalToUTC(startsAt, timezone),
+          endsAt: endsAt ? datetimeLocalToUTC(endsAt, timezone) : undefined,
+          timezone: timezone || undefined,
+          placeId: selectedPlace?.id || undefined,
+          location: selectedPlace?.name || undefined,
+          externalUrl: externalUrl.trim() || undefined,
+          groupActorId,
+          questions: questions
+            .filter((q) => q.question.trim())
+            .map((q, idx) => ({
+              id: q.id,
+              question: q.question.trim(),
+              sortOrder: idx,
+              required: q.required,
+            })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Failed to move event to group");
+        setSubmitting(false);
+        setGroupActorId(null);
+        return;
+      }
+      refresh?.();
+      setSubmitting(false);
+      setIsGroupEvent(true);
+      setGroupActorId(null);
+      setShowSavedDialog(true);
+    } catch {
+      setError("Network error");
+      setSubmitting(false);
+      setGroupActorId(null);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !startsAt) return;
-    if (isGroupEvent && !categoryId) return;
+    if (willBeGroupEvent && !categoryId) return;
 
     setSubmitting(true);
     setError("");
@@ -133,6 +220,8 @@ function EditTab() {
         return;
       }
       refresh?.();
+      setSubmitting(false);
+      setShowSavedDialog(true);
     } catch {
       setError("Network error");
       setSubmitting(false);
@@ -191,9 +280,99 @@ function EditTab() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h2 className="text-2xl font-semibold tracking-tight mb-6">
-        Edit Event
-      </h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          Edit Event
+        </h2>
+        {!isGroupEvent && groupsLoaded && groups.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowConvertDialog(true)}
+          >
+            Move to Group
+          </Button>
+        )}
+      </div>
+
+      <Dialog open={showConvertDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowConvertDialog(false);
+          setGroupActorId(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move to Group</DialogTitle>
+            <DialogDescription>
+              Select a group to transfer this event to.
+            </DialogDescription>
+          </DialogHeader>
+          <Select
+            value={groupActorId ?? undefined}
+            onValueChange={setGroupActorId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a group" />
+            </SelectTrigger>
+            <SelectContent>
+              {groups.map((g) => (
+                <SelectItem key={g.id} value={g.id}>
+                  {g.name ?? g.handle}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {groupActorId && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="convertCategory">
+                  Category <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={categoryId || undefined}
+                  onValueChange={setCategoryId}
+                >
+                  <SelectTrigger id="convertCategory">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.slug} value={cat.slug}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Alert className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-400">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                  <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 6a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 6Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+                </svg>
+                <AlertDescription>
+                  This is irreversible. The event will be unpublished and moved to the group permanently.
+                </AlertDescription>
+              </Alert>
+            </>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowConvertDialog(false);
+              setGroupActorId(null);
+            }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!groupActorId || !categoryId || submitting}
+              onClick={handleConvertToGroup}
+            >
+              Move to Group
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
@@ -305,14 +484,14 @@ function EditTab() {
         {/* Category */}
         <div className="space-y-1.5">
           <Label htmlFor="categoryId">
-            Category{!isGroupEvent && " (optional)"}
-            {isGroupEvent && <span className="text-destructive ml-1">*</span>}
+            Category{!willBeGroupEvent && " (optional)"}
+            {willBeGroupEvent && <span className="text-destructive ml-1">*</span>}
           </Label>
           <select
             id="categoryId"
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            required={isGroupEvent}
+            required={willBeGroupEvent}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <option value="">Select a category</option>
@@ -430,6 +609,32 @@ function EditTab() {
           </Button>
         </div>
       </form>
+
+      <Dialog open={showSavedDialog} onOpenChange={setShowSavedDialog}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Changes saved</DialogTitle>
+            <DialogDescription>
+              Your event has been updated. Would you like to view the public page?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSavedDialog(false)}>
+              Stay here
+            </Button>
+            <Button
+              onClick={() =>
+                navigate({
+                  to: "/events/$eventId",
+                  params: { eventId },
+                })
+              }
+            >
+              View event
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

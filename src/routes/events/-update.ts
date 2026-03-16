@@ -15,6 +15,7 @@ export const POST = async ({ request }: { request: Request }) => {
     title?: string;
     description?: string;
     categoryId?: string;
+    groupActorId?: string | null;
     startsAt?: string;
     endsAt?: string;
     timezone?: string;
@@ -85,8 +86,32 @@ export const POST = async ({ request }: { request: Request }) => {
     }
   }
 
-  // Category validation
-  if (event.groupActorId && !body.categoryId) {
+  // Group conversion: personal → group
+  let convertingToGroup = false;
+  if (body.groupActorId && !event.groupActorId) {
+    // Verify user is a member of the target group
+    const [targetMembership] = await db
+      .select({ role: groupMembers.role })
+      .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+      .where(
+        and(
+          eq(groupMembers.groupActorId, body.groupActorId),
+          eq(actors.userId, user.id),
+          eq(actors.type, "Person"),
+        ),
+      )
+      .limit(1);
+
+    if (!targetMembership) {
+      return Response.json({ error: "You are not a member of this group" }, { status: 403 });
+    }
+    convertingToGroup = true;
+  }
+
+  // Category validation (required for group events or when converting to group)
+  const willBeGroupEvent = !!(body.groupActorId ?? event.groupActorId);
+  if (willBeGroupEvent && !body.categoryId) {
     return Response.json({ error: "categoryId is required for group events" }, { status: 400 });
   }
   if (body.categoryId) {
@@ -122,6 +147,9 @@ export const POST = async ({ request }: { request: Request }) => {
         externalUrl: body.externalUrl?.trim() || "",
         placeId: body.placeId !== undefined ? (body.placeId || null) : undefined,
         headerImageUrl: body.headerImageUrl !== undefined ? (body.headerImageUrl || null) : undefined,
+        ...(convertingToGroup
+          ? { groupActorId: body.groupActorId!, published: false }
+          : {}),
       })
       .where(eq(events.id, event.id));
 
