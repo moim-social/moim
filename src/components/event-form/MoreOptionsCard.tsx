@@ -6,6 +6,7 @@ import { Label } from "~/components/ui/label";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "~/components/ui/collapsible";
+import { Switch } from "~/components/ui/switch";
 import { cn } from "~/lib/utils";
 
 type Organizer = {
@@ -25,6 +26,10 @@ type MoreOptionsCardProps = {
   resolving: boolean;
   onResolveFediOrganizer: () => void;
   onRemoveOrganizer: (handle: string) => void;
+  allowAnonymousRsvp: boolean;
+  onAllowAnonymousRsvpChange: (value: boolean) => void;
+  anonymousContactFields: { email?: string; phone?: string } | null;
+  onAnonymousContactFieldsChange: (fields: { email?: string; phone?: string } | null) => void;
 };
 
 export function MoreOptionsCard({
@@ -38,6 +43,10 @@ export function MoreOptionsCard({
   resolving,
   onResolveFediOrganizer,
   onRemoveOrganizer,
+  allowAnonymousRsvp,
+  onAllowAnonymousRsvpChange,
+  anonymousContactFields,
+  onAnonymousContactFieldsChange,
 }: MoreOptionsCardProps) {
   const [open, setOpen] = useState(false);
 
@@ -59,6 +68,75 @@ export function MoreOptionsCard({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="space-y-6">
+            {/* Anonymous RSVP */}
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium">RSVP Settings</legend>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="allow-anon-rsvp" className="text-sm">Allow anonymous registration</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Let people register without signing in. Name, email, and phone are collected instead.
+                  </p>
+                </div>
+                <Switch
+                  id="allow-anon-rsvp"
+                  checked={allowAnonymousRsvp}
+                  onCheckedChange={(checked) => {
+                    onAllowAnonymousRsvpChange(checked);
+                    if (checked && !anonymousContactFields) {
+                      onAnonymousContactFieldsChange({ email: "optional", phone: "hidden" });
+                    }
+                  }}
+                />
+              </div>
+              {allowAnonymousRsvp && (
+                <div className="rounded-md border p-3 space-y-3 bg-muted/30">
+                  <p className="text-xs text-muted-foreground">
+                    Name is always required. Configure which contact fields anonymous attendees must provide.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Email</Label>
+                      <select
+                        className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                        value={anonymousContactFields?.email ?? "optional"}
+                        onChange={(e) =>
+                          onAnonymousContactFieldsChange({
+                            ...anonymousContactFields,
+                            email: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="required">Required</option>
+                        <option value="optional">Optional</option>
+                        <option value="hidden">Hidden</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Phone</Label>
+                      <select
+                        className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                        value={anonymousContactFields?.phone ?? "hidden"}
+                        onChange={(e) =>
+                          onAnonymousContactFieldsChange({
+                            ...anonymousContactFields,
+                            phone: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="required">Required</option>
+                        <option value="optional">Optional</option>
+                        <option value="hidden">Hidden</option>
+                      </select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Contact info is auto-deleted 30 days after the event ends.
+                  </p>
+                </div>
+              )}
+            </fieldset>
+
             {/* Organizers */}
             <fieldset className="space-y-3">
               <legend className="text-sm font-medium">Organizers</legend>
