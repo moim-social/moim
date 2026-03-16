@@ -102,6 +102,13 @@ function CreateEventPage() {
   const [headerImagePreview, setHeaderImagePreview] = useState<string | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
 
+  // Anonymous RSVP
+  const [allowAnonymousRsvp, setAllowAnonymousRsvp] = useState(false);
+  const [anonymousContactFields, setAnonymousContactFields] = useState<{
+    email?: string;
+    phone?: string;
+  } | null>(null);
+
   // Survey questions
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
 
@@ -196,6 +203,8 @@ function CreateEventPage() {
           startsAt: datetimeLocalToUTC(startsAt, timezone),
           endsAt: endsAt ? datetimeLocalToUTC(endsAt, timezone) : undefined,
           timezone: timezone || undefined,
+          allowAnonymousRsvp: allowAnonymousRsvp || undefined,
+          anonymousContactFields: allowAnonymousRsvp ? anonymousContactFields : undefined,
           organizerHandles: organizers.map((o) => o.handle),
           questions: questions
             .filter((q) => q.question.trim())
@@ -341,6 +350,10 @@ function CreateEventPage() {
             resolving={resolving}
             onResolveFediOrganizer={resolveFediOrganizer}
             onRemoveOrganizer={removeOrganizer}
+            allowAnonymousRsvp={allowAnonymousRsvp}
+            onAllowAnonymousRsvpChange={setAllowAnonymousRsvp}
+            anonymousContactFields={anonymousContactFields}
+            onAnonymousContactFieldsChange={setAnonymousContactFields}
           />
 
           {/* Info callout */}

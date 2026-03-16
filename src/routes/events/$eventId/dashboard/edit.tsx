@@ -13,6 +13,7 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 import { TimezonePicker } from "~/components/TimezonePicker";
 import { ImageCropper } from "~/components/ImageCropper";
+import { Switch } from "~/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +79,11 @@ function EditTab() {
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [descriptionMode, setDescriptionMode] = useState<"write" | "preview">("write");
+  const [allowAnonymousRsvp, setAllowAnonymousRsvp] = useState(false);
+  const [anonymousContactFields, setAnonymousContactFields] = useState<{
+    email?: string;
+    phone?: string;
+  } | null>(null);
 
   // Fetch user's groups for personal→group conversion
   useEffect(() => {
@@ -116,6 +122,8 @@ function EditTab() {
           });
         }
         setExternalUrl(e.externalUrl ?? "");
+        setAllowAnonymousRsvp(e.allowAnonymousRsvp ?? false);
+        setAnonymousContactFields(e.anonymousContactFields ?? null);
         setHeaderImageUrl(e.headerImageUrl ?? null);
         setQuestions(
           (data.questions ?? []).map((q: any, idx: number) => ({
@@ -211,6 +219,8 @@ function EditTab() {
           location: selectedPlace?.name || undefined,
           venueDetail: venueDetail.trim() || undefined,
           externalUrl: externalUrl.trim() || undefined,
+          allowAnonymousRsvp: allowAnonymousRsvp || undefined,
+          anonymousContactFields: allowAnonymousRsvp ? anonymousContactFields : undefined,
           questions: questions
             .filter((q) => q.question.trim())
             .map((q, idx) => ({
@@ -605,6 +615,75 @@ function EditTab() {
             Attendees will be directed to this URL instead of the built-in RSVP.
           </p>
         </div>
+
+        {/* Anonymous RSVP */}
+        <fieldset className="space-y-3">
+          <legend className="text-sm font-medium">RSVP Settings</legend>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="allow-anon-rsvp" className="text-sm">Allow anonymous registration</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Let people register without signing in. Name, email, and phone are collected instead.
+              </p>
+            </div>
+            <Switch
+              id="allow-anon-rsvp"
+              checked={allowAnonymousRsvp}
+              onCheckedChange={(checked) => {
+                setAllowAnonymousRsvp(checked);
+                if (checked && !anonymousContactFields) {
+                  setAnonymousContactFields({ email: "optional", phone: "hidden" });
+                }
+              }}
+            />
+          </div>
+          {allowAnonymousRsvp && (
+            <div className="rounded-md border p-3 space-y-3 bg-muted/30">
+              <p className="text-xs text-muted-foreground">
+                Name is always required. Configure which contact fields anonymous attendees must provide.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Email</Label>
+                  <select
+                    className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                    value={anonymousContactFields?.email ?? "optional"}
+                    onChange={(e) =>
+                      setAnonymousContactFields({
+                        ...anonymousContactFields,
+                        email: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="required">Required</option>
+                    <option value="optional">Optional</option>
+                    <option value="hidden">Hidden</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Phone</Label>
+                  <select
+                    className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                    value={anonymousContactFields?.phone ?? "hidden"}
+                    onChange={(e) =>
+                      setAnonymousContactFields({
+                        ...anonymousContactFields,
+                        phone: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="required">Required</option>
+                    <option value="optional">Optional</option>
+                    <option value="hidden">Hidden</option>
+                  </select>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Contact info is auto-deleted 30 days after the event ends.
+              </p>
+            </div>
+          )}
+        </fieldset>
 
         {/* Questions */}
         <fieldset className="space-y-3">

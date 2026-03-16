@@ -41,6 +41,8 @@ export const POST = async ({ request }: { request: Request }) => {
       capacity?: number;
     }>;
     published?: boolean;
+    allowAnonymousRsvp?: boolean;
+    anonymousContactFields?: { email?: string; phone?: string };
   } | null;
 
   if (!body?.title || !body?.startsAt) {
@@ -146,6 +148,8 @@ export const POST = async ({ request }: { request: Request }) => {
         venueDetail: body.venueDetail?.trim() || null,
         country,
         published: body.published ?? (isPersonalEvent ? true : false),
+        allowAnonymousRsvp: body.allowAnonymousRsvp ?? false,
+        anonymousContactFields: body.anonymousContactFields ?? null,
         startsAt,
         endsAt: endsAt ?? null,
         timezone: body.timezone ?? null,

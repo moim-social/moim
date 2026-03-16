@@ -1,4 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -11,10 +13,15 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
-import { ArrowLeft, ArrowRight, Check, Ticket } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Ticket, Copy } from "lucide-react";
 
 export const Route = createFileRoute("/events/$eventId/register")({
   component: RegisterPage,
+  validateSearch: zodValidator(
+    z.object({
+      token: z.string().optional(),
+    }),
+  ),
 });
 
 type TierInfo = {
@@ -49,6 +56,9 @@ type RsvpData = {
     waitlistPosition: number | null;
   } | null;
   isAuthenticated: boolean;
+  allowAnonymousRsvp: boolean;
+  anonymousContactFields: { email?: string; phone?: string } | null;
+  anonymousCount: number;
 };
 
 type EventMeta = {
@@ -65,6 +75,7 @@ type EventMeta = {
 
 function RegisterPage() {
   const { eventId } = Route.useParams();
+  const { token: urlToken } = Route.useSearch();
   const navigate = useNavigate();
 
   const [rsvpData, setRsvpData] = useState<RsvpData | null>(null);
@@ -72,7 +83,7 @@ function RegisterPage() {
   const [loading, setLoading] = useState(true);
 
   // Multi-step state
-  const [step, setStep] = useState(0); // 0: select tier, 1: questions, 2: confirm
+  const [step, setStep] = useState(0);
   const [selectedTierId, setSelectedTierId] = useState<string>("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -80,10 +91,21 @@ function RegisterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [resultStatus, setResultStatus] = useState<string>("");
 
+  // Anonymous RSVP state
+  const [isAnonymousMode, setIsAnonymousMode] = useState(false);
+  const [anonDisplayName, setAnonDisplayName] = useState("");
+  const [anonEmail, setAnonEmail] = useState("");
+  const [anonPhone, setAnonPhone] = useState("");
+  const [anonToken, setAnonToken] = useState<string | null>(null);
+  const [tokenCopied, setTokenCopied] = useState(false);
+
   // Fetch data
   useEffect(() => {
+    const rsvpUrl = urlToken
+      ? `/api/events/${eventId}/rsvp?token=${encodeURIComponent(urlToken)}`
+      : `/api/events/${eventId}/rsvp`;
     Promise.all([
-      fetch(`/api/events/${eventId}/rsvp`).then((r) => r.json()),
+      fetch(rsvpUrl).then((r) => r.json()),
       fetch(`/api/events/${eventId}`).then((r) => r.json()),
     ])
       .then(([rsvp, meta]) => {
@@ -104,9 +126,13 @@ function RegisterPage() {
           setAnswers(prefilled);
         }
 
-        // If not authenticated, redirect to sign in
+        // If not authenticated, either show anonymous form or redirect
         if (!rsvp.isAuthenticated) {
-          navigate({ to: "/auth/signin", search: { reason: "rsvp" } });
+          if (rsvp.allowAnonymousRsvp) {
+            setIsAnonymousMode(true);
+          } else {
+            navigate({ to: "/auth/signin", search: { reason: "rsvp" } });
+          }
         }
       })
       .catch(() => {})
@@ -131,6 +157,7 @@ function RegisterPage() {
 
   const { tiers, questions } = rsvpData;
   const event = eventMeta.event;
+  const contactConfig = rsvpData.anonymousContactFields;
 
   // Already registered — show status instead of form
   const existingRsvp = rsvpData.userRsvp;
@@ -212,8 +239,9 @@ function RegisterPage() {
   const hasQuestions = questions.length > 0;
 
   // Determine steps
-  const steps: Array<"tier" | "questions" | "confirm"> = [];
+  const steps: Array<"tier" | "contact" | "questions" | "confirm"> = [];
   if (hasMultipleTiers) steps.push("tier");
+  if (isAnonymousMode) steps.push("contact");
   if (hasQuestions) steps.push("questions");
   steps.push("confirm");
 
@@ -235,6 +263,12 @@ function RegisterPage() {
     if (currentStepType === "tier") {
       return !!selectedTierId;
     }
+    if (currentStepType === "contact") {
+      if (!anonDisplayName.trim()) return false;
+      if (contactConfig?.email === "required" && !anonEmail.trim()) return false;
+      if (contactConfig?.phone === "required" && !anonPhone.trim()) return false;
+      return true;
+    }
     if (currentStepType === "questions") {
       const requiredIds = questions.filter((q) => q.required).map((q) => q.id);
       return requiredIds.every((id) => answers[id]?.trim());
@@ -246,19 +280,38 @@ function RegisterPage() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      const res = await fetch(`/api/events/${eventId}/rsvp`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId,
-          status: "accepted",
-          tierId: selectedTierId || undefined,
-          answers: Object.entries(answers).map(([questionId, answer]) => ({
-            questionId,
-            answer,
-          })),
-        }),
-      });
+      const answersPayload = Object.entries(answers).map(([questionId, answer]) => ({
+        questionId,
+        answer,
+      }));
+
+      let res: Response;
+      if (isAnonymousMode) {
+        res = await fetch(`/api/events/${eventId}/rsvp/anonymous`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId,
+            tierId: selectedTierId || undefined,
+            displayName: anonDisplayName.trim(),
+            email: anonEmail.trim() || undefined,
+            phone: anonPhone.trim() || undefined,
+            answers: answersPayload,
+          }),
+        });
+      } else {
+        res = await fetch(`/api/events/${eventId}/rsvp`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId,
+            status: "accepted",
+            tierId: selectedTierId || undefined,
+            answers: answersPayload,
+          }),
+        });
+      }
+
       const result = await res.json();
       if (!res.ok) {
         setSubmitError(result.error ?? "Failed to submit");
@@ -266,6 +319,9 @@ function RegisterPage() {
         return;
       }
       setResultStatus(result.status);
+      if (result.token) {
+        setAnonToken(result.token);
+      }
       setSubmitted(true);
     } catch {
       setSubmitError("Network error");
@@ -277,11 +333,21 @@ function RegisterPage() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      const res = await fetch(`/api/events/${eventId}/rsvp`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId, status: "declined" }),
-      });
+      let res: Response;
+      if (isAnonymousMode) {
+        const deleteUrl = urlToken
+          ? `/api/events/${eventId}/rsvp/anonymous?token=${encodeURIComponent(urlToken)}`
+          : `/api/events/${eventId}/rsvp/anonymous`;
+        res = await fetch(deleteUrl, {
+          method: "DELETE",
+        });
+      } else {
+        res = await fetch(`/api/events/${eventId}/rsvp`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId, status: "declined" }),
+        });
+      }
       if (res.ok) {
         navigate({ to: "/events/$eventId", params: { eventId } });
       }
@@ -289,6 +355,18 @@ function RegisterPage() {
       setSubmitError("Network error");
     }
     setSubmitting(false);
+  }
+
+  const recoveryUrl = anonToken
+    ? `${window.location.origin}/events/${eventId}/register?token=${anonToken}`
+    : null;
+
+  function copyRecoveryUrl() {
+    if (recoveryUrl) {
+      navigator.clipboard.writeText(recoveryUrl);
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2000);
+    }
   }
 
   // Success screen
@@ -312,6 +390,29 @@ function RegisterPage() {
                 ? "This ticket is currently full. You'll be automatically promoted if a spot opens up."
                 : `You're confirmed for ${event.title}.`}
             </p>
+
+            {/* Show recovery URL for anonymous users */}
+            {recoveryUrl && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950 p-4 text-left space-y-2">
+                <p className="text-sm font-medium">Save your ticket link</p>
+                <p className="text-xs text-muted-foreground">
+                  Bookmark this link to view or cancel your registration later. It cannot be recovered if lost.
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded bg-background border px-3 py-2 text-xs font-mono break-all">
+                    {recoveryUrl}
+                  </code>
+                  <Button variant="outline" size="sm" onClick={copyRecoveryUrl}>
+                    <Copy className="size-3.5" />
+                    {tokenCopied ? "Copied" : "Copy"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Your contact information will be automatically deleted 30 days after the event ends.
+                </p>
+              </div>
+            )}
+
             {selectedTier && (
               <div className="rounded-lg border p-4 text-left space-y-1">
                 <div className="flex items-center justify-between">
@@ -351,6 +452,16 @@ function RegisterPage() {
       minute: "2-digit",
       timeZone: eventTz,
     });
+
+  const stepLabel = (s: string) => {
+    switch (s) {
+      case "tier": return "Select Ticket";
+      case "contact": return "Your Info";
+      case "questions": return "Questions";
+      case "confirm": return "Confirm";
+      default: return s;
+    }
+  };
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8 space-y-6">
@@ -394,7 +505,7 @@ function RegisterPage() {
                   {i < step ? <Check className="size-3.5" /> : i + 1}
                 </div>
                 <span className={`text-sm whitespace-nowrap ${i === step ? "font-medium" : "text-muted-foreground"}`}>
-                  {s === "tier" ? "Select Ticket" : s === "questions" ? "Questions" : "Confirm"}
+                  {stepLabel(s)}
                 </span>
               </div>
               {i < steps.length - 1 && (
@@ -478,6 +589,64 @@ function RegisterPage() {
         </div>
       )}
 
+      {/* Step: Contact Info (anonymous only) */}
+      {currentStepType === "contact" && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold">Your information</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              No account required. Your information will be shared with the event organizer.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="anon-name">
+                Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="anon-name"
+                value={anonDisplayName}
+                onChange={(e) => setAnonDisplayName(e.target.value)}
+                placeholder="Your name"
+              />
+            </div>
+            {contactConfig?.email !== "hidden" && (
+              <div className="space-y-2">
+                <Label htmlFor="anon-email">
+                  Email
+                  {contactConfig?.email === "required" && <span className="text-destructive ml-1">*</span>}
+                </Label>
+                <Input
+                  id="anon-email"
+                  type="email"
+                  value={anonEmail}
+                  onChange={(e) => setAnonEmail(e.target.value)}
+                  placeholder="your@email.com"
+                />
+              </div>
+            )}
+            {contactConfig?.phone !== "hidden" && (
+              <div className="space-y-2">
+                <Label htmlFor="anon-phone">
+                  Phone
+                  {contactConfig?.phone === "required" && <span className="text-destructive ml-1">*</span>}
+                </Label>
+                <Input
+                  id="anon-phone"
+                  type="tel"
+                  value={anonPhone}
+                  onChange={(e) => setAnonPhone(e.target.value)}
+                  placeholder="+1 234 567 8900"
+                />
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground rounded-md bg-muted p-3">
+            Your contact information will be automatically deleted 30 days after the event ends.
+          </p>
+        </div>
+      )}
+
       {/* Step: Questions */}
       {currentStepType === "questions" && (
         <div className="space-y-6">
@@ -509,6 +678,16 @@ function RegisterPage() {
               <CardTitle className="text-base">Your ticket</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {isAnonymousMode && (
+                <>
+                  <div className="text-sm space-y-1">
+                    <p className="font-medium">{anonDisplayName}</p>
+                    {anonEmail && <p className="text-muted-foreground">{anonEmail}</p>}
+                    {anonPhone && <p className="text-muted-foreground">{anonPhone}</p>}
+                  </div>
+                  <Separator />
+                </>
+              )}
               {selectedTier && (
                 <div className="flex items-center justify-between">
                   <div>
