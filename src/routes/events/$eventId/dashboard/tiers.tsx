@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/button";
 import { DateTimePicker } from "~/components/DateTimePicker";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { Textarea } from "~/components/ui/textarea";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { utcToDatetimeLocal, datetimeLocalToUTC } from "~/lib/timezone";
 import { useDashboard, type TierItem } from "./route";
@@ -40,7 +41,7 @@ function TiersTab() {
   if (!isGroupEvent) return null;
 
   function addTier() {
-    setTiers([...tiers, { name: "", sortOrder: tiers.length, opensAt: "", closesAt: "", rsvpCount: 0 }]);
+    setTiers([...tiers, { name: "", description: null, price: null, sortOrder: tiers.length, opensAt: "", closesAt: "", capacity: null, acceptedCount: 0, waitlistedCount: 0 }]);
     setSuccess(false);
   }
 
@@ -71,9 +72,12 @@ function TiersTab() {
           tiers: tiers.map((t, idx) => ({
             id: t.id,
             name: t.name.trim(),
+            description: t.description?.trim() || null,
+            price: t.price?.trim() || null,
             sortOrder: idx,
             opensAt: t.opensAt ? datetimeLocalToUTC(t.opensAt, timezone) : null,
             closesAt: t.closesAt ? datetimeLocalToUTC(t.closesAt, timezone) : null,
+            capacity: t.capacity || null,
           })),
         }),
       });
@@ -96,7 +100,7 @@ function TiersTab() {
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Ticket Types</h2>
         <p className="mt-1 text-muted-foreground">
-          Manage registration tiers and their open/close windows.
+          Manage registration tiers, capacity limits, and open/close windows.
         </p>
       </div>
 
@@ -114,7 +118,8 @@ function TiersTab() {
 
       <div className="space-y-3">
         {tiers.map((t, idx) => {
-          const hasRsvps = t.rsvpCount > 0;
+          const totalRsvps = t.acceptedCount + t.waitlistedCount;
+          const hasRsvps = totalRsvps > 0;
           const isOnlyTier = tiers.length <= 1;
           return (
             <div key={t.id ?? `new-tier-${idx}`} className="border rounded-md p-3 space-y-2">
@@ -137,7 +142,37 @@ function TiersTab() {
                   Remove
                 </Button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs">Description</Label>
+                <Textarea
+                  placeholder="Describe this tier..."
+                  value={t.description ?? ""}
+                  rows={2}
+                  onChange={(e) => updateTier(idx, { description: e.target.value || null })}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">Price</Label>
+                  <Input
+                    placeholder="Free"
+                    value={t.price ?? ""}
+                    onChange={(e) => updateTier(idx, { price: e.target.value || null })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Max attendees</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Unlimited"
+                    value={t.capacity ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value === "" ? null : parseInt(e.target.value, 10);
+                      updateTier(idx, { capacity: val });
+                    }}
+                  />
+                </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Registration opens</Label>
                   <DateTimePicker
@@ -155,7 +190,14 @@ function TiersTab() {
               </div>
               {hasRsvps && (
                 <p className="text-xs text-muted-foreground">
-                  {t.rsvpCount} RSVP{t.rsvpCount !== 1 && "s"} — cannot be removed
+                  {t.acceptedCount} attending{t.capacity != null ? ` / ${t.capacity}` : ""}
+                  {t.waitlistedCount > 0 && ` · ${t.waitlistedCount} waitlisted`}
+                  {" "}— cannot be removed
+                </p>
+              )}
+              {t.capacity != null && t.capacity > 0 && t.acceptedCount > t.capacity && (
+                <p className="text-xs text-destructive">
+                  Warning: current attendees ({t.acceptedCount}) exceed capacity ({t.capacity})
                 </p>
               )}
               {isOnlyTier && !hasRsvps && (

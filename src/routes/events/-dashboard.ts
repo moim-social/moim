@@ -85,6 +85,7 @@ export const GET = async ({ request }: { request: Request }) => {
   const rsvpCounts = {
     accepted: rsvpCountRows.find((c) => c.status === "accepted")?.count ?? 0,
     declined: rsvpCountRows.find((c) => c.status === "declined")?.count ?? 0,
+    waitlisted: rsvpCountRows.find((c) => c.status === "waitlisted")?.count ?? 0,
     total: rsvpCountRows.reduce((sum, c) => sum + c.count, 0),
   };
 
@@ -159,15 +160,19 @@ export const GET = async ({ request }: { request: Request }) => {
     .groupBy(activityLogs.actorId, actors.handle, actors.name)
     .orderBy(sql`count(*) DESC`);
 
-  // Tiers with RSVP counts
+  // Tiers with RSVP counts (filtered by status)
   const tiers = await db
     .select({
       id: eventTiers.id,
       name: eventTiers.name,
+      description: eventTiers.description,
+      price: eventTiers.price,
       opensAt: eventTiers.opensAt,
       closesAt: eventTiers.closesAt,
+      capacity: eventTiers.capacity,
       sortOrder: eventTiers.sortOrder,
-      rsvpCount: sql<number>`count(${rsvps.userId})::int`,
+      acceptedCount: sql<number>`count(${rsvps.userId}) filter (where ${rsvps.status} = 'accepted')::int`,
+      waitlistedCount: sql<number>`count(${rsvps.userId}) filter (where ${rsvps.status} = 'waitlisted')::int`,
     })
     .from(eventTiers)
     .leftJoin(rsvps, eq(rsvps.tierId, eventTiers.id))
