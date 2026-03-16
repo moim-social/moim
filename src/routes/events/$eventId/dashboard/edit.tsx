@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useEventCategories } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
@@ -10,6 +10,14 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 import { TimezonePicker } from "~/components/TimezonePicker";
 import { ImageCropper } from "~/components/ImageCropper";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "~/components/ui/dialog";
 import { utcToDatetimeLocal, datetimeLocalToUTC } from "~/lib/timezone";
 import { useDashboard } from "./route";
 
@@ -26,6 +34,7 @@ type QuestionItem = {
 };
 
 function EditTab() {
+  const navigate = useNavigate();
   const { categories } = useEventCategories();
   const { eventId } = Route.useParams();
   const { refresh } = useDashboard();
@@ -33,6 +42,7 @@ function EditTab() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showSavedDialog, setShowSavedDialog] = useState(false);
 
   const [isGroupEvent, setIsGroupEvent] = useState(false);
   const [title, setTitle] = useState("");
@@ -133,6 +143,8 @@ function EditTab() {
         return;
       }
       refresh?.();
+      setSubmitting(false);
+      setShowSavedDialog(true);
     } catch {
       setError("Network error");
       setSubmitting(false);
@@ -430,6 +442,32 @@ function EditTab() {
           </Button>
         </div>
       </form>
+
+      <Dialog open={showSavedDialog} onOpenChange={setShowSavedDialog}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Changes saved</DialogTitle>
+            <DialogDescription>
+              Your event has been updated. Would you like to view the public page?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSavedDialog(false)}>
+              Stay here
+            </Button>
+            <Button
+              onClick={() =>
+                navigate({
+                  to: "/events/$eventId",
+                  params: { eventId },
+                })
+              }
+            >
+              View event
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
