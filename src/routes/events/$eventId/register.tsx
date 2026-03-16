@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
+import { Checkbox } from "~/components/ui/checkbox";
 import { ArrowLeft, ArrowRight, Check, Ticket, Copy } from "lucide-react";
 
 export const Route = createFileRoute("/events/$eventId/register")({
@@ -98,6 +99,7 @@ function RegisterPage() {
   const [anonPhone, setAnonPhone] = useState("");
   const [anonToken, setAnonToken] = useState<string | null>(null);
   const [tokenCopied, setTokenCopied] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
 
   // Fetch data
   useEffect(() => {
@@ -272,6 +274,9 @@ function RegisterPage() {
     if (currentStepType === "questions") {
       const requiredIds = questions.filter((q) => q.required).map((q) => q.id);
       return requiredIds.every((id) => answers[id]?.trim());
+    }
+    if (currentStepType === "confirm" && isAnonymousMode) {
+      return consentChecked;
     }
     return true;
   }
@@ -741,6 +746,23 @@ function RegisterPage() {
               )}
             </CardContent>
           </Card>
+          {isAnonymousMode && (
+            <label className="flex items-start gap-3 rounded-md border p-4 cursor-pointer">
+              <Checkbox
+                checked={consentChecked}
+                onCheckedChange={(checked) => setConsentChecked(!!checked)}
+                className="mt-0.5"
+              />
+              <div className="text-sm space-y-1">
+                <p>
+                  I consent to sharing my name{contactConfig?.email !== "hidden" ? ", email" : ""}{contactConfig?.phone !== "hidden" ? ", and phone number" : ""} with the event organizer for the purpose of managing this event.
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  Your information will be automatically deleted 30 days after the event ends. The organizer may export attendee data before then.
+                </p>
+              </div>
+            </label>
+          )}
         </div>
       )}
 

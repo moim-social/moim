@@ -678,9 +678,15 @@ function EditTab() {
                   </select>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Contact info is auto-deleted 30 days after the event ends.
-              </p>
+              <div className="rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950 p-3 space-y-1.5">
+                <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Data responsibility notice</p>
+                <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1 list-disc pl-4">
+                  <li>You are responsible for the personal data collected from anonymous attendees.</li>
+                  <li>Contact information (name, email, phone) is shared only with event organizers.</li>
+                  <li>All anonymous PII is automatically deleted 30 days after the event ends.</li>
+                  <li>Export attendee data before deletion if you need it for record-keeping.</li>
+                </ul>
+              </div>
             </div>
           )}
         </fieldset>
