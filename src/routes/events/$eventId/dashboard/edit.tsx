@@ -3,7 +3,10 @@ import { useState, useEffect, useRef } from "react";
 import { useEventCategories } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { MarkdownEditor } from "~/components/MarkdownEditor";
+import { DateTimePicker } from "~/components/DateTimePicker";
+import { Textarea } from "~/components/ui/textarea";
+import { PencilIcon, EyeIcon } from "lucide-react";
+import { renderMarkdown } from "~/lib/markdown";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -73,6 +76,7 @@ function EditTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [descriptionMode, setDescriptionMode] = useState<"write" | "preview">("write");
 
   // Fetch user's groups for personal→group conversion
   useEffect(() => {
@@ -473,13 +477,55 @@ function EditTab() {
         </div>
 
         {/* Description */}
-        <MarkdownEditor
-          id="description"
-          label="Description"
-          value={description}
-          onChange={setDescription}
-          rows={6}
-        />
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label>Description</Label>
+            <div className="flex items-center rounded-md border bg-muted/50 p-0.5">
+              <Button
+                type="button"
+                variant={descriptionMode === "write" ? "secondary" : "ghost"}
+                size="xs"
+                onClick={() => setDescriptionMode("write")}
+                className={descriptionMode !== "write" ? "text-muted-foreground" : ""}
+              >
+                <PencilIcon className="size-3" />
+                Write
+              </Button>
+              <Button
+                type="button"
+                variant={descriptionMode === "preview" ? "secondary" : "ghost"}
+                size="xs"
+                onClick={() => setDescriptionMode("preview")}
+                className={descriptionMode !== "preview" ? "text-muted-foreground" : ""}
+              >
+                <EyeIcon className="size-3" />
+                Preview
+              </Button>
+            </div>
+          </div>
+          {descriptionMode === "write" ? (
+            <Textarea
+              id="description"
+              placeholder="Describe your event — agenda, what to expect, what to bring..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={6}
+            />
+          ) : (
+            <div className="min-h-[150px] rounded-md border px-3 py-2">
+              {description.trim() ? (
+                <div
+                  className="prose prose-sm max-w-none dark:prose-invert"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(description) }}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Nothing to preview yet.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Category */}
         <div className="space-y-1.5">
@@ -487,20 +533,18 @@ function EditTab() {
             Category{!willBeGroupEvent && " (optional)"}
             {willBeGroupEvent && <span className="text-destructive ml-1">*</span>}
           </Label>
-          <select
-            id="categoryId"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            required={willBeGroupEvent}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <option value="">Select a category</option>
-            {categories.map((cat) => (
-              <option key={cat.slug} value={cat.slug}>
-                {cat.label}
-              </option>
-            ))}
-          </select>
+          <Select value={categoryId || undefined} onValueChange={setCategoryId}>
+            <SelectTrigger id="categoryId">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.slug} value={cat.slug}>
+                  {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Date range */}
@@ -508,18 +552,9 @@ function EditTab() {
           <Label>
             Event period <span className="text-destructive">*</span>
           </Label>
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              type="datetime-local"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-              required
-            />
-            <Input
-              type="datetime-local"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <DateTimePicker value={startsAt} onChange={setStartsAt} required />
+            <DateTimePicker value={endsAt} onChange={setEndsAt} />
           </div>
           <p className="text-xs text-muted-foreground">End time is optional.</p>
           <div className="mt-2">
