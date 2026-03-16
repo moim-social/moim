@@ -260,6 +260,13 @@
       "when": 1773464405202,
       "tag": "0036_skinny_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1773653834604,
+      "tag": "0037_certain_masque",
+      "breakpoints": true
     }
   ]
 }
