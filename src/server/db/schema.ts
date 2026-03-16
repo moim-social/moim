@@ -150,6 +150,8 @@ export const events = pgTable("events", {
   headerImageUrl: text("header_image_url"),
   published: boolean("published").default(false).notNull(),
   priority: integer("priority").default(0).notNull(),
+  allowAnonymousRsvp: boolean("allow_anonymous_rsvp").default(false).notNull(),
+  anonymousContactFields: jsonb("anonymous_contact_fields"),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -212,14 +214,21 @@ export const places = pgTable("places", {
 });
 
 export const rsvps = pgTable("rsvps", {
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id),
   eventId: uuid("event_id").references(() => events.id).notNull(),
   tierId: uuid("tier_id").references(() => eventTiers.id),
   status: varchar("status", { length: 32 }).notNull(),
+  token: varchar("token", { length: 64 }),
+  displayName: varchar("display_name", { length: 200 }),
+  email: varchar("email", { length: 256 }),
+  phone: varchar("phone", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.userId, table.eventId] }),
-}));
+  // Partial unique indexes defined at DB level (not expressible in Drizzle DSL):
+  //   CREATE UNIQUE INDEX "rsvps_user_event_unique" ON "rsvps" ("user_id", "event_id") WHERE "user_id" IS NOT NULL;
+  //   CREATE UNIQUE INDEX "rsvps_token_event_unique" ON "rsvps" ("token", "event_id") WHERE "token" IS NOT NULL;
+  // CHECK constraint: user_id IS NOT NULL OR token IS NOT NULL
+});
 
 export const eventQuestions = pgTable("event_questions", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -232,13 +241,14 @@ export const eventQuestions = pgTable("event_questions", {
 
 export const rsvpAnswers = pgTable("rsvp_answers", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  rsvpId: uuid("rsvp_id").references(() => rsvps.id, { onDelete: "cascade" }).notNull(),
+  userId: uuid("user_id").references(() => users.id),
   eventId: uuid("event_id").references(() => events.id).notNull(),
   questionId: uuid("question_id").references(() => eventQuestions.id).notNull(),
   answer: text("answer").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
-  uniqueAnswer: unique().on(table.userId, table.eventId, table.questionId),
+  uniqueAnswer: unique().on(table.rsvpId, table.questionId),
 }));
 
 export const checkins = pgTable("checkins", {
