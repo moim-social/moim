@@ -1,5 +1,3 @@
-import { env } from "~/server/env";
-
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
   const sessionId = url.searchParams.get("session");

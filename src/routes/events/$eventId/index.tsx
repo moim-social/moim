@@ -391,7 +391,7 @@ function EventDetailPage() {
           </div>
           {!rsvpData.isAuthenticated ? (
             <Button size="sm" asChild>
-              <Link to="/auth/signin">Sign in to RSVP</Link>
+              <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
             </Button>
           ) : rsvpData.userRsvp ? (
             <Button size="sm" variant="outline" onClick={() => setRsvpDialogOpen(true)}>
@@ -507,7 +507,7 @@ function EventDetailPage() {
       </div>
       {!rsvpData.isAuthenticated ? (
         <Button asChild className="w-full">
-          <Link to="/auth/signin">Sign in to RSVP</Link>
+          <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
         </Button>
       ) : rsvpData.userRsvp ? (
         <Button variant="outline" className="w-full" onClick={() => setRsvpDialogOpen(true)}>
