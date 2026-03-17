@@ -7,6 +7,9 @@ import { autoPromoteWaitlist } from "~/server/events/waitlist";
 import { resolveTier, validateRequiredAnswers, checkCapacityAndDetermineStatus } from "~/server/events/rsvp-helpers";
 import { checkRateLimit, getClientIp } from "~/server/rate-limit";
 
+const isSecure = (process.env.BASE_URL ?? "").startsWith("https");
+const secureSuffix = isSecure ? "; Secure" : "";
+
 type ContactFieldConfig = {
   email?: "required" | "optional" | "hidden";
   phone?: "required" | "optional" | "hidden";
@@ -171,7 +174,7 @@ export const POST = async ({ request }: { request: Request }) => {
         status: 200,
         headers: {
           "Content-Type": "application/json",
-          "Set-Cookie": `${cookieName}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}`,
+          "Set-Cookie": `${cookieName}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${secureSuffix}`,
         },
       },
     );
@@ -227,7 +230,7 @@ export const DELETE = async ({ request, eventId }: { request: Request; eventId: 
         status: 200,
         headers: {
           "Content-Type": "application/json",
-          "Set-Cookie": `${cookieName}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`,
+          "Set-Cookie": `${cookieName}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secureSuffix}`,
         },
       },
     );
