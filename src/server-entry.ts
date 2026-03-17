@@ -52,6 +52,8 @@ import { GET as serveBanner } from "./routes/banners/-serve";
 import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
 import { GET as listBanners, POST as createBanner, PUT as updateBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
 import { GET as getUserSettings, PATCH as updateUserSettings } from "./routes/users/-settings";
+import { GET as getUserFavourites } from "./routes/users/-favourites";
+import { GET as getUserCalendarEvents } from "./routes/users/-calendar-events";
 import { POST as generateCalendarToken, DELETE as revokeCalendarToken } from "./routes/users/-calendar-token";
 import { GET as personalIcsFeed } from "./routes/events/-personal-ics";
 import { GET as listAdminPlaceCategories, POST as createAdminPlaceCategory, PATCH as updateAdminPlaceCategory, PUT as importAdminPlaceCategories } from "./routes/admin/-place-categories";
@@ -254,6 +256,14 @@ apiRouter.post("/users/calendar-token", defineEventHandler(async (event) => {
 
 apiRouter.delete("/users/calendar-token", defineEventHandler(async (event) => {
   return revokeCalendarToken({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/users/favourites", defineEventHandler(async (event) => {
+  return getUserFavourites({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/users/calendar-events", defineEventHandler(async (event) => {
+  return getUserCalendarEvents({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/users", defineEventHandler(async (event) => {

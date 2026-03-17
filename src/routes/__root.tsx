@@ -158,6 +158,9 @@ function RootLayout() {
                           <DropdownMenuItem onClick={() => navigate({ to: "/groups/my" })}>
                             My Groups
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate({ to: "/calendar" })}>
+                            My Calendar
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
                             Settings
                           </DropdownMenuItem>
