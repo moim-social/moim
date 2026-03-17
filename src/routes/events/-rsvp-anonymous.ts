@@ -134,8 +134,8 @@ export const POST = async ({ request }: { request: Request }) => {
           status: effectiveStatus,
           token,
           displayName: body.displayName!.trim(),
-          email: body.email?.trim() || null,
-          phone: body.phone?.trim() || null,
+          email: contactConfig?.email !== "hidden" ? (body.email?.trim() || null) : null,
+          phone: contactConfig?.phone !== "hidden" ? (body.phone?.trim() || null) : null,
         })
         .returning({ id: rsvps.id });
 
