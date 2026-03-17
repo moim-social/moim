@@ -52,6 +52,8 @@ import { GET as serveBanner } from "./routes/banners/-serve";
 import { POST as uploadBannerImage } from "./routes/admin/-banner-upload";
 import { GET as listBanners, POST as createBanner, PUT as updateBanner, DELETE as deleteBanner } from "./routes/admin/-banners";
 import { GET as getUserSettings, PATCH as updateUserSettings } from "./routes/users/-settings";
+import { POST as generateCalendarToken, DELETE as revokeCalendarToken } from "./routes/users/-calendar-token";
+import { GET as personalIcsFeed } from "./routes/events/-personal-ics";
 import { GET as listAdminPlaceCategories, POST as createAdminPlaceCategory, PATCH as updateAdminPlaceCategory, PUT as importAdminPlaceCategories } from "./routes/admin/-place-categories";
 import { GET as listAdminEventCategories, POST as createAdminEventCategory, PATCH as updateAdminEventCategory, PUT as importAdminEventCategories } from "./routes/admin/-event-categories";
 import { GET as listAdminPlaces, PATCH as updateAdminPlace } from "./routes/admin/-places";
@@ -243,6 +245,14 @@ apiRouter.get("/users/settings", defineEventHandler(async (event) => {
 
 apiRouter.patch("/users/settings", defineEventHandler(async (event) => {
   return updateUserSettings({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/users/calendar-token", defineEventHandler(async (event) => {
+  return generateCalendarToken({ request: toWebRequest(event) });
+}));
+
+apiRouter.delete("/users/calendar-token", defineEventHandler(async (event) => {
+  return revokeCalendarToken({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/users", defineEventHandler(async (event) => {
@@ -941,6 +951,11 @@ app.use(
           calendarName,
         }),
       });
+    }
+
+    // Personal RSVP calendar feed
+    if (url.pathname === "/calendar.ics") {
+      return personalIcsFeed({ request });
     }
 
     // Content negotiation: serve AP object directly for /notes/{uuid} and /places/{uuid}
