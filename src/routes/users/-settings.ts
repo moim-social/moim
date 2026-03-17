@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors } from "~/server/db/schema";
+import { actors, users } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
 export const GET = async ({ request }: { request: Request }) => {
@@ -21,8 +21,15 @@ export const GET = async ({ request }: { request: Request }) => {
     )
     .limit(1);
 
+  const [userRow] = await db
+    .select({ calendarToken: users.calendarToken })
+    .from(users)
+    .where(eq(users.id, user.id))
+    .limit(1);
+
   return Response.json({
     language: proxyActor?.language ?? null,
+    calendarToken: userRow?.calendarToken ?? null,
   });
 };
 
