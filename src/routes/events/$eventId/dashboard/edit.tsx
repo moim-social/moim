@@ -219,7 +219,7 @@ function EditTab() {
           location: selectedPlace?.name || undefined,
           venueDetail: venueDetail.trim() || undefined,
           externalUrl: externalUrl.trim() || undefined,
-          allowAnonymousRsvp: allowAnonymousRsvp || undefined,
+          allowAnonymousRsvp,
           anonymousContactFields: allowAnonymousRsvp ? anonymousContactFields : undefined,
           questions: questions
             .filter((q) => q.question.trim())

@@ -203,7 +203,7 @@ function CreateEventPage() {
           startsAt: datetimeLocalToUTC(startsAt, timezone),
           endsAt: endsAt ? datetimeLocalToUTC(endsAt, timezone) : undefined,
           timezone: timezone || undefined,
-          allowAnonymousRsvp: allowAnonymousRsvp || undefined,
+          allowAnonymousRsvp,
           anonymousContactFields: allowAnonymousRsvp ? anonymousContactFields : undefined,
           organizerHandles: organizers.map((o) => o.handle),
           questions: questions
