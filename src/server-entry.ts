@@ -90,6 +90,7 @@ import { GET as pollDetail } from "./routes/polls/-detail";
 import { POST as castVote } from "./routes/polls/-vote";
 import { POST as closePoll } from "./routes/polls/-close";
 import { GET as icsFeed } from "./routes/events/-ics";
+import { GET as getFavouriteStatus, POST as toggleFavourite } from "./routes/events/-favourite";
 import { POST as miauthStart } from "./routes/auth/misskey/-miauth-start"
 import { GET as miauthCallback } from "./routes/auth/misskey/-miauth-callback"
 import { POST as miauthCallbackApi } from "./routes/auth/misskey/-miauth-callback-api"
@@ -436,6 +437,25 @@ apiRouter.patch("/events/:eventId/rsvps/:rsvpId", defineEventHandler(async (even
     request: await forwardJson(request, `/api/events/${eventId}/rsvps/${rsvpId}`, "PATCH", (body) => body ?? {}),
     eventId,
     rsvpId,
+  });
+}));
+
+apiRouter.get("/events/:eventId/favourite", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  return getFavouriteStatus({
+    request: forwardGet(request, `/api/events/${eventId}/favourite`, { eventId }),
+  });
+}));
+
+apiRouter.post("/events/:eventId/favourite", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  return toggleFavourite({
+    request: await forwardJson(request, `/api/events/${eventId}/favourite`, "POST", (body) => ({
+      ...body,
+      eventId,
+    })),
   });
 }));
 

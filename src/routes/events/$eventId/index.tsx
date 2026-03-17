@@ -29,7 +29,7 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
-import { ExternalLink, Users } from "lucide-react";
+import { ExternalLink, Users, Bookmark, BookmarkCheck } from "lucide-react";
 import { RemoteDiscussionDialog } from "~/components/RemoteDiscussionDialog";
 
 const getEventMeta = createServerFn({ method: "GET" })
@@ -204,6 +204,10 @@ function EventDetailPage() {
   // RSVP state
   const [rsvpData, setRsvpData] = useState<RsvpData | null>(null);
 
+  // Favourite state
+  const [isFavourite, setIsFavourite] = useState(false);
+  const [favouriteLoading, setFavouriteLoading] = useState(false);
+
   useEffect(() => {
     fetch(`/api/events/${eventId}`)
       .then((r) => {
@@ -224,6 +228,13 @@ function EventDetailPage() {
     fetch(`/api/events/${eventId}/rsvp`)
       .then((r) => r.json())
       .then((d) => setRsvpData(d))
+      .catch(() => {});
+  }, [eventId]);
+
+  useEffect(() => {
+    fetch(`/api/events/${eventId}/favourite`)
+      .then((r) => r.json())
+      .then((d) => setIsFavourite(d.isFavourite))
       .catch(() => {});
   }, [eventId]);
 
@@ -720,8 +731,37 @@ function EventDetailPage() {
         <div className="space-y-6 min-w-0">
           {/* Date & Location — visible on mobile only (desktop shows in sidebar) */}
           <Card className="rounded-lg md:hidden">
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 space-y-4">
               {dateLocationContent}
+              <Separator />
+              <Button
+                variant="ghost"
+                className="w-full"
+                disabled={favouriteLoading}
+                onClick={async () => {
+                  setFavouriteLoading(true);
+                  try {
+                    const res = await fetch(`/api/events/${eventId}/favourite`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ eventId }),
+                    });
+                    if (res.ok) {
+                      const d = await res.json();
+                      setIsFavourite(d.isFavourite);
+                    }
+                  } finally {
+                    setFavouriteLoading(false);
+                  }
+                }}
+              >
+                {isFavourite ? (
+                  <BookmarkCheck className="size-4 mr-1.5 text-primary" />
+                ) : (
+                  <Bookmark className="size-4 mr-1.5" />
+                )}
+                {isFavourite ? "Bookmarked" : "Bookmark"}
+              </Button>
             </CardContent>
           </Card>
 
@@ -986,6 +1026,35 @@ function EventDetailPage() {
               <CardContent className="pt-6 space-y-4">
                 {dateLocationContent}
                 {rsvpContent}
+                <Separator />
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  disabled={favouriteLoading}
+                  onClick={async () => {
+                    setFavouriteLoading(true);
+                    try {
+                      const res = await fetch(`/api/events/${eventId}/favourite`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ eventId }),
+                      });
+                      if (res.ok) {
+                        const d = await res.json();
+                        setIsFavourite(d.isFavourite);
+                      }
+                    } finally {
+                      setFavouriteLoading(false);
+                    }
+                  }}
+                >
+                  {isFavourite ? (
+                    <BookmarkCheck className="size-4 mr-1.5 text-primary" />
+                  ) : (
+                    <Bookmark className="size-4 mr-1.5" />
+                  )}
+                  {isFavourite ? "Bookmarked" : "Bookmark"}
+                </Button>
               </CardContent>
             </Card>
           </div>
