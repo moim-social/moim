@@ -4,6 +4,7 @@ import { actors, events, eventQuestions, eventTiers, groupMembers, rsvpAnswers, 
 import { getSessionUser } from "~/server/auth";
 import { getEventCategories } from "~/server/events/categories";
 import { getAcceptedCount, autoPromoteWaitlist } from "~/server/events/waitlist";
+import { sanitizeContactFields } from "~/server/events/rsvp-helpers";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -155,8 +156,10 @@ export const POST = async ({ request }: { request: Request }) => {
         placeId: body.placeId !== undefined ? (body.placeId || null) : undefined,
         venueDetail: body.venueDetail !== undefined ? (body.venueDetail?.trim() || null) : undefined,
         headerImageUrl: body.headerImageUrl !== undefined ? (body.headerImageUrl || null) : undefined,
-        allowAnonymousRsvp: body.allowAnonymousRsvp !== undefined ? body.allowAnonymousRsvp : undefined,
-        anonymousContactFields: body.anonymousContactFields !== undefined ? body.anonymousContactFields : undefined,
+        allowAnonymousRsvp: body.allowAnonymousRsvp !== undefined ? !!body.allowAnonymousRsvp : undefined,
+        anonymousContactFields: body.allowAnonymousRsvp !== undefined
+          ? (body.allowAnonymousRsvp ? sanitizeContactFields(body.anonymousContactFields) : null)
+          : undefined,
         ...(convertingToGroup
           ? { groupActorId: body.groupActorId!, published: false }
           : {}),

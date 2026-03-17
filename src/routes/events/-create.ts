@@ -6,6 +6,7 @@ import { persistRemoteActor } from "~/server/fediverse/resolve";
 import { announceEvent } from "~/server/fediverse/category";
 import { reverseGeocodeCountry } from "~/server/geo/reverse-geocode";
 import { getEventCategories } from "~/server/events/categories";
+import { sanitizeContactFields } from "~/server/events/rsvp-helpers";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -148,8 +149,10 @@ export const POST = async ({ request }: { request: Request }) => {
         venueDetail: body.venueDetail?.trim() || null,
         country,
         published: body.published ?? (isPersonalEvent ? true : false),
-        allowAnonymousRsvp: body.allowAnonymousRsvp ?? false,
-        anonymousContactFields: body.anonymousContactFields ?? null,
+        allowAnonymousRsvp: !!body.allowAnonymousRsvp,
+        anonymousContactFields: body.allowAnonymousRsvp
+          ? sanitizeContactFields(body.anonymousContactFields)
+          : null,
         startsAt,
         endsAt: endsAt ?? null,
         timezone: body.timezone ?? null,

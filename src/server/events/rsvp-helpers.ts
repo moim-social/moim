@@ -130,3 +130,17 @@ export async function checkCapacityAndDetermineStatus(
 
   return acceptedCount >= capacity ? "waitlisted" : "accepted";
 }
+
+const ALLOWED_CONTACT_MODES = new Set(["required", "optional", "hidden"]);
+
+/**
+ * Sanitize anonymousContactFields to only allow known keys and valid modes.
+ */
+export function sanitizeContactFields(
+  fields: { email?: string; phone?: string } | null | undefined,
+): { email: string; phone: string } | null {
+  if (!fields) return null;
+  const email = ALLOWED_CONTACT_MODES.has(fields.email as string) ? fields.email! : "optional";
+  const phone = ALLOWED_CONTACT_MODES.has(fields.phone as string) ? fields.phone! : "hidden";
+  return { email, phone };
+}
