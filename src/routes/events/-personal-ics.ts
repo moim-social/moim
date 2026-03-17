@@ -1,6 +1,6 @@
-import { and, eq, isNull, asc } from "drizzle-orm";
+import { aliasedTable, and, eq, isNull, asc } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { users, rsvps, events, actors, places, eventFavourites } from "~/server/db/schema";
+import { users, rsvps, events, actors, places, eventFavourites, groupMembers } from "~/server/db/schema";
 import { buildIcsResponse, type IcsEvent } from "~/server/events/ics";
 
 const PERSONAL_ICS_LIMIT = 500;
@@ -58,6 +58,26 @@ export const GET = async ({
     .orderBy(asc(events.startsAt))
     .limit(PERSONAL_ICS_LIMIT);
 
+  // Hosted events (from groups the user is a member of)
+  const memberActors = aliasedTable(actors, "member_actors");
+  const hostingRows = await db
+    .selectDistinctOn([events.id], eventSelect)
+    .from(groupMembers)
+    .innerJoin(memberActors, eq(groupMembers.memberActorId, memberActors.id))
+    .innerJoin(events, eq(events.groupActorId, groupMembers.groupActorId))
+    .innerJoin(actors, eq(events.groupActorId, actors.id))
+    .leftJoin(places, eq(events.placeId, places.id))
+    .where(
+      and(
+        eq(memberActors.userId, user.id),
+        eq(memberActors.type, "Person"),
+        eq(events.published, true),
+        isNull(events.deletedAt),
+      ),
+    )
+    .orderBy(events.id, asc(events.startsAt))
+    .limit(PERSONAL_ICS_LIMIT);
+
   // Favourited events
   const favouriteRows = await db
     .select(eventSelect)
@@ -75,14 +95,24 @@ export const GET = async ({
     .orderBy(asc(events.startsAt))
     .limit(PERSONAL_ICS_LIMIT);
 
-  // Merge and deduplicate (RSVP takes precedence)
-  const rsvpEventIds = new Set(rsvpRows.map((r) => r.id));
-  const merged: IcsEvent[] = [
-    ...rsvpRows,
-    ...favouriteRows
-      .filter((f) => !rsvpEventIds.has(f.id))
-      .map((f) => ({ ...f, status: "TENTATIVE" as const })),
-  ];
+  // Merge and deduplicate (RSVP > hosting > favourite)
+  const seenIds = new Set<string>();
+  const merged: IcsEvent[] = [];
+
+  for (const r of rsvpRows) {
+    seenIds.add(r.id);
+    merged.push(r);
+  }
+  for (const r of hostingRows) {
+    if (seenIds.has(r.id)) continue;
+    seenIds.add(r.id);
+    merged.push(r); // hosted events are CONFIRMED (default)
+  }
+  for (const r of favouriteRows) {
+    if (seenIds.has(r.id)) continue;
+    seenIds.add(r.id);
+    merged.push({ ...r, status: "TENTATIVE" as const });
+  }
 
   // Sort by startsAt
   merged.sort(

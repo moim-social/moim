@@ -1,6 +1,6 @@
-import { eq, asc, and, isNull } from "drizzle-orm";
+import { aliasedTable, eq, asc, and, isNull } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { rsvps, eventFavourites, events, actors } from "~/server/db/schema";
+import { rsvps, eventFavourites, events, actors, groupMembers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
 export type CalendarEvent = {
@@ -10,7 +10,7 @@ export type CalendarEvent = {
   endsAt: string | null;
   groupName: string | null;
   groupHandle: string;
-  type: "rsvp" | "favourite";
+  type: "rsvp" | "hosting" | "favourite";
 };
 
 export const GET = async ({ request }: { request: Request }) => {
@@ -43,6 +43,24 @@ export const GET = async ({ request }: { request: Request }) => {
     )
     .orderBy(asc(events.startsAt));
 
+  // Hosted events (from groups the user is a member of)
+  const memberActors = aliasedTable(actors, "member_actors");
+  const hostingRows = await db
+    .selectDistinctOn([events.id], eventSelect)
+    .from(groupMembers)
+    .innerJoin(memberActors, eq(groupMembers.memberActorId, memberActors.id))
+    .innerJoin(events, eq(events.groupActorId, groupMembers.groupActorId))
+    .innerJoin(actors, eq(events.groupActorId, actors.id))
+    .where(
+      and(
+        eq(memberActors.userId, user.id),
+        eq(memberActors.type, "Person"),
+        eq(events.published, true),
+        isNull(events.deletedAt),
+      ),
+    )
+    .orderBy(events.id, asc(events.startsAt));
+
   const favouriteRows = await db
     .select(eventSelect)
     .from(eventFavourites)
@@ -57,14 +75,24 @@ export const GET = async ({ request }: { request: Request }) => {
     )
     .orderBy(asc(events.startsAt));
 
-  // Merge and deduplicate (RSVP takes precedence)
-  const rsvpEventIds = new Set(rsvpRows.map((r) => r.id));
-  const merged: CalendarEvent[] = [
-    ...rsvpRows.map((r) => ({ ...r, startsAt: r.startsAt.toISOString(), endsAt: r.endsAt?.toISOString() ?? null, type: "rsvp" as const })),
-    ...favouriteRows
-      .filter((f) => !rsvpEventIds.has(f.id))
-      .map((f) => ({ ...f, startsAt: f.startsAt.toISOString(), endsAt: f.endsAt?.toISOString() ?? null, type: "favourite" as const })),
-  ];
+  // Merge and deduplicate (RSVP > hosting > favourite)
+  const seenIds = new Set<string>();
+  const merged: CalendarEvent[] = [];
+
+  for (const r of rsvpRows) {
+    seenIds.add(r.id);
+    merged.push({ ...r, startsAt: r.startsAt.toISOString(), endsAt: r.endsAt?.toISOString() ?? null, type: "rsvp" });
+  }
+  for (const r of hostingRows) {
+    if (seenIds.has(r.id)) continue;
+    seenIds.add(r.id);
+    merged.push({ ...r, startsAt: r.startsAt.toISOString(), endsAt: r.endsAt?.toISOString() ?? null, type: "hosting" });
+  }
+  for (const r of favouriteRows) {
+    if (seenIds.has(r.id)) continue;
+    seenIds.add(r.id);
+    merged.push({ ...r, startsAt: r.startsAt.toISOString(), endsAt: r.endsAt?.toISOString() ?? null, type: "favourite" });
+  }
 
   merged.sort(
     (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),

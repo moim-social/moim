@@ -343,7 +343,9 @@ function MonthlyCalendar({
                             className={`block text-[10px] leading-tight truncate rounded px-1 py-0.5 ${
                               ev.type === "rsvp"
                                 ? "bg-primary/10 text-primary"
-                                : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                : ev.type === "hosting"
+                                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                  : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
                             }`}
                             title={ev.title}
                           >
@@ -394,7 +396,9 @@ function MonthlyCalendar({
                         className={`flex items-center gap-2 rounded-md border-l-2 border border-border px-3 py-1.5 hover:bg-muted/50 transition-colors ${
                           ev.type === "rsvp"
                             ? "border-l-primary bg-primary/5"
-                            : "border-l-amber-500 bg-amber-500/5"
+                            : ev.type === "hosting"
+                              ? "border-l-emerald-500 bg-emerald-500/5"
+                              : "border-l-amber-500 bg-amber-500/5"
                         }`}
                       >
                         <div className="min-w-0 flex-1">
@@ -429,6 +433,10 @@ function MonthlyCalendar({
           <div className="flex items-center gap-1.5">
             <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary/20" />
             RSVP&apos;d
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500/20" />
+            Hosting
           </div>
           <div className="flex items-center gap-1.5">
             <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-500/20" />
