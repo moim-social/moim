@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { rsvps, rsvpAnswers, events } from "~/server/db/schema";
 import { parseCookie } from "~/server/auth";
@@ -200,11 +200,10 @@ export const DELETE = async ({ request, eventId }: { request: Request; eventId: 
     let found = false;
 
     await db.transaction(async (tx) => {
-      const [rsvp] = await tx
-        .select({ id: rsvps.id, status: rsvps.status, tierId: rsvps.tierId })
-        .from(rsvps)
-        .where(and(eq(rsvps.token, token), eq(rsvps.eventId, eventId)))
-        .limit(1);
+      const rsvpRows = await tx.execute(
+        sql`SELECT id, status, tier_id AS "tierId" FROM rsvps WHERE token = ${token} AND event_id = ${eventId} LIMIT 1 FOR UPDATE`,
+      );
+      const rsvp = rsvpRows.rows[0] as { id: string; status: string; tierId: string | null } | undefined;
 
       if (!rsvp) return;
       found = true;
