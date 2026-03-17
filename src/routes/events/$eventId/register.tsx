@@ -129,12 +129,14 @@ function RegisterPage() {
         }
 
         // If not authenticated, either show anonymous form or redirect
-        if (!rsvp.isAuthenticated) {
+        if (!rsvp.isAuthenticated && !rsvp.userRsvp) {
           if (rsvp.allowAnonymousRsvp) {
             setIsAnonymousMode(true);
           } else {
             navigate({ to: "/auth/signin", search: { reason: "rsvp" } });
           }
+        } else if (!rsvp.isAuthenticated && rsvp.userRsvp) {
+          setIsAnonymousMode(true);
         }
       })
       .catch(() => {})
