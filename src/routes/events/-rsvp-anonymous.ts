@@ -188,18 +188,19 @@ export const DELETE = async ({ request, eventId }: { request: Request; eventId: 
     return Response.json({ error: "No anonymous RSVP token found" }, { status: 400 });
   }
 
-  const [rsvp] = await db
-    .select({ id: rsvps.id, status: rsvps.status, tierId: rsvps.tierId })
-    .from(rsvps)
-    .where(and(eq(rsvps.token, token), eq(rsvps.eventId, eventId)))
-    .limit(1);
-
-  if (!rsvp) {
-    return Response.json({ error: "RSVP not found" }, { status: 404 });
-  }
-
   try {
+    let found = false;
+
     await db.transaction(async (tx) => {
+      const [rsvp] = await tx
+        .select({ id: rsvps.id, status: rsvps.status, tierId: rsvps.tierId })
+        .from(rsvps)
+        .where(and(eq(rsvps.token, token), eq(rsvps.eventId, eventId)))
+        .limit(1);
+
+      if (!rsvp) return;
+      found = true;
+
       await tx
         .update(rsvps)
         .set({ status: "declined", tierId: null })
@@ -209,6 +210,10 @@ export const DELETE = async ({ request, eventId }: { request: Request; eventId: 
         await autoPromoteWaitlist(tx, rsvp.tierId, 1);
       }
     });
+
+    if (!found) {
+      return Response.json({ error: "RSVP not found" }, { status: 404 });
+    }
 
     // Clear the cookie
     return new Response(
