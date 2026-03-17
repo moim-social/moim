@@ -1,21 +1,9 @@
 import { and, eq, gte, isNull, isNotNull, asc, type SQL } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, events, places } from "~/server/db/schema";
-import { env } from "~/server/env";
+import { buildIcsResponse } from "~/server/events/ics";
 
 const ICS_LIMIT = 100;
-
-function escapeIcs(text: string): string {
-  return text
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\n/g, "\\n");
-}
-
-function formatIcsDate(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-}
 
 export const GET = async ({
   request,
@@ -45,6 +33,7 @@ export const GET = async ({
       startsAt: events.startsAt,
       endsAt: events.endsAt,
       location: events.location,
+      venueDetail: events.venueDetail,
       placeName: places.name,
       placeAddress: places.address,
       groupName: actors.name,
@@ -57,51 +46,5 @@ export const GET = async ({
     .orderBy(asc(events.startsAt))
     .limit(ICS_LIMIT);
 
-  const baseUrl = env.baseUrl;
-
-  const vevents = rows.map((e) => {
-    const location = e.location || e.placeName || e.placeAddress || "";
-    const lines = [
-      "BEGIN:VEVENT",
-      `UID:${e.id}@${new URL(baseUrl).hostname}`,
-      `DTSTART:${formatIcsDate(new Date(e.startsAt))}`,
-    ];
-    if (e.endsAt) {
-      lines.push(`DTEND:${formatIcsDate(new Date(e.endsAt))}`);
-    }
-    lines.push(`SUMMARY:${escapeIcs(e.title)}`);
-    if (location) {
-      lines.push(`LOCATION:${escapeIcs(location)}`);
-    }
-    const organizer = e.groupName ?? `@${e.groupHandle}`;
-    const eventUrl = e.externalUrl || `${baseUrl}/events/${e.id}`;
-    const descParts: string[] = [];
-    descParts.push(`Hosted by: ${organizer}`);
-    descParts.push(`Link: ${eventUrl}`);
-    if (e.description) {
-      const plain = e.description.replace(/<[^>]*>/g, "");
-      descParts.push("", plain);
-    }
-    lines.push(`DESCRIPTION:${escapeIcs(descParts.join("\n"))}`);
-    lines.push(`ORGANIZER;CN=${escapeIcs(organizer)}:mailto:noreply@${new URL(baseUrl).hostname}`);
-    lines.push(`URL:${eventUrl}`);
-    lines.push("END:VEVENT");
-    return lines.join("\r\n");
-  });
-
-  const ics = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Moim//Events//EN",
-    `X-WR-CALNAME:${escapeIcs(calendarName)}`,
-    ...vevents,
-    "END:VCALENDAR",
-  ].join("\r\n");
-
-  return new Response(ics, {
-    headers: {
-      "Content-Type": "text/calendar; charset=utf-8",
-      "Cache-Control": "public, max-age=900",
-    },
-  });
+  return buildIcsResponse(rows, { calendarName });
 };
