@@ -20,6 +20,7 @@ export const users = pgTable("users", {
   summary: text("summary"),
   avatarUrl: text("avatar_url"),
   avatarSourceHash: text("avatar_source_hash"),
+  calendarToken: varchar("calendar_token", { length: 64 }).unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
