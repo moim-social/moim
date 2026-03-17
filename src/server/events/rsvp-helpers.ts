@@ -101,6 +101,9 @@ export async function checkCapacityAndDetermineStatus(
   capacity: number,
   excludeRsvpId?: string,
 ): Promise<"accepted" | "waitlisted"> {
+  // Lock the tier row to serialize concurrent capacity checks
+  await tx.execute(sql`SELECT id FROM event_tiers WHERE id = ${tierId} FOR UPDATE`);
+
   const [countRow] = await tx
     .select({ count: sql<number>`count(*)::int` })
     .from(rsvps)
