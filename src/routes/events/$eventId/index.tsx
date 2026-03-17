@@ -345,16 +345,14 @@ function EventDetailPage() {
             )}
           </div>
           {!rsvpData.isAuthenticated ? (
-            rsvpData.allowAnonymousRsvp ? (
-              rsvpData.userRsvp ? (
-                <Button size="sm" variant="outline" asChild>
-                  <Link to="/events/$eventId/register" params={{ eventId }}>View Registration</Link>
-                </Button>
-              ) : (
-                <Button size="sm" asChild>
-                  <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
-                </Button>
-              )
+            rsvpData.userRsvp ? (
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/events/$eventId/register" params={{ eventId }}>View Registration</Link>
+              </Button>
+            ) : rsvpData.allowAnonymousRsvp ? (
+              <Button size="sm" asChild>
+                <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
+              </Button>
             ) : (
               <Button size="sm" asChild>
                 <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
@@ -479,16 +477,14 @@ function EventDetailPage() {
         )}
       </div>
       {!rsvpData.isAuthenticated ? (
-        rsvpData.allowAnonymousRsvp ? (
-          rsvpData.userRsvp ? (
-            <Button variant="outline" className="w-full" asChild>
-              <Link to="/events/$eventId/register" params={{ eventId }}>View Registration</Link>
-            </Button>
-          ) : (
-            <Button className="w-full" asChild>
-              <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
-            </Button>
-          )
+        rsvpData.userRsvp ? (
+          <Button variant="outline" className="w-full" asChild>
+            <Link to="/events/$eventId/register" params={{ eventId }}>View Registration</Link>
+          </Button>
+        ) : rsvpData.allowAnonymousRsvp ? (
+          <Button className="w-full" asChild>
+            <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
+          </Button>
         ) : (
           <Button asChild className="w-full">
             <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
