@@ -39,10 +39,15 @@ export const POST = async ({ request }: { request: Request }) => {
     email?: string;
     phone?: string;
     answers?: Array<{ questionId: string; answer: string }>;
+    consent?: boolean;
   } | null;
 
   if (!body?.eventId || !body?.displayName?.trim()) {
     return Response.json({ error: "eventId and displayName are required" }, { status: 400 });
+  }
+
+  if (body.consent !== true) {
+    return Response.json({ error: "Consent is required for anonymous registration" }, { status: 400 });
   }
 
   // Rate limit by IP + eventId (prevents rapid-fire abuse per event)

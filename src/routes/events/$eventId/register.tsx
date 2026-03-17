@@ -304,6 +304,7 @@ function RegisterPage() {
             email: anonEmail.trim() || undefined,
             phone: anonPhone.trim() || undefined,
             answers: answersPayload,
+            consent: consentChecked,
           }),
         });
       } else {
