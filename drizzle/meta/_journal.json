@@ -295,6 +295,13 @@
       "when": 1773730118428,
       "tag": "0041_dizzy_azazel",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1773731120165,
+      "tag": "0042_broken_moonstone",
+      "breakpoints": true
     }
   ]
 }

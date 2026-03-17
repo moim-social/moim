@@ -252,6 +252,15 @@ export const rsvpAnswers = pgTable("rsvp_answers", {
   uniqueAnswer: unique().on(table.rsvpId, table.questionId),
 }));
 
+export const eventFavourites = pgTable("event_favourites", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  eventId: uuid("event_id").references(() => events.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueFavourite: unique().on(table.userId, table.eventId),
+}));
+
 export const checkins = pgTable("checkins", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").references(() => users.id).notNull(),

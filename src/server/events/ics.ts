@@ -13,6 +13,7 @@ export interface IcsEvent {
   placeAddress: string | null;
   groupName: string | null;
   groupHandle: string | null;
+  status?: "CONFIRMED" | "TENTATIVE";
 }
 
 export interface IcsOptions {
@@ -53,7 +54,13 @@ export function buildVevent(event: IcsEvent, baseUrl: string): string {
   }
   const organizer = event.groupName ?? (event.groupHandle ? `@${event.groupHandle}` : "");
   const eventUrl = event.externalUrl || `${baseUrl}/events/${event.id}`;
+  if (event.status) {
+    lines.push(`STATUS:${event.status}`);
+  }
   const descParts: string[] = [];
+  if (event.status === "TENTATIVE") {
+    descParts.push("[Favourited] This event is bookmarked, not officially confirmed.");
+  }
   if (organizer) descParts.push(`Hosted by: ${organizer}`);
   descParts.push(`Link: ${eventUrl}`);
   if (event.description) {
