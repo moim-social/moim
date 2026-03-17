@@ -72,12 +72,22 @@ export async function validateRequiredAnswers(
     .from(eventQuestions)
     .where(eq(eventQuestions.eventId, eventId));
 
+  const validIds = new Set(questions.map((q) => q.id));
   const requiredIds = new Set(
     questions.filter((q) => q.required).map((q) => q.id),
   );
   const answeredIds = new Set(
     (answers ?? []).filter((a) => a.answer.trim()).map((a) => a.questionId),
   );
+
+  for (const id of answeredIds) {
+    if (!validIds.has(id)) {
+      return Response.json(
+        { error: "Answer references an invalid question" },
+        { status: 400 },
+      );
+    }
+  }
 
   for (const reqId of requiredIds) {
     if (!answeredIds.has(reqId)) {
