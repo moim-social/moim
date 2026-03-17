@@ -3,7 +3,7 @@ import { db } from "~/server/db/client";
 import { events, rsvps, actors, groupMembers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 
-export const PATCH = async ({ request, eventId, userId }: { request: Request; eventId: string; userId: string }) => {
+export const PATCH = async ({ request, eventId, rsvpId }: { request: Request; eventId: string; rsvpId: string }) => {
   const user = await getSessionUser(request);
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -51,11 +51,11 @@ export const PATCH = async ({ request, eventId, userId }: { request: Request; ev
     }
   }
 
-  // Find the RSVP
+  // Find the RSVP by id
   const [rsvp] = await db
     .select({ status: rsvps.status })
     .from(rsvps)
-    .where(and(eq(rsvps.userId, userId), eq(rsvps.eventId, eventId)))
+    .where(and(eq(rsvps.id, rsvpId), eq(rsvps.eventId, eventId)))
     .limit(1);
 
   if (!rsvp) {
@@ -70,7 +70,7 @@ export const PATCH = async ({ request, eventId, userId }: { request: Request; ev
   await db
     .update(rsvps)
     .set({ status: body.status })
-    .where(and(eq(rsvps.userId, userId), eq(rsvps.eventId, eventId)));
+    .where(eq(rsvps.id, rsvpId));
 
   return Response.json({ ok: true, status: body.status });
 };

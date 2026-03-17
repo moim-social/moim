@@ -26,7 +26,7 @@ export async function autoPromoteWaitlist(
 ): Promise<number> {
   // Find waitlisted RSVPs ordered by createdAt (FIFO)
   const waitlisted = await tx
-    .select({ userId: rsvps.userId, eventId: rsvps.eventId })
+    .select({ id: rsvps.id })
     .from(rsvps)
     .where(and(eq(rsvps.tierId, tierId), eq(rsvps.status, "waitlisted")))
     .orderBy(asc(rsvps.createdAt))
@@ -38,7 +38,7 @@ export async function autoPromoteWaitlist(
     await tx
       .update(rsvps)
       .set({ status: "accepted" })
-      .where(and(eq(rsvps.userId, r.userId), eq(rsvps.eventId, r.eventId)));
+      .where(eq(rsvps.id, r.id));
   }
 
   return toPromote.length;

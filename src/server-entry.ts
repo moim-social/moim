@@ -35,6 +35,7 @@ import { POST as updateEvent } from "./routes/events/-update";
 import { GET as rsvpStatus } from "./routes/events/-rsvp-status";
 import { GET as eventAttendees } from "./routes/events/-attendees";
 import { PATCH as manageRsvp } from "./routes/events/-rsvp-manage";
+import { POST as submitAnonymousRsvp, DELETE as cancelAnonymousRsvp } from "./routes/events/-rsvp-anonymous";
 import { GET as noteDetail } from "./routes/notes/-detail";
 import { GET as listPlaces } from "./routes/places/-list";
 import { GET as placeDetail } from "./routes/places/-detail";
@@ -95,6 +96,7 @@ import { POST as mastodonOAuthStart } from "./routes/auth/mastodon/-oauth-start"
 import { GET as mastodonOAuthCallback } from "./routes/auth/mastodon/-oauth-callback"
 import { POST as mastodonOAuthCallbackApi } from "./routes/auth/mastodon/-oauth-callback-api"
 import { startOAuthCleanupInterval } from "./server/mastodon-oauth-sessions"
+import { startGdprCleanupInterval } from "./server/events/gdpr-cleanup"
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -104,6 +106,7 @@ app.use(integrateFederation(federation, () => undefined));
 // Start the MiAuth session cleanup interval
 startCleanupInterval();
 startOAuthCleanupInterval();
+startGdprCleanupInterval();
 
 const apiRouter = createRouter();
 
@@ -392,16 +395,37 @@ apiRouter.put("/events/:eventId/rsvp", defineEventHandler(async (event) => {
   });
 }));
 
-apiRouter.patch("/events/:eventId/rsvps/:userId", defineEventHandler(async (event) => {
+apiRouter.put("/events/:eventId/rsvp/anonymous", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   const eventId = event.context.params?.eventId;
-  const userId = event.context.params?.userId;
-  if (!eventId || !userId) return Response.json({ error: "eventId and userId are required" }, { status: 400 });
+  if (!eventId) return Response.json({ error: "eventId is required" }, { status: 400 });
+
+  return submitAnonymousRsvp({
+    request: await forwardJson(request, `/api/events/${eventId}/rsvp/anonymous`, "POST", (body) => ({
+      ...(body ?? {}),
+      eventId,
+    })),
+  });
+}));
+
+apiRouter.delete("/events/:eventId/rsvp/anonymous", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  if (!eventId) return Response.json({ error: "eventId is required" }, { status: 400 });
+
+  return cancelAnonymousRsvp({ request, eventId });
+}));
+
+apiRouter.patch("/events/:eventId/rsvps/:rsvpId", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  const rsvpId = event.context.params?.rsvpId;
+  if (!eventId || !rsvpId) return Response.json({ error: "eventId and rsvpId are required" }, { status: 400 });
 
   return manageRsvp({
-    request: await forwardJson(request, `/api/events/${eventId}/rsvps/${userId}`, "PATCH", (body) => body ?? {}),
+    request: await forwardJson(request, `/api/events/${eventId}/rsvps/${rsvpId}`, "PATCH", (body) => body ?? {}),
     eventId,
-    userId,
+    rsvpId,
   });
 }));
 

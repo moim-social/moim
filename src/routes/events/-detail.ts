@@ -29,6 +29,8 @@ export const GET = async ({ request }: { request: Request }) => {
       venueDetail: events.venueDetail,
       headerImageUrl: events.headerImageUrl,
       published: events.published,
+      allowAnonymousRsvp: events.allowAnonymousRsvp,
+      anonymousContactFields: events.anonymousContactFields,
       createdAt: events.createdAt,
       placeName: places.name,
       placeAddress: places.address,

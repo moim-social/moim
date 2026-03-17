@@ -1,7 +1,8 @@
 import { eq, and, sql, lt } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { rsvps, rsvpAnswers, eventQuestions, eventTiers } from "~/server/db/schema";
+import { rsvps, rsvpAnswers, eventQuestions, eventTiers, events } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
+import { parseCookie } from "~/server/auth";
 
 export const GET = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
@@ -9,6 +10,21 @@ export const GET = async ({ request }: { request: Request }) => {
 
   if (!eventId) {
     return Response.json({ error: "eventId is required" }, { status: 400 });
+  }
+
+  // Get event with anonymous RSVP config
+  const [event] = await db
+    .select({
+      id: events.id,
+      allowAnonymousRsvp: events.allowAnonymousRsvp,
+      anonymousContactFields: events.anonymousContactFields,
+    })
+    .from(events)
+    .where(eq(events.id, eventId))
+    .limit(1);
+
+  if (!event) {
+    return Response.json({ error: "Event not found" }, { status: 404 });
   }
 
   // Get event questions
@@ -55,6 +71,19 @@ export const GET = async ({ request }: { request: Request }) => {
     waitlisted: counts.find((c) => c.status === "waitlisted")?.count ?? 0,
   };
 
+  // Count anonymous RSVPs
+  const [anonCount] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(rsvps)
+    .where(
+      and(
+        eq(rsvps.eventId, eventId),
+        sql`user_id IS NULL`,
+        sql`status != 'declined'`,
+      ),
+    );
+  const anonymousCount = anonCount?.count ?? 0;
+
   // Get per-tier RSVP counts
   const tierCounts = await db
     .select({
@@ -66,7 +95,7 @@ export const GET = async ({ request }: { request: Request }) => {
     .where(eq(rsvps.eventId, eventId))
     .groupBy(rsvps.tierId, rsvps.status);
 
-  // Check current user's RSVP
+  // Check current user's RSVP (authenticated or anonymous via token)
   let userRsvp: {
     status: string;
     tierId: string | null;
@@ -74,9 +103,10 @@ export const GET = async ({ request }: { request: Request }) => {
     waitlistPosition: number | null;
   } | null = null;
   const user = await getSessionUser(request);
+
   if (user) {
     const [rsvp] = await db
-      .select({ status: rsvps.status, tierId: rsvps.tierId, createdAt: rsvps.createdAt })
+      .select({ id: rsvps.id, status: rsvps.status, tierId: rsvps.tierId, createdAt: rsvps.createdAt })
       .from(rsvps)
       .where(and(eq(rsvps.userId, user.id), eq(rsvps.eventId, eventId)))
       .limit(1);
@@ -88,12 +118,7 @@ export const GET = async ({ request }: { request: Request }) => {
           answer: rsvpAnswers.answer,
         })
         .from(rsvpAnswers)
-        .where(
-          and(
-            eq(rsvpAnswers.userId, user.id),
-            eq(rsvpAnswers.eventId, eventId),
-          ),
-        );
+        .where(eq(rsvpAnswers.rsvpId, rsvp.id));
 
       // Compute waitlist position if waitlisted
       let waitlistPosition: number | null = null;
@@ -113,7 +138,55 @@ export const GET = async ({ request }: { request: Request }) => {
 
       userRsvp = { status: rsvp.status!, tierId: rsvp.tierId, answers, waitlistPosition };
     }
+  } else {
+    // Check for anonymous RSVP via cookie or query param token
+    const cookieName = `anon_rsvp_${eventId}`;
+    const token = url.searchParams.get("token") || parseCookie(request.headers.get("cookie"), cookieName);
+    if (token) {
+      const [rsvp] = await db
+        .select({ id: rsvps.id, status: rsvps.status, tierId: rsvps.tierId, createdAt: rsvps.createdAt })
+        .from(rsvps)
+        .where(and(eq(rsvps.token, token), eq(rsvps.eventId, eventId)))
+        .limit(1);
+
+      if (rsvp) {
+        const answers = await db
+          .select({
+            questionId: rsvpAnswers.questionId,
+            answer: rsvpAnswers.answer,
+          })
+          .from(rsvpAnswers)
+          .where(eq(rsvpAnswers.rsvpId, rsvp.id));
+
+        let waitlistPosition: number | null = null;
+        if (rsvp.status === "waitlisted" && rsvp.tierId && rsvp.createdAt) {
+          const [posRow] = await db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(rsvps)
+            .where(
+              and(
+                eq(rsvps.tierId, rsvp.tierId),
+                eq(rsvps.status, "waitlisted"),
+                lt(rsvps.createdAt, rsvp.createdAt),
+              ),
+            );
+          waitlistPosition = (posRow?.count ?? 0) + 1;
+        }
+
+        userRsvp = { status: rsvp.status!, tierId: rsvp.tierId, answers, waitlistPosition };
+      }
+    }
   }
 
-  return Response.json({ questions, tiers, rsvpCounts, tierCounts, userRsvp, isAuthenticated: !!user });
+  return Response.json({
+    questions,
+    tiers,
+    rsvpCounts,
+    tierCounts,
+    userRsvp,
+    isAuthenticated: !!user,
+    allowAnonymousRsvp: event.allowAnonymousRsvp,
+    anonymousContactFields: event.anonymousContactFields,
+    anonymousCount,
+  });
 };

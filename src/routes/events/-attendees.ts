@@ -37,7 +37,7 @@ export const GET = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Event not found" }, { status: 404 });
   }
 
-  // Check if user is organizer/moderator of the group (join through actors to match any actor for this user)
+  // Check if user is organizer/moderator of the group
   if (event.groupActorId) {
     const [membership] = await db
       .select({ role: groupMembers.role })
@@ -79,20 +79,24 @@ export const GET = async ({ request }: { request: Request }) => {
     .where(eq(eventTiers.eventId, eventId))
     .orderBy(eventTiers.sortOrder);
 
-  // Get all RSVPs with user info
+  // Get all RSVPs with user info (leftJoin for anonymous RSVPs)
   const rsvpRows = await db
     .select({
+      rsvpId: rsvps.id,
       userId: rsvps.userId,
       status: rsvps.status,
       tierId: rsvps.tierId,
       tierName: eventTiers.name,
       createdAt: rsvps.createdAt,
       handle: userFediverseAccounts.fediverseHandle,
-      displayName: users.displayName,
+      userDisplayName: users.displayName,
       avatarUrl: users.avatarUrl,
+      anonDisplayName: rsvps.displayName,
+      anonEmail: rsvps.email,
+      anonPhone: rsvps.phone,
     })
     .from(rsvps)
-    .innerJoin(users, eq(rsvps.userId, users.id))
+    .leftJoin(users, eq(rsvps.userId, users.id))
     .leftJoin(eventTiers, eq(rsvps.tierId, eventTiers.id))
     .leftJoin(userFediverseAccounts, and(
       eq(userFediverseAccounts.userId, users.id),
@@ -100,38 +104,41 @@ export const GET = async ({ request }: { request: Request }) => {
     ))
     .where(eq(rsvps.eventId, eventId));
 
-  // Get all answers for this event
+  // Get all answers for this event, grouped by rsvpId
   const allAnswers = await db
     .select({
-      userId: rsvpAnswers.userId,
+      rsvpId: rsvpAnswers.rsvpId,
       questionId: rsvpAnswers.questionId,
       answer: rsvpAnswers.answer,
     })
     .from(rsvpAnswers)
     .where(eq(rsvpAnswers.eventId, eventId));
 
-  // Group answers by userId
-  const answersByUser = new Map<string, Array<{ questionId: string; answer: string }>>();
+  const answersByRsvp = new Map<string, Array<{ questionId: string; answer: string }>>();
   for (const a of allAnswers) {
-    if (!answersByUser.has(a.userId)) {
-      answersByUser.set(a.userId, []);
+    if (!answersByRsvp.has(a.rsvpId)) {
+      answersByRsvp.set(a.rsvpId, []);
     }
-    answersByUser.get(a.userId)!.push({
+    answersByRsvp.get(a.rsvpId)!.push({
       questionId: a.questionId,
       answer: a.answer,
     });
   }
 
   const attendees = rsvpRows.map((r) => ({
+    rsvpId: r.rsvpId,
     userId: r.userId,
+    isAnonymous: r.userId === null,
     handle: r.handle,
-    displayName: r.displayName,
+    displayName: r.userDisplayName ?? r.anonDisplayName ?? "Anonymous",
     avatarUrl: r.avatarUrl,
+    email: r.anonEmail,
+    phone: r.anonPhone,
     status: r.status,
     tierId: r.tierId,
     tierName: r.tierName,
     createdAt: r.createdAt,
-    answers: answersByUser.get(r.userId) ?? [],
+    answers: answersByRsvp.get(r.rsvpId) ?? [],
   }));
 
   return Response.json({ questions, tiers, attendees });

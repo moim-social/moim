@@ -127,7 +127,7 @@ export const POST = async ({ request }: { request: Request }) => {
             notInArray(rsvps.eventId, targetRsvpEventIds),
           ),
         );
-      // Delete conflicting RSVPs from source
+      // Delete conflicting RSVPs from source (answers cascade via rsvp_id FK)
       await tx.delete(rsvps).where(eq(rsvps.userId, sourceUserId));
     } else {
       await tx
@@ -136,29 +136,9 @@ export const POST = async ({ request }: { request: Request }) => {
         .where(eq(rsvps.userId, sourceUserId));
     }
 
-    // 5. Reassign rsvp answers (skip conflicts)
-    const targetAnswerKeys = (
-      await tx
-        .select({
-          eventId: rsvpAnswers.eventId,
-          questionId: rsvpAnswers.questionId,
-        })
-        .from(rsvpAnswers)
-        .where(eq(rsvpAnswers.userId, targetUserId))
-    );
-
-    if (targetAnswerKeys.length > 0) {
-      // Delete conflicting answers from source first
-      for (const key of targetAnswerKeys) {
-        await tx.delete(rsvpAnswers).where(
-          and(
-            eq(rsvpAnswers.userId, sourceUserId),
-            eq(rsvpAnswers.eventId, key.eventId),
-            eq(rsvpAnswers.questionId, key.questionId),
-          ),
-        );
-      }
-    }
+    // 5. Reassign rsvp answers — update userId for transferred RSVPs
+    // Answers are already linked to the correct RSVP via rsvpId FK,
+    // so we just need to update the userId column for tracking
     await tx
       .update(rsvpAnswers)
       .set({ userId: targetUserId })
