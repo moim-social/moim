@@ -1,31 +1,12 @@
 import { useState } from "react";
 import { ChevronRightIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from "~/components/ui/card";
-import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "~/components/ui/collapsible";
 import { Switch } from "~/components/ui/switch";
 import { cn } from "~/lib/utils";
 
-type Organizer = {
-  handle: string;
-  name: string;
-  source: "local" | "fediverse";
-};
-
 type MoreOptionsCardProps = {
-  organizers: Organizer[];
-  searchQuery: string;
-  onSearchQueryChange: (query: string) => void;
-  searchResults: { handle: string; displayName: string }[];
-  onAddLocalOrganizer: (user: { handle: string; displayName: string }) => void;
-  fedHandle: string;
-  onFedHandleChange: (handle: string) => void;
-  resolving: boolean;
-  onResolveFediOrganizer: () => void;
-  onRemoveOrganizer: (handle: string) => void;
   allowAnonymousRsvp: boolean;
   onAllowAnonymousRsvpChange: (value: boolean) => void;
   anonymousContactFields: { email?: string; phone?: string } | null;
@@ -33,16 +14,6 @@ type MoreOptionsCardProps = {
 };
 
 export function MoreOptionsCard({
-  organizers,
-  searchQuery,
-  onSearchQueryChange,
-  searchResults,
-  onAddLocalOrganizer,
-  fedHandle,
-  onFedHandleChange,
-  resolving,
-  onResolveFediOrganizer,
-  onRemoveOrganizer,
   allowAnonymousRsvp,
   onAllowAnonymousRsvpChange,
   anonymousContactFields,
@@ -140,89 +111,6 @@ export function MoreOptionsCard({
                     </ul>
                   </div>
                 </div>
-              )}
-            </fieldset>
-
-            {/* Organizers */}
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-medium">Organizers</legend>
-
-              <div className="space-y-1.5">
-                <Label>Search registered users</Label>
-                <Input
-                  type="text"
-                  placeholder="Search by name or handle..."
-                  value={searchQuery}
-                  onChange={(e) => onSearchQueryChange(e.target.value)}
-                />
-                {searchResults.length > 0 && (
-                  <ul className="mt-1 border rounded-md max-h-[200px] overflow-auto">
-                    {searchResults.map((u) => (
-                      <li
-                        key={u.handle}
-                        onClick={() => onAddLocalOrganizer(u)}
-                        className="px-3 py-2 cursor-pointer hover:bg-accent border-b border-border last:border-b-0"
-                      >
-                        <strong>{u.displayName}</strong>{" "}
-                        <span className="text-muted-foreground">@{u.handle}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Add by fediverse handle</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="@user@mastodon.social"
-                    value={fedHandle}
-                    onChange={(e) => onFedHandleChange(e.target.value)}
-                    className="flex-1"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        onResolveFediOrganizer();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    onClick={onResolveFediOrganizer}
-                    disabled={resolving}
-                  >
-                    {resolving ? "Verifying..." : "Verify"}
-                  </Button>
-                </div>
-              </div>
-
-              {organizers.length > 0 && (
-                <ul className="space-y-1">
-                  {organizers.map((o) => (
-                    <li
-                      key={o.handle}
-                      className="flex items-center justify-between px-3 py-2 border rounded-md"
-                    >
-                      <span className="flex items-center gap-2">
-                        <strong>{o.name}</strong>
-                        <span className="text-muted-foreground">@{o.handle}</span>
-                        {o.source === "fediverse" && (
-                          <Badge variant="secondary">fediverse</Badge>
-                        )}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onRemoveOrganizer(o.handle)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        Remove
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
               )}
             </fieldset>
           </CardContent>

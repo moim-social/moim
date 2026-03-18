@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePostHog } from "posthog-js/react";
 import { useEventCategories } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
@@ -16,6 +16,7 @@ import { DescriptionCard } from "~/components/event-form/DescriptionCard";
 import { WhereCard } from "~/components/event-form/WhereCard";
 import { ExternalUrlCard } from "~/components/event-form/ExternalUrlCard";
 import { MoreOptionsCard } from "~/components/event-form/MoreOptionsCard";
+import { OrganizersCard } from "~/components/event-form/OrganizersCard";
 import { QuestionsStep } from "~/components/event-form/QuestionsStep";
 
 export const Route = createFileRoute("/events/create")({
@@ -27,7 +28,9 @@ type Phase = "basic" | "questions" | "submitting" | "error";
 type Organizer = {
   handle: string;
   name: string;
-  source: "local" | "fediverse";
+  source: "local" | "fediverse" | "external";
+  homepageUrl?: string;
+  imageUrl?: string;
 };
 
 type QuestionDraft = {
@@ -89,14 +92,10 @@ function CreateEventPage() {
 
   // Organizers
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<
-    { handle: string; displayName: string }[]
-  >([]);
   const [fedHandle, setFedHandle] = useState("");
   const [resolving, setResolving] = useState(false);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const [extName, setExtName] = useState("");
+  const [extUrl, setExtUrl] = useState("");
   // Header image
   const [headerImageBlob, setHeaderImageBlob] = useState<Blob | null>(null);
   const [headerImagePreview, setHeaderImagePreview] = useState<string | null>(null);
@@ -111,42 +110,6 @@ function CreateEventPage() {
 
   // Survey questions
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
-
-  // Debounced user search
-  useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (searchQuery.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    searchTimer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `/api/users?query=${encodeURIComponent(searchQuery)}`,
-        );
-        const data = await res.json();
-        setSearchResults(data.users ?? []);
-      } catch {
-        setSearchResults([]);
-      }
-    }, 300);
-    return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    };
-  }, [searchQuery]);
-
-  function addLocalOrganizer(user: {
-    handle: string;
-    displayName: string;
-  }) {
-    if (organizers.some((o) => o.handle === user.handle)) return;
-    setOrganizers((prev) => [
-      ...prev,
-      { handle: user.handle, name: user.displayName, source: "local" },
-    ]);
-    setSearchQuery("");
-    setSearchResults([]);
-  }
 
   async function resolveFediOrganizer() {
     if (!fedHandle.trim()) return;
@@ -170,7 +133,7 @@ function CreateEventPage() {
       if (!organizers.some((o) => o.handle === normalized)) {
         setOrganizers((prev) => [
           ...prev,
-          { handle: normalized, name: data.actor.name, source: "fediverse" },
+          { handle: normalized, name: data.actor.name, source: "fediverse", imageUrl: data.actor.avatarUrl ?? undefined },
         ]);
       }
       setFedHandle("");
@@ -178,6 +141,23 @@ function CreateEventPage() {
       setError("Network error");
     }
     setResolving(false);
+  }
+
+  function addExternalOrganizer() {
+    if (!extName.trim()) return;
+    const key = `ext:${extName.trim()}`;
+    if (organizers.some((o) => o.handle === key)) return;
+    setOrganizers((prev) => [
+      ...prev,
+      {
+        handle: key,
+        name: extName.trim(),
+        source: "external",
+        homepageUrl: extUrl.trim() || undefined,
+      },
+    ]);
+    setExtName("");
+    setExtUrl("");
   }
 
   function removeOrganizer(handle: string) {
@@ -205,7 +185,12 @@ function CreateEventPage() {
           timezone: timezone || undefined,
           allowAnonymousRsvp,
           anonymousContactFields: allowAnonymousRsvp ? anonymousContactFields : undefined,
-          organizerHandles: organizers.map((o) => o.handle),
+          organizerHandles: organizers
+            .filter((o) => o.source !== "external")
+            .map((o) => o.handle),
+          externalOrganizers: organizers
+            .filter((o) => o.source === "external")
+            .map((o) => ({ name: o.name, homepageUrl: o.homepageUrl })),
           questions: questions
             .filter((q) => q.question.trim())
             .map((q, idx) => ({
@@ -326,6 +311,20 @@ function CreateEventPage() {
             onDescriptionChange={setDescription}
           />
 
+          <OrganizersCard
+            organizers={organizers}
+            fedHandle={fedHandle}
+            onFedHandleChange={setFedHandle}
+            resolving={resolving}
+            onResolveFediOrganizer={resolveFediOrganizer}
+            extName={extName}
+            onExtNameChange={setExtName}
+            extUrl={extUrl}
+            onExtUrlChange={setExtUrl}
+            onAddExternalOrganizer={addExternalOrganizer}
+            onRemoveOrganizer={removeOrganizer}
+          />
+
           <WhereCard
             selectedPlace={selectedPlace}
             onSelectedPlaceChange={setSelectedPlace}
@@ -340,16 +339,6 @@ function CreateEventPage() {
           />
 
           <MoreOptionsCard
-            organizers={organizers}
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-            searchResults={searchResults}
-            onAddLocalOrganizer={addLocalOrganizer}
-            fedHandle={fedHandle}
-            onFedHandleChange={setFedHandle}
-            resolving={resolving}
-            onResolveFediOrganizer={resolveFediOrganizer}
-            onRemoveOrganizer={removeOrganizer}
             allowAnonymousRsvp={allowAnonymousRsvp}
             onAllowAnonymousRsvpChange={setAllowAnonymousRsvp}
             anonymousContactFields={anonymousContactFields}

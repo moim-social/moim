@@ -14,6 +14,10 @@ import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
 import { TimezonePicker } from "~/components/TimezonePicker";
 import { ImageCropper } from "~/components/ImageCropper";
 import { Switch } from "~/components/ui/switch";
+import { Badge } from "~/components/ui/badge";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "~/components/ui/collapsible";
+import { ChevronRightIcon } from "lucide-react";
+import { cn } from "~/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +46,14 @@ type QuestionItem = {
   sortOrder: number;
   required: boolean;
   answerCount: number;
+};
+
+type Organizer = {
+  handle: string;
+  name: string;
+  source: "local" | "fediverse" | "external";
+  homepageUrl?: string;
+  imageUrl?: string;
 };
 
 function EditTab() {
@@ -84,6 +96,14 @@ function EditTab() {
     email?: string;
     phone?: string;
   } | null>(null);
+
+  // Organizers
+  const [organizers, setOrganizers] = useState<Organizer[]>([]);
+  const [fedHandle, setFedHandle] = useState("");
+  const [resolving, setResolving] = useState(false);
+  const [extName, setExtName] = useState("");
+  const [extUrl, setExtUrl] = useState("");
+  const [organizersOpen, setOrganizersOpen] = useState(false);
 
   // Fetch user's groups for personal→group conversion
   useEffect(() => {
@@ -134,6 +154,27 @@ function EditTab() {
             answerCount: q.answerCount ?? 0,
           })),
         );
+        // Load existing organizers
+        const loadedOrganizers = (data.organizers ?? []).map((o: any) => {
+          if (o.isExternal) {
+            return {
+              handle: `ext:${o.name}`,
+              name: o.name ?? "",
+              source: "external" as const,
+              homepageUrl: o.homepageUrl ?? undefined,
+              imageUrl: o.imageUrl ?? undefined,
+            };
+          }
+          return {
+            handle: o.handle ?? "",
+            name: o.name ?? o.handle ?? "",
+            source: (o.isLocal ? "local" : "fediverse") as "local" | "fediverse",
+            homepageUrl: o.homepageUrl ?? undefined,
+            imageUrl: o.imageUrl ?? undefined,
+          };
+        });
+        setOrganizers(loadedOrganizers);
+        if (loadedOrganizers.length > 0) setOrganizersOpen(true);
         setLoading(false);
       })
       .catch(() => {
@@ -221,6 +262,12 @@ function EditTab() {
           externalUrl: externalUrl.trim() || undefined,
           allowAnonymousRsvp,
           anonymousContactFields: allowAnonymousRsvp ? anonymousContactFields : undefined,
+          organizerHandles: organizers
+            .filter((o) => o.source !== "external")
+            .map((o) => o.handle),
+          externalOrganizers: organizers
+            .filter((o) => o.source === "external")
+            .map((o) => ({ name: o.name, homepageUrl: o.homepageUrl })),
           questions: questions
             .filter((q) => q.question.trim())
             .map((q, idx) => ({
@@ -266,6 +313,59 @@ function EditTab() {
     const updated = [...questions];
     updated[idx] = { ...updated[idx], ...patch };
     setQuestions(updated);
+  }
+
+  async function resolveFediOrganizer() {
+    if (!fedHandle.trim()) return;
+    setResolving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/actors/resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handle: fedHandle }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Failed to resolve handle");
+        setResolving(false);
+        return;
+      }
+      const normalized = fedHandle.startsWith("@")
+        ? fedHandle.slice(1)
+        : fedHandle;
+      if (!organizers.some((o) => o.handle === normalized)) {
+        setOrganizers((prev) => [
+          ...prev,
+          { handle: normalized, name: data.actor.name, source: "fediverse", imageUrl: data.actor.avatarUrl ?? undefined },
+        ]);
+      }
+      setFedHandle("");
+    } catch {
+      setError("Network error");
+    }
+    setResolving(false);
+  }
+
+  function addExternalOrganizer() {
+    if (!extName.trim()) return;
+    const key = `ext:${extName.trim()}`;
+    if (organizers.some((o) => o.handle === key)) return;
+    setOrganizers((prev) => [
+      ...prev,
+      {
+        handle: key,
+        name: extName.trim(),
+        source: "external",
+        homepageUrl: extUrl.trim() || undefined,
+      },
+    ]);
+    setExtName("");
+    setExtUrl("");
+  }
+
+  function removeOrganizer(handle: string) {
+    setOrganizers((prev) => prev.filter((o) => o.handle !== handle));
   }
 
   async function handleImageUpload(blob: Blob) {
@@ -579,6 +679,140 @@ function EditTab() {
             />
           </div>
         </div>
+
+        {/* Co-Organizers */}
+        <Collapsible open={organizersOpen} onOpenChange={setOrganizersOpen}>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between py-2 text-sm font-medium cursor-pointer select-none"
+            >
+              <span>
+                Co-Organizers
+                {organizers.length > 0 && (
+                  <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                    ({organizers.length})
+                  </span>
+                )}
+              </span>
+              <ChevronRightIcon
+                className={cn(
+                  "size-4 text-muted-foreground transition-transform duration-200",
+                  organizersOpen && "rotate-90",
+                )}
+              />
+            </button>
+          </CollapsibleTrigger>
+          <p className="text-xs text-muted-foreground -mt-1 mb-2">
+            Add organizers or external partners. Organizers are Moim or fediverse users. External organizers are companies, communities, or anyone outside the fediverse.
+          </p>
+          <CollapsibleContent className="space-y-6">
+            {organizers.length > 0 && (
+              <ul className="space-y-1">
+                {organizers.map((o) => (
+                  <li
+                    key={o.handle}
+                    className="flex items-center justify-between px-3 py-2 border rounded-md"
+                  >
+                    <span className="flex items-center gap-2">
+                      {o.imageUrl ? (
+                        <img src={o.imageUrl} alt="" className="size-6 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="size-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-semibold shrink-0">
+                          {o.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <strong>{o.name}</strong>
+                      {o.source === "external" ? (
+                        <>
+                          {o.homepageUrl && (
+                            <span className="text-muted-foreground text-xs truncate max-w-[200px]">{o.homepageUrl}</span>
+                          )}
+                          <Badge variant="outline">external</Badge>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-muted-foreground">@{o.handle}</span>
+                          {o.source === "fediverse" && (
+                            <Badge variant="secondary">fediverse</Badge>
+                          )}
+                        </>
+                      )}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeOrganizer(o.handle)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      Remove
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div>
+              <Label>External organizer</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                For companies, communities, or anyone without a Moim or fediverse account.
+              </p>
+              <div className="flex gap-2 mt-3">
+                <Input
+                  type="text"
+                  placeholder="Name (e.g. Ubuntu Korea Community)"
+                  value={extName}
+                  onChange={(e) => setExtName(e.target.value)}
+                  className="flex-1"
+                />
+                <Input
+                  type="url"
+                  placeholder="Homepage URL (optional)"
+                  value={extUrl}
+                  onChange={(e) => setExtUrl(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={addExternalOrganizer}
+                  disabled={!extName.trim()}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label>Fediverse user</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Add someone from Mastodon, Misskey, or other fediverse platforms.
+              </p>
+              <div className="flex gap-2 mt-3">
+                <Input
+                  type="text"
+                  placeholder="@user@mastodon.social"
+                  value={fedHandle}
+                  onChange={(e) => setFedHandle(e.target.value)}
+                  className="flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      resolveFediOrganizer();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={resolveFediOrganizer}
+                  disabled={resolving}
+                >
+                  {resolving ? "Verifying..." : "Verify"}
+                </Button>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Location */}
         <div className="space-y-3">
