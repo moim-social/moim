@@ -125,10 +125,14 @@ type EventData = {
     createdAt: string;
   };
   organizers: {
-    handle: string;
+    handle: string | null;
     name: string | null;
+    profileUrl: string | null;
+    imageUrl: string | null;
     domain: string | null;
-    isLocal: boolean;
+    isLocal: boolean | null;
+    homepageUrl: string | null;
+    isExternal: boolean;
   }[];
   rsvpCounts: { accepted: number; declined: number; waitlisted: number };
   attendeePreview: { displayName: string; avatarUrl: string | null }[];
@@ -787,28 +791,76 @@ function EventDetailPage() {
                 <CardTitle className="text-base">Organizers</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {organizers.map((o) => {
-                    const displayHandle = o.handle.includes("@")
-                      ? `@${o.handle}`
-                      : `@${o.handle}@${o.domain}`;
-                    return (
-                      <li key={o.handle} className="flex items-center gap-2">
-                        <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
-                          {(o.name ?? o.handle).charAt(0).toUpperCase()}
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {organizers.map((o, i) => {
+                    const initials = (o.name ?? o.handle ?? "?").charAt(0).toUpperCase();
+                    const fallbackBg = o.isExternal ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary";
+                    const avatar = o.imageUrl ? (
+                      <img
+                        src={o.imageUrl}
+                        alt=""
+                        className="size-16 rounded-full object-cover"
+                        onError={(e) => {
+                          const el = e.currentTarget;
+                          const parent = el.parentElement!;
+                          const fallback = document.createElement("div");
+                          fallback.className = `size-16 rounded-full ${fallbackBg} flex items-center justify-center text-lg font-semibold`;
+                          fallback.textContent = initials;
+                          parent.replaceChild(fallback, el);
+                        }}
+                      />
+                    ) : (
+                      <div className={`size-16 rounded-full ${fallbackBg} flex items-center justify-center text-lg font-semibold`}>
+                        {initials}
+                      </div>
+                    );
+
+                    const isExternal = o.isExternal;
+                    const link = isExternal ? o.homepageUrl : (o.homepageUrl || o.profileUrl);
+                    const displayName = o.name ?? o.handle;
+                    const displayHandle = !isExternal && o.handle
+                      ? (o.handle.includes("@") ? `@${o.handle}` : `@${o.handle}@${o.domain}`)
+                      : null;
+                    const subtitle = isExternal && o.homepageUrl
+                      ? new URL(o.homepageUrl).hostname
+                      : displayHandle;
+
+                    const content = (
+                      <>
+                        {avatar}
+                        <div className="mt-2 w-full min-w-0">
+                          <span className="text-sm font-semibold line-clamp-2">{displayName}</span>
+                          {subtitle && (
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
+                          )}
                         </div>
-                        <div>
-                          <span className="text-sm font-medium">
-                            {o.name ?? o.handle}
-                          </span>
-                          <span className="text-sm text-muted-foreground ml-1.5">
-                            {o.isLocal ? `@${o.handle}` : displayHandle}
-                          </span>
-                        </div>
-                      </li>
+                      </>
+                    );
+
+                    const tooltip = displayHandle ?? displayName ?? undefined;
+
+                    return link ? (
+                      <a
+                        key={isExternal ? `ext-${i}` : o.handle}
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={tooltip}
+                        className="flex flex-col items-center text-center w-36 rounded-lg border p-4 hover:bg-accent transition-colors shrink-0"
+                      >
+                        {content}
+                      </a>
+                    ) : (
+                      <div
+                        key={isExternal ? `ext-${i}` : o.handle}
+                        title={tooltip}
+                        className="flex flex-col items-center text-center w-36 rounded-lg border p-4 shrink-0"
+                      >
+                        {content}
+                      </div>
                     );
                   })}
-                </ul>
+                </div>
               </CardContent>
             </Card>
           )}
