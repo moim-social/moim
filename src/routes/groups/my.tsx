@@ -95,7 +95,7 @@ function MyGroupsPage() {
                 className="block"
               >
                 <CardContent className="py-2">
-                  <div className="flex items-center gap-4">
+                  <div className="flex gap-3">
                     <Avatar className="size-10 shrink-0">
                       {group.avatarUrl && <AvatarImage src={group.avatarUrl} alt={group.name ?? group.handle} />}
                       <AvatarFallback className="text-sm font-semibold bg-primary/10 text-primary">
@@ -112,21 +112,24 @@ function MyGroupsPage() {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">@{group.handle}</p>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                      {languageLabel(group.language) && (
-                        <span>{languageLabel(group.language)}</span>
-                      )}
-                      <span>{group.followersCount} follower{group.followersCount !== 1 ? "s" : ""}</span>
-                      <span>{group.membersCount} member{group.membersCount !== 1 ? "s" : ""}</span>
-                      <span>
-                        {group.upcomingEventsCount + group.pastEventsCount} event{group.upcomingEventsCount + group.pastEventsCount !== 1 ? "s" : ""}
-                        {group.upcomingEventsCount > 0 && (
-                          <span className="text-primary font-medium ml-1">
-                            ({group.upcomingEventsCount} upcoming)
-                          </span>
-                        )}
-                      </span>
+                      <div className="mt-1.5 flex flex-col gap-0.5 text-xs text-muted-foreground">
+                        <span>
+                          {group.followersCount} follower{group.followersCount !== 1 ? "s" : ""}
+                          {" · "}
+                          {group.membersCount} member{group.membersCount !== 1 ? "s" : ""}
+                          {languageLabel(group.language) && (
+                            <>{" · "}{languageLabel(group.language)}</>
+                          )}
+                        </span>
+                        <span>
+                          {group.upcomingEventsCount + group.pastEventsCount} event{group.upcomingEventsCount + group.pastEventsCount !== 1 ? "s" : ""}
+                          {group.upcomingEventsCount > 0 && (
+                            <span className="text-primary font-medium ml-1">
+                              ({group.upcomingEventsCount} upcoming)
+                            </span>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
