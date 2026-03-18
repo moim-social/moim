@@ -2,6 +2,7 @@ import { aliasedTable, and, eq, isNull, asc } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { users, rsvps, events, actors, places, eventFavourites, groupMembers } from "~/server/db/schema";
 import { buildIcsResponse, type IcsEvent } from "~/server/events/ics";
+import { attachOrganizers } from "~/server/events/ics-organizers";
 
 const PERSONAL_ICS_LIMIT = 500;
 
@@ -119,7 +120,8 @@ export const GET = async ({
     (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
   );
 
-  return buildIcsResponse(merged, {
+  const withOrganizers = await attachOrganizers(merged);
+  return buildIcsResponse(withOrganizers, {
     calendarName: "My Moim Events",
     cacheControl: "private, max-age=900",
   });

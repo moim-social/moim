@@ -2,6 +2,7 @@ import { and, eq, gte, isNull, isNotNull, asc, type SQL } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, events, places } from "~/server/db/schema";
 import { buildIcsResponse } from "~/server/events/ics";
+import { attachOrganizers } from "~/server/events/ics-organizers";
 
 const ICS_LIMIT = 100;
 
@@ -46,5 +47,6 @@ export const GET = async ({
     .orderBy(asc(events.startsAt))
     .limit(ICS_LIMIT);
 
-  return buildIcsResponse(rows, { calendarName });
+  const icsEvents = await attachOrganizers(rows);
+  return buildIcsResponse(icsEvents, { calendarName });
 };
