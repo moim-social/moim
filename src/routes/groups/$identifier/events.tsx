@@ -10,7 +10,7 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { EventCalendar, type CalendarEvent } from "~/components/EventCalendar";
 import { UpcomingEventList } from "~/components/UpcomingEventList";
-import { Calendar, ChevronLeft, List } from "lucide-react";
+import { Calendar, CalendarPlus, ChevronLeft, List } from "lucide-react";
 
 const getGroupMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ handle: z.string() })))
@@ -80,7 +80,14 @@ function GroupEventsPage() {
             <p className="text-sm text-muted-foreground">{groupName}</p>
           </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          <a
+            href={`/groups/@${handle}/events.ics`}
+            title="Subscribe to calendar"
+            className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <CalendarPlus className="size-4" />
+          </a>
           <Button
             variant={view === "calendar" ? "default" : "outline"}
             size="sm"
