@@ -1,5 +1,9 @@
 import { env } from "~/server/env";
 
+export interface IcsEventOrganizer {
+  name: string;
+}
+
 export interface IcsEvent {
   id: string;
   title: string;
@@ -13,6 +17,7 @@ export interface IcsEvent {
   placeAddress: string | null;
   groupName: string | null;
   groupHandle: string | null;
+  organizers?: IcsEventOrganizer[];
   status?: "CONFIRMED" | "TENTATIVE";
 }
 
@@ -52,7 +57,8 @@ export function buildVevent(event: IcsEvent, baseUrl: string): string {
   if (location) {
     lines.push(`LOCATION:${escapeIcs(location)}`);
   }
-  const organizer = event.groupName ?? (event.groupHandle ? `@${event.groupHandle}` : "");
+  const organizerNames = (event.organizers ?? []).map((o) => o.name);
+  const groupLabel = event.groupName ?? (event.groupHandle ? `@${event.groupHandle}` : "");
   const eventUrl = event.externalUrl || `${baseUrl}/events/${event.id}`;
   if (event.status) {
     lines.push(`STATUS:${event.status}`);
@@ -61,15 +67,23 @@ export function buildVevent(event: IcsEvent, baseUrl: string): string {
   if (event.status === "TENTATIVE") {
     descParts.push("[Favourited] This event is bookmarked, not officially confirmed.");
   }
-  if (organizer) descParts.push(`Hosted by: ${organizer}`);
+  if (organizerNames.length > 0) {
+    descParts.push(`Organizers: ${organizerNames.join(", ")}`);
+  }
+  if (groupLabel) descParts.push(`Hosted by: ${groupLabel}`);
   descParts.push(`Link: ${eventUrl}`);
   if (event.description) {
     const plain = event.description.replace(/<[^>]*>/g, "");
     descParts.push("", plain);
   }
   lines.push(`DESCRIPTION:${escapeIcs(descParts.join("\n"))}`);
-  if (organizer) {
-    lines.push(`ORGANIZER;CN=${escapeIcs(organizer)}:mailto:noreply@${new URL(baseUrl).hostname}`);
+  const hostname = new URL(baseUrl).hostname;
+  if (organizerNames.length > 0) {
+    for (const name of organizerNames) {
+      lines.push(`ORGANIZER;CN=${escapeIcs(name)}:mailto:noreply@${hostname}`);
+    }
+  } else if (groupLabel) {
+    lines.push(`ORGANIZER;CN=${escapeIcs(groupLabel)}:mailto:noreply@${hostname}`);
   }
   lines.push(`URL:${eventUrl}`);
   lines.push("END:VEVENT");
