@@ -21,11 +21,16 @@ export const POST = async ({ request }: { request: Request }) => {
     const actorUrl = await resolveActorUrl(handle);
     const data = await fetchActorProfile(actorUrl);
 
+    const avatarUrl = typeof data.icon === "string"
+      ? data.icon
+      : data.icon?.url ?? null;
+
     return Response.json({
       actor: {
         handle,
         name: data.name ?? data.preferredUsername ?? handle,
         actorUrl: data.id,
+        avatarUrl,
       },
     });
   } catch (err: unknown) {

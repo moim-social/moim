@@ -158,11 +158,12 @@ export const events = pgTable("events", {
 });
 
 export const eventOrganizers = pgTable("event_organizers", {
+  id: uuid("id").defaultRandom().primaryKey(),
   eventId: uuid("event_id").references(() => events.id).notNull(),
-  actorId: uuid("actor_id").references(() => actors.id).notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.eventId, table.actorId] }),
-}));
+  actorId: uuid("actor_id").references(() => actors.id),
+  name: varchar("name", { length: 200 }),
+  homepageUrl: text("homepage_url"),
+});
 
 export const eventTiers = pgTable("event_tiers", {
   id: uuid("id").defaultRandom().primaryKey(),

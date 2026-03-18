@@ -68,6 +68,7 @@ export type ActorProfile = {
   following?: string;
   endpoints?: { sharedInbox?: string };
   manuallyApprovesFollowers?: boolean;
+  icon?: { type?: string; url?: string } | string;
 };
 
 /**
@@ -94,6 +95,9 @@ export async function persistRemoteActor(
   }
 
   const domain = new URL(data.id).hostname;
+  const avatarUrl = typeof data.icon === "string"
+    ? data.icon
+    : data.icon?.url ?? null;
 
   const [actor] = await db
     .insert(actors)
@@ -105,6 +109,7 @@ export async function persistRemoteActor(
       url: data.url ?? null,
       name: data.name ?? null,
       summary: data.summary ?? null,
+      avatarUrl,
       inboxUrl: data.inbox ?? null,
       outboxUrl: data.outbox ?? null,
       sharedInboxUrl: data.endpoints?.sharedInbox ?? null,
@@ -124,6 +129,7 @@ export async function persistRemoteActor(
         url: data.url ?? null,
         name: data.name ?? null,
         summary: data.summary ?? null,
+        avatarUrl,
         inboxUrl: data.inbox ?? null,
         outboxUrl: data.outbox ?? null,
         sharedInboxUrl: data.endpoints?.sharedInbox ?? null,

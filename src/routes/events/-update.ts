@@ -1,10 +1,11 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, events, eventQuestions, eventTiers, groupMembers, rsvpAnswers, rsvps } from "~/server/db/schema";
+import { actors, events, eventOrganizers, eventQuestions, eventTiers, groupMembers, rsvpAnswers, rsvps } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { getEventCategories } from "~/server/events/categories";
 import { getAcceptedCount, autoPromoteWaitlist } from "~/server/events/waitlist";
 import { sanitizeContactFields } from "~/server/events/rsvp-helpers";
+import { persistRemoteActor } from "~/server/fediverse/resolve";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -44,6 +45,8 @@ export const POST = async ({ request }: { request: Request }) => {
       closesAt?: string | null;
       capacity?: number | null;
     }>;
+    organizerHandles?: string[];
+    externalOrganizers?: Array<{ name: string; homepageUrl?: string }>;
   } | null;
 
   if (!body?.eventId || !body?.title?.trim() || !body?.startsAt) {
@@ -302,6 +305,39 @@ export const POST = async ({ request }: { request: Request }) => {
           name: "General",
           sortOrder: 0,
         });
+      }
+    }
+
+    // Reconcile organizers (replace all when provided)
+    if (body.organizerHandles !== undefined || body.externalOrganizers !== undefined) {
+      // Delete all existing organizers
+      await db
+        .delete(eventOrganizers)
+        .where(eq(eventOrganizers.eventId, event.id));
+
+      // Insert actor-backed organizers
+      for (const orgHandle of body.organizerHandles ?? []) {
+        const handle = orgHandle.startsWith("@") ? orgHandle.slice(1) : orgHandle;
+        try {
+          const actor = await persistRemoteActor(handle);
+          await db
+            .insert(eventOrganizers)
+            .values({ eventId: event.id, actorId: actor.id });
+        } catch (err) {
+          console.error(`Failed to resolve organizer ${handle}:`, err);
+        }
+      }
+
+      // Insert external organizers
+      for (const ext of body.externalOrganizers ?? []) {
+        if (!ext.name?.trim()) continue;
+        await db
+          .insert(eventOrganizers)
+          .values({
+            eventId: event.id,
+            name: ext.name.trim(),
+            homepageUrl: ext.homepageUrl?.trim() || null,
+          });
       }
     }
 

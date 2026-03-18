@@ -94,17 +94,22 @@ export const GET = async ({ request }: { request: Request }) => {
     }
   }
 
-  // Get organizers
+  // Get organizers (both actor-backed and external)
   const organizers = await db
     .select({
       handle: actors.handle,
-      name: actors.name,
+      actorName: actors.name,
+      externalName: eventOrganizers.name,
       actorUrl: actors.actorUrl,
+      profileUrl: actors.url,
+      avatarUrl: actors.avatarUrl,
       domain: actors.domain,
       isLocal: actors.isLocal,
+      homepageUrl: eventOrganizers.homepageUrl,
+      website: actors.website,
     })
     .from(eventOrganizers)
-    .innerJoin(actors, eq(eventOrganizers.actorId, actors.id))
+    .leftJoin(actors, eq(eventOrganizers.actorId, actors.id))
     .where(eq(eventOrganizers.eventId, eventId));
 
   // Get RSVP counts
@@ -226,9 +231,45 @@ export const GET = async ({ request }: { request: Request }) => {
     }
   }
 
+  // Resolve og:image for external organizers with homepage URLs
+  const ogImagePromises = organizers.map(async (o) => {
+    if (o.avatarUrl || o.handle !== null) return null;
+    const url = o.homepageUrl ?? o.website;
+    if (!url) return null;
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(3000),
+        headers: { "User-Agent": "Moim/1.0 (og-image-resolver)" },
+      });
+      if (!res.ok) return null;
+      const html = await res.text();
+      const match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+        ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+      return match?.[1] ?? null;
+    } catch {
+      return null;
+    }
+  });
+  const ogImages = await Promise.all(ogImagePromises);
+
+  const normalizedOrganizers = organizers.map((o, idx) => {
+    const homepageUrl = o.homepageUrl ?? o.website;
+    const imageUrl = o.avatarUrl ?? ogImages[idx] ?? null;
+    return {
+      handle: o.handle,
+      name: o.actorName ?? o.externalName,
+      profileUrl: o.profileUrl ?? o.actorUrl,
+      imageUrl,
+      domain: o.domain,
+      isLocal: o.isLocal,
+      homepageUrl,
+      isExternal: o.handle === null,
+    };
+  });
+
   return Response.json({
     event,
-    organizers,
+    organizers: normalizedOrganizers,
     rsvpCounts,
     attendeePreview,
     questionCount,

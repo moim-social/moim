@@ -44,6 +44,7 @@ export const POST = async ({ request }: { request: Request }) => {
     published?: boolean;
     allowAnonymousRsvp?: boolean;
     anonymousContactFields?: { email?: string; phone?: string };
+    externalOrganizers?: Array<{ name: string; homepageUrl?: string }>;
   } | null;
 
   if (!body?.title || !body?.startsAt) {
@@ -194,12 +195,23 @@ export const POST = async ({ request }: { request: Request }) => {
         const actor = await persistRemoteActor(handle);
         await db
           .insert(eventOrganizers)
-          .values({ eventId: event.id, actorId: actor.id })
-          .onConflictDoNothing();
+          .values({ eventId: event.id, actorId: actor.id });
         organizers.push({ handle, actorUrl: actor.actorUrl });
       } catch (err) {
         console.error(`Failed to resolve organizer ${handle}:`, err);
       }
+    }
+
+    // Insert external organizers (no fediverse presence)
+    for (const ext of body.externalOrganizers ?? []) {
+      if (!ext.name?.trim()) continue;
+      await db
+        .insert(eventOrganizers)
+        .values({
+          eventId: event.id,
+          name: ext.name.trim(),
+          homepageUrl: ext.homepageUrl?.trim() || null,
+        });
     }
 
     // Look up creator's remote actor for personal event mention
