@@ -302,6 +302,13 @@
       "when": 1773731120165,
       "tag": "0042_broken_moonstone",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1773801843976,
+      "tag": "0043_warm_ben_urich",
+      "breakpoints": true
     }
   ]
 }
