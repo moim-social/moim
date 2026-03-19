@@ -406,8 +406,8 @@ function CheckinsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Check-ins</h2>
-          <p className="mt-1 text-muted-foreground">
+          <h2 className="text-2xl font-extrabold tracking-tight">Check-ins</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
             See where people are hanging out nearby.
           </p>
         </div>
@@ -445,7 +445,7 @@ function CheckinsPage() {
         <p className="text-sm text-muted-foreground">Finding nearby places...</p>
       ) : nearbyPlaces.length > 0 ? (
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Nearby</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#333]">Nearby</h3>
           <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
             {nearbyPlaces.map((place) => (
               <NearbyPlaceCard
@@ -469,17 +469,13 @@ function CheckinsPage() {
         <Card>
           <CardContent className="pt-5 pb-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {selectedPlace.category?.emoji && (
-                  <span className="text-xl">{selectedPlace.category.emoji}</span>
-                )}
-                <div>
-                  <h3 className="text-sm font-semibold leading-tight">{selectedPlace.name}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDistance(selectedPlace.distance)} away
-                    {selectedPlace.checkinCount > 0 && ` · ${selectedPlace.checkinCount} check-in${selectedPlace.checkinCount !== 1 ? "s" : ""}`}
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-base font-bold tracking-tight">{selectedPlace.name}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formatDistance(selectedPlace.distance)} away
+                  {selectedPlace.checkinCount > 0 && ` · ${selectedPlace.checkinCount} check-in${selectedPlace.checkinCount !== 1 ? "s" : ""}`}
+                  {selectedPlace.category?.label && ` · ${selectedPlace.category.label}`}
+                </p>
               </div>
               <Link
                 to="/places/$placeId"
@@ -547,7 +543,7 @@ function CheckinsPage() {
             <DialogHeader>
               <DialogTitle>
                 {selectedPlace
-                  ? `Check in at ${selectedPlace.category?.emoji ?? ""} ${selectedPlace.name}`.trim()
+                  ? `Check in at ${selectedPlace.name}`
                   : "Check in at a new place"}
               </DialogTitle>
               <DialogDescription>
@@ -572,7 +568,6 @@ function CheckinsPage() {
                             className="flex-none snap-start rounded-md border border-border px-3 py-2 text-left hover:bg-accent transition-colors"
                           >
                             <div className="flex items-center gap-1">
-                              {place.category?.emoji && <span className="text-sm">{place.category.emoji}</span>}
                               <span className="text-sm font-medium truncate max-w-[120px]">{place.name}</span>
                             </div>
                             <span className="text-[11px] text-muted-foreground">{formatDistance(place.distance)}</span>
@@ -609,7 +604,7 @@ function NearbyPlaceCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`flex-none snap-start w-[160px] border p-3 text-left transition-all ${
+      className={`flex-none snap-start w-[160px] rounded border p-3 text-left transition-all ${
         selected
           ? "border-2 border-foreground bg-[#f5f5f5]"
           : "border-border hover:border-foreground/30 hover:bg-[#fafafa]"

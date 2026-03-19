@@ -192,7 +192,7 @@ function PlaceDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between pb-5 border-b-2 border-foreground">
         <div>
           {categoryPath.length > 0 && (
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
@@ -268,7 +268,7 @@ function PlaceDetailPage() {
           {place.description && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">About</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">About</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm whitespace-pre-wrap">{place.description}</p>
@@ -279,7 +279,7 @@ function PlaceDetailPage() {
           {/* Recent check-ins */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">
+              <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">
                 Recent Check-ins ({checkinCount})
               </CardTitle>
             </CardHeader>
@@ -353,7 +353,7 @@ function PlaceDetailPage() {
           {upcomingEvents.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Upcoming Events</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">Upcoming Events</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
