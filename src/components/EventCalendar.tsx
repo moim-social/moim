@@ -143,17 +143,17 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
               type="button"
               onClick={() => handleDayClick(day)}
               className={cn(
-                "flex flex-col items-center py-1.5 rounded-md transition-colors overflow-hidden min-h-28",
+                "flex flex-col items-center py-1.5 transition-colors overflow-hidden min-h-28",
                 "text-xs sm:text-sm",
-                "hover:bg-accent/50",
+                "hover:bg-[#fafafa]",
                 !inMonth && "text-muted-foreground/40",
-                isSelected && "bg-accent ring-1 ring-primary/30",
+                isSelected && "bg-[#f5f5f5] ring-1 ring-foreground/20",
               )}
             >
               <span
                 className={cn(
                   "size-6 flex items-center justify-center rounded-full text-xs sm:text-sm",
-                  today && "bg-primary text-primary-foreground font-bold ring-2 ring-primary/30",
+                  today && "bg-foreground text-background font-bold",
                 )}
               >
                 {day.getDate()}

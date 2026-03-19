@@ -46,8 +46,8 @@ export function UpcomingEventList({ events }: UpcomingEventListProps) {
     <div className="space-y-4">
       {groupedUpcoming.map((group) => (
         <div key={group.dateLabel}>
-          <p className="text-md font-semibold text-foreground mb-2 px-1">{group.dateLabel}</p>
-          <div className="rounded-lg border divide-y ml-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 px-1">{group.dateLabel}</p>
+          <div className="border divide-y ml-4">
             {group.events.map((event) => {
               const start = new Date(event.startsAt);
               const evtTz = event.timezone ?? undefined;
@@ -61,11 +61,11 @@ export function UpcomingEventList({ events }: UpcomingEventListProps) {
                   key={event.id}
                   to="/events/$eventId"
                   params={{ eventId: event.id }}
-                  className="flex items-stretch hover:bg-accent/50 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                  className="flex items-stretch hover:bg-[#fafafa] transition-colors"
                 >
                   <div
-                    className="shrink-0 rounded-l-lg bg-foreground/30"
-                    style={{ width: 3 }}
+                    className="shrink-0 bg-foreground"
+                    style={{ width: 2 }}
                   />
                   <div className="flex-1 min-w-0 px-3 py-2.5">
                     <p className="text-sm font-medium leading-snug">{event.title}</p>
