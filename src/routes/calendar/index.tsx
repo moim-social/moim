@@ -340,7 +340,7 @@ function MonthlyCalendar({
                             title={ev.title}
                           >
                             <span className={`inline-block mr-1 align-middle ${
-                              ev.type === "favourite" ? "text-[9px] text-[#999]" : `w-1.5 h-1.5 ${ev.type === "rsvp" ? "bg-foreground" : "bg-[#888]"}`
+                              ev.type === "favourite" ? "text-[9px] text-amber-500" : `w-1.5 h-1.5 ${ev.type === "rsvp" ? "bg-foreground" : "bg-[#888]"}`
                             }`}>{ev.type === "favourite" ? "◆" : ""}</span>
                             <span className={
                               ev.type === "rsvp"
@@ -410,7 +410,7 @@ function MonthlyCalendar({
                               ? "bg-foreground text-background"
                               : ev.type === "hosting"
                                 ? "bg-[#e5e5e5] text-[#333]"
-                                : "text-[#999]"
+                                : "text-amber-500"
                           }`}>
                             {ev.type === "rsvp" ? "Going" : ev.type === "hosting" ? "Host" : "◆"}
                           </span>
@@ -435,7 +435,7 @@ function MonthlyCalendar({
             Hosting
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-[#999]">◆</span>
+            <span className="text-[9px] text-amber-500">◆</span>
             Bookmarked
           </div>
         </div>
