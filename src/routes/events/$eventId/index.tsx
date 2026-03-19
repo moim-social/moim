@@ -13,12 +13,6 @@ import { renderMarkdown } from "~/lib/markdown";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -802,18 +796,18 @@ function EventDetailPage() {
         </div>
       )}
 
-      {/* Two-column layout — pulled up to overlap hero */}
-      <div className="relative -mt-14 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8">
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-0">
         {/* Main content */}
-        <div className="space-y-6 min-w-0">
-          {/* Date & Location — visible on mobile only (desktop shows in sidebar) */}
-          <Card className="rounded-lg md:hidden">
-            <CardContent className="pt-6 space-y-4">
-              {dateLocationContent}
-              <Separator />
+        <div className="md:border-r md:border-[#e5e5e5] md:pr-8 min-w-0">
+          {/* Date & Location — mobile only */}
+          <div className="md:hidden border border-[#e5e5e5] rounded p-4 mb-6 space-y-4">
+            {dateLocationContent}
+            <div className="border-t border-[#f0f0f0] pt-3">
               <Button
                 variant="ghost"
                 className="w-full"
+                size="sm"
                 disabled={favouriteLoading}
                 onClick={async () => {
                   setFavouriteLoading(true);
@@ -833,38 +827,36 @@ function EventDetailPage() {
                 }}
               >
                 {isFavourite ? (
-                  <BookmarkCheck className="size-4 mr-1.5 text-primary" />
+                  <BookmarkCheck className="size-4 mr-1.5" />
                 ) : (
                   <Bookmark className="size-4 mr-1.5" />
                 )}
                 {isFavourite ? "Bookmarked" : "Bookmark"}
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
+          {/* Date & Location — desktop only (inline, not in sidebar) */}
+          <div className="hidden md:flex gap-8 pb-5 border-b border-[#e5e5e5] mb-6">
+            {dateLocationContent}
+          </div>
 
           {/* Description */}
           {event.description && (
-            <Card className="rounded-lg">
-              <CardHeader>
-                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">About</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div
-                  className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(event.description) }}
-                />
-              </CardContent>
-            </Card>
+            <section className="mb-6">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-3">About</h3>
+              <div
+                className="prose prose-sm max-w-none text-[14px] text-[#444] leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(event.description) }}
+              />
+            </section>
           )}
 
           {/* Organizers */}
           {organizers.length > 0 && (
-            <Card className="rounded-lg">
-              <CardHeader>
-                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">Organizers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-3 overflow-x-auto pb-2">
+            <section className="mb-6">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-3">Organizers</h3>
+              <div className="flex gap-3 overflow-x-auto pb-2">
                   {organizers.map((o, i) => {
                     const initials = (o.name ?? o.handle ?? "?").charAt(0).toUpperCase();
                     const fallbackBg = "bg-muted text-muted-foreground";
@@ -934,22 +926,19 @@ function EventDetailPage() {
                     );
                   })}
                 </div>
-              </CardContent>
-            </Card>
+            </section>
           )}
 
           {/* Public Discussions */}
           {isGroupEvent && (
-            <Card className="rounded-lg">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">Discussion</CardTitle>
-                  {eventNoteApUrl && publicInquiries.length > 0 && (
-                    <RemoteDiscussionDialog apUrl={eventNoteApUrl} />
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
+            <section className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-[#333]">Discussion</h3>
+                {eventNoteApUrl && publicInquiries.length > 0 && (
+                  <RemoteDiscussionDialog apUrl={eventNoteApUrl} />
+                )}
+              </div>
+              <div>
                 {publicInquiries.length === 0 ? (
                   <div className="flex flex-col items-center gap-3 py-4 text-center">
                     <p className="text-sm text-muted-foreground">
@@ -1080,19 +1069,17 @@ function EventDetailPage() {
                     })}
                   </ul>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           )}
 
           {/* Attendees (organizer-only) */}
           {attendeesData && (
-            <Card className="rounded-lg">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  Attendees ({attendeesData.attendees.filter((a) => a.status === "accepted").length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <section className="mb-6">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-3">
+                Attendees ({attendeesData.attendees.filter((a) => a.status === "accepted").length})
+              </h3>
+              <div className="space-y-4">
                 {attendeesData.attendees.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No RSVPs yet.</p>
                 ) : (
@@ -1139,49 +1126,86 @@ function EventDetailPage() {
                     ))}
                   </ul>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           )}
         </div>
 
         {/* Sidebar — desktop only */}
-        <div className="hidden md:block">
-          <div className="sticky top-20">
-            <Card className="rounded-lg">
-              <CardContent className="pt-6 space-y-4">
-                {dateLocationContent}
-                {rsvpContent}
-                <Separator />
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  disabled={favouriteLoading}
-                  onClick={async () => {
-                    setFavouriteLoading(true);
-                    try {
-                      const res = await fetch(`/api/events/${eventId}/favourite`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ eventId }),
-                      });
-                      if (res.ok) {
-                        const d = await res.json();
-                        setIsFavourite(d.isFavourite);
-                      }
-                    } finally {
-                      setFavouriteLoading(false);
-                    }
-                  }}
-                >
-                  {isFavourite ? (
-                    <BookmarkCheck className="size-4 mr-1.5 text-primary" />
-                  ) : (
-                    <Bookmark className="size-4 mr-1.5" />
-                  )}
-                  {isFavourite ? "Bookmarked" : "Bookmark"}
-                </Button>
-              </CardContent>
-            </Card>
+        <div className="hidden md:block md:pl-8">
+          <div className="sticky top-20 space-y-4">
+            {/* Map */}
+            {event.placeLatitude && event.placeLongitude && (
+              <button
+                type="button"
+                onClick={() => setMapOpen(true)}
+                className="w-full rounded overflow-hidden cursor-pointer hover:ring-1 hover:ring-foreground/20 transition-shadow"
+              >
+                <LeafletMap
+                  center={[parseFloat(event.placeLatitude), parseFloat(event.placeLongitude)]}
+                  zoom={15}
+                  markers={[{
+                    lat: parseFloat(event.placeLatitude),
+                    lng: parseFloat(event.placeLongitude),
+                    label: event.placeName ?? event.location ?? "Location",
+                    id: event.placeId ?? "place",
+                    color: "red",
+                  }]}
+                  height="140px"
+                  className="pointer-events-none"
+                />
+              </button>
+            )}
+
+            {/* Attendees preview */}
+            {data?.attendeePreview && data.attendeePreview.length > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center">
+                  {data.attendeePreview.map((a, i) => (
+                    <Avatar
+                      key={i}
+                      className={`size-6 border-2 border-background ${i > 0 ? "-ml-2" : ""}`}
+                    >
+                      {a.avatarUrl ? (
+                        <AvatarImage src={a.avatarUrl} alt={a.displayName} />
+                      ) : null}
+                      <AvatarFallback className="text-[9px] bg-muted">
+                        {a.displayName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                </div>
+                <span className="text-[12px] text-[#888]">{attendeeCount} attending</span>
+              </div>
+            )}
+
+            {/* RSVP */}
+            {rsvpContent}
+
+            {/* Bookmark */}
+            <button
+              type="button"
+              className="w-full text-center text-[12px] text-[#888] hover:text-foreground py-1 transition-colors"
+              disabled={favouriteLoading}
+              onClick={async () => {
+                setFavouriteLoading(true);
+                try {
+                  const res = await fetch(`/api/events/${eventId}/favourite`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ eventId }),
+                  });
+                  if (res.ok) {
+                    const d = await res.json();
+                    setIsFavourite(d.isFavourite);
+                  }
+                } finally {
+                  setFavouriteLoading(false);
+                }
+              }}
+            >
+              {isFavourite ? "Bookmarked" : "Bookmark"}
+            </button>
           </div>
         </div>
       </div>
