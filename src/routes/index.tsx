@@ -374,6 +374,28 @@ function HeroCarousel({ slides }: { slides: CarouselSlide[] }) {
   useEffect(() => clearScheduled, [clearScheduled]);
 
   const slide = slides[current] ?? slides[0];
+  const lastIndex = slides.length - 1;
+
+  const getSlideState = useCallback((index: number) => {
+    if (slides.length <= 1) {
+      return {
+        isActive: true,
+        isAdjacent: false,
+        shouldLoadMedia: true,
+      };
+    }
+
+    const prevIndex = current === 0 ? lastIndex : current - 1;
+    const nextIndex = current === lastIndex ? 0 : current + 1;
+    const isActive = index === current;
+    const isAdjacent = index === prevIndex || index === nextIndex;
+
+    return {
+      isActive,
+      isAdjacent,
+      shouldLoadMedia: isActive || isAdjacent,
+    };
+  }, [current, lastIndex, slides.length]);
 
   return (
     <div
@@ -390,17 +412,33 @@ function HeroCarousel({ slides }: { slides: CarouselSlide[] }) {
         className="relative"
       >
         <CarouselContent className="ml-0">
-          {slides.map((item) => (
-            <CarouselItem key={`${item.type}-${item.id}`} className="pl-0">
+          {slides.map((item, index) => {
+            const { isActive, shouldLoadMedia } = getSlideState(index);
+
+            return (
+            <CarouselItem
+              key={`${item.type}-${item.id}`}
+              className="pl-0"
+              aria-hidden={!isActive || undefined}
+              inert={!isActive || undefined}
+            >
               <div className="relative h-[200px] overflow-hidden transition-all duration-500 md:h-[340px]">
                 {item.type === "banner" ? (
-                  <BannerSlideContent slide={item} />
+                  <BannerSlideContent
+                    slide={item}
+                    isActive={isActive}
+                    shouldLoadMedia={shouldLoadMedia}
+                  />
                 ) : (
-                  <EventSlideContent slide={item} />
+                  <EventSlideContent
+                    slide={item}
+                    isActive={isActive}
+                    shouldLoadMedia={shouldLoadMedia}
+                  />
                 )}
               </div>
             </CarouselItem>
-          ))}
+          )})}
         </CarouselContent>
 
         {/* Navigation arrows */}
@@ -454,7 +492,15 @@ function HeroCarousel({ slides }: { slides: CarouselSlide[] }) {
 
 /* ─── Banner Slide Content ─── */
 
-function BannerSlideContent({ slide }: { slide: BannerSlide }) {
+function BannerSlideContent({
+  slide,
+  isActive,
+  shouldLoadMedia,
+}: {
+  slide: BannerSlide;
+  isActive: boolean;
+  shouldLoadMedia: boolean;
+}) {
   const handleClick = () => {
     fetch("/api/banner-clicks", {
       method: "POST",
@@ -470,18 +516,30 @@ function BannerSlideContent({ slide }: { slide: BannerSlide }) {
       rel="noopener noreferrer"
       onClick={handleClick}
       className="block w-full h-full relative overflow-hidden"
+      tabIndex={isActive ? undefined : -1}
     >
-      <img
-        src={slide.imageUrl}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl"
-      />
-      <img
-        src={slide.imageUrl}
-        alt={slide.altText ?? slide.title}
-        className="relative w-full h-full object-contain"
-      />
+      {shouldLoadMedia ? (
+        <>
+          <img
+            src={slide.imageUrl}
+            alt=""
+            aria-hidden="true"
+            loading={isActive ? "eager" : "lazy"}
+            className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl"
+          />
+          <img
+            src={slide.imageUrl}
+            alt={slide.altText ?? slide.title}
+            loading={isActive ? "eager" : "lazy"}
+            className="relative w-full h-full object-contain"
+          />
+        </>
+      ) : (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-muted"
+        />
+      )}
       <div className="absolute top-3 left-3 md:top-4 md:left-6">
         <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-black/50 text-white">
           AD
@@ -493,7 +551,15 @@ function BannerSlideContent({ slide }: { slide: BannerSlide }) {
 
 /* ─── Event Slide Content ─── */
 
-function EventSlideContent({ slide }: { slide: EventSlide }) {
+function EventSlideContent({
+  slide,
+  isActive,
+  shouldLoadMedia,
+}: {
+  slide: EventSlide;
+  isActive: boolean;
+  shouldLoadMedia: boolean;
+}) {
   const { categoryMap } = useEventCategoryMap();
   const start = new Date(slide.startsAt);
   const dateStr = start.toLocaleDateString(undefined, {
@@ -519,7 +585,7 @@ function EventSlideContent({ slide }: { slide: EventSlide }) {
     <div
       className="h-full px-6 py-6 md:py-0 flex items-center overflow-hidden bg-cover bg-center relative"
       style={{
-        background: hasImage
+        background: hasImage && shouldLoadMedia
           ? `linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.3)), url(${slide.headerImageUrl}) center/cover no-repeat`
           : "#fafafa",
       }}
@@ -579,7 +645,7 @@ function EventSlideContent({ slide }: { slide: EventSlide }) {
             className="h-8 md:h-9 text-xs md:text-sm px-3 md:px-4"
             style={hasImage ? { background: "white", color: "#111827" } : { background: "#111", color: "white" }}
           >
-            <Link to="/events/$eventId" params={{ eventId: slide.id }}>
+            <Link to="/events/$eventId" params={{ eventId: slide.id }} tabIndex={isActive ? undefined : -1}>
               View Event
             </Link>
           </Button>
@@ -593,7 +659,7 @@ function EventSlideContent({ slide }: { slide: EventSlide }) {
                 : { background: "transparent", color: "#333", borderColor: "rgba(0,0,0,0.2)" }
             }
           >
-            <Link to="/events">Browse All Events</Link>
+            <Link to="/events" tabIndex={isActive ? undefined : -1}>Browse All Events</Link>
           </Button>
         </div>
       </div>
