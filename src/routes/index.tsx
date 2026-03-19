@@ -148,9 +148,9 @@ function HomePage() {
               View all →
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-col">
             {gridEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <EventListRow key={event.id} event={event} />
             ))}
           </div>
         </section>
@@ -333,16 +333,39 @@ function HeroCarousel({ slides }: { slides: CarouselSlide[] }) {
             </svg>
           </button>
 
-          {/* Progress bar */}
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-300/80">
-            <div
-              className="h-full bg-white"
-              style={{
-                width: `${progress}%`,
-                transition: "width 50ms linear",
-              }}
-            />
-          </div>
+          {/* Per-slide indicator bars */}
+          {(() => {
+            const isLight = slide.type === "event" && !slide.headerImageUrl;
+            const activeColor = isLight ? "#111" : "white";
+            const inactiveColor = isLight ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.3)";
+            return (
+              <div className="absolute bottom-4 right-4 flex items-center gap-1.5">
+                {slides.map((_, i) => {
+                  if (i === current) {
+                    return (
+                      <div key={i} className="relative h-[3px] w-5 overflow-hidden rounded-full" style={{ background: inactiveColor }}>
+                        <div
+                          className="absolute inset-y-0 left-0 h-full rounded-full"
+                          style={{
+                            width: `${progress}%`,
+                            background: activeColor,
+                            transition: "width 50ms linear",
+                          }}
+                        />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={i}
+                      className="h-[3px] w-5 rounded-full"
+                      style={{ background: inactiveColor }}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })()}
         </>
       )}
     </div>
@@ -380,7 +403,7 @@ function BannerSlideContent({ slide }: { slide: BannerSlide }) {
         className="relative w-full h-full object-contain"
       />
       <div className="absolute top-3 left-3 md:top-4 md:left-6">
-        <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wider bg-yellow-400 text-black shadow-sm">
+        <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-black/50 text-white">
           AD
         </span>
       </div>
@@ -402,6 +425,7 @@ function EventSlideContent({ slide }: { slide: EventSlide }) {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const dayNum = start.getDate().toString();
 
   const hostLabel = slide.groupHandle
     ? (slide.groupName ?? `@${slide.groupHandle}`)
@@ -409,49 +433,86 @@ function EventSlideContent({ slide }: { slide: EventSlide }) {
       ? `@${slide.organizerHandle}`
       : null;
 
+  const hasImage = Boolean(slide.headerImageUrl);
+
   return (
     <div
-      className="h-full px-6 py-6 md:py-0 flex items-center overflow-hidden bg-cover bg-center"
+      className="h-full px-6 py-6 md:py-0 flex items-center overflow-hidden bg-cover bg-center relative"
       style={{
-        background: slide.headerImageUrl
+        background: hasImage
           ? `linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.3)), url(${slide.headerImageUrl}) center/cover no-repeat`
           : "#fafafa",
       }}
     >
-      <div className="mx-auto max-w-5xl w-full" style={{ color: "white" }}>
+      {/* Watermark date number for no-image slides */}
+      {!hasImage && (
+        <span
+          className="absolute right-8 top-1/2 -translate-y-1/2 text-8xl font-extrabold select-none pointer-events-none"
+          style={{ color: "rgba(0,0,0,0.06)", lineHeight: 1 }}
+          aria-hidden="true"
+        >
+          {dayNum}
+        </span>
+      )}
+
+      <div className="mx-auto max-w-5xl w-full relative z-10" style={{ color: hasImage ? "white" : "#111" }}>
         <div className="flex items-center gap-3 mb-1 md:mb-2">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.6)" }}>
-            Coming up next
+          <p
+            className="text-xs font-semibold uppercase tracking-wide"
+            style={{ color: hasImage ? "rgba(255,255,255,0.6)" : "#555" }}
+          >
+            {dateStr} · {timeStr}
           </p>
           {slide.categoryId && (
-            <Badge variant="secondary" className="bg-white/20 border-white/30 hover:bg-white/30" style={{ color: "white" }}>
+            <Badge
+              variant="secondary"
+              className={hasImage ? "bg-white/20 border-white/30 hover:bg-white/30" : "bg-black/8 border-black/10 hover:bg-black/12"}
+              style={{ color: hasImage ? "white" : "#111" }}
+            >
               {categoryMap.get(slide.categoryId) ?? slide.categoryId}
             </Badge>
           )}
         </div>
 
-        <h1 className="text-xl font-bold tracking-tight md:text-4xl mb-1 md:mb-2 line-clamp-1 md:line-clamp-2" style={{ color: "white" }}>
+        <h1
+          className="text-2xl font-extrabold tracking-tight md:text-3xl mb-1 md:mb-2 line-clamp-1 md:line-clamp-2"
+          style={{ color: hasImage ? "white" : "#111" }}
+        >
           {slide.title}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm mb-1" style={{ color: "rgba(255,255,255,0.8)" }}>
-          <span>{dateStr} · {timeStr}</span>
-          {slide.location && <span>@ {slide.location}</span>}
-        </div>
+        {slide.location && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm mb-1" style={{ color: hasImage ? "rgba(255,255,255,0.8)" : "#555" }}>
+            <span>@ {slide.location}</span>
+          </div>
+        )}
 
         {hostLabel && (
-          <p className="text-xs md:text-sm mb-3 md:mb-6" style={{ color: "rgba(255,255,255,0.7)" }}>
-            Hosted by {hostLabel}
+          <p className="text-xs md:text-sm mb-3 md:mb-6" style={{ color: hasImage ? "rgba(255,255,255,0.7)" : "#777" }}>
+            Hosted by <strong style={{ color: hasImage ? "white" : "#333" }}>{hostLabel}</strong>
           </p>
         )}
 
         <div className="flex gap-3">
-          <Button asChild className="bg-white hover:bg-white/90 h-8 md:h-9 text-xs md:text-sm px-3 md:px-4" style={{ color: "#111827" }}>
+          <Button
+            asChild
+            className="h-8 md:h-9 text-xs md:text-sm px-3 md:px-4"
+            style={hasImage ? { background: "white", color: "#111827" } : { background: "#111", color: "white" }}
+          >
             <Link to="/events/$eventId" params={{ eventId: slide.id }}>
               View Event
             </Link>
           </Button>
-          <Button variant="outline" asChild className="bg-transparent hover:bg-white/20 h-8 md:h-9 text-xs md:text-sm px-3 md:px-4" style={{ color: "white", borderColor: "rgba(255,255,255,0.5)" }}>
+          <Button
+            variant="outline"
+            asChild
+            className="h-8 md:h-9 text-xs md:text-sm px-3 md:px-4"
+            style={
+              hasImage
+                ? { background: "transparent", color: "white", borderColor: "rgba(255,255,255,0.5)" }
+                : { background: "transparent", color: "#333", borderColor: "rgba(0,0,0,0.2)" }
+            }
+          >
             <Link to="/events">Browse All Events</Link>
           </Button>
         </div>
@@ -486,20 +547,23 @@ function FallbackHero({ user }: { user: { handle: string } | null }) {
   );
 }
 
-/* ─── Event Card (inline, same as /events page) ─── */
+/* ─── Event List Row (horizontal editorial layout) ─── */
 
-function EventCard({ event }: { event: EventItem }) {
-  const { categoryMap } = useEventCategoryMap();
+function EventListRow({ event }: { event: EventItem }) {
   const start = new Date(event.startsAt);
-  const dateStr = start.toLocaleDateString(undefined, {
+  const dateLabel = start.toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
   });
-  const timeStr = start.toLocaleTimeString(undefined, {
+  const timeLabel = start.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const dayNum = start.getDate().toString();
+  const monthAbbr = start.toLocaleDateString(undefined, { month: "short" }).toUpperCase();
+  const weekdayAbbr = start.toLocaleDateString(undefined, { weekday: "short" }).toUpperCase();
+
   const hostLabel = event.groupHandle
     ? (event.groupName ?? `@${event.groupHandle}`)
     : event.organizerHandle
@@ -507,55 +571,44 @@ function EventCard({ event }: { event: EventItem }) {
       : null;
 
   return (
-    <Link to="/events/$eventId" params={{ eventId: event.id }} className="group block cursor-pointer">
-      <Card className="rounded-lg overflow-hidden transition-shadow hover:shadow-md h-full flex flex-col gap-0 py-0 cursor-pointer">
-        <div
-          className="h-24 relative bg-cover bg-center"
-          style={{
-            background: event.headerImageUrl
-              ? `linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.2)), url(${event.headerImageUrl}) center/cover no-repeat`
-              : "#fafafa",
-          }}
-        >
-          {event.categoryId && (
-            <Badge
-              variant="secondary"
-              className="absolute bottom-3 left-4 bg-white/20 text-white border-white/30 text-xs"
-            >
-              {categoryMap.get(event.categoryId) ?? event.categoryId}
-            </Badge>
-          )}
+    <Link
+      to="/events/$eventId"
+      params={{ eventId: event.id }}
+      className="group flex items-start gap-4 py-4 border-b border-[#e0e0e0] hover:bg-[#fafafa] transition-colors"
+    >
+      {/* Thumbnail or date fallback */}
+      {event.headerImageUrl ? (
+        <img
+          src={event.headerImageUrl}
+          alt=""
+          aria-hidden="true"
+          className="w-[140px] h-[94px] rounded object-cover shrink-0"
+        />
+      ) : (
+        <div className="w-[140px] h-[94px] shrink-0 flex flex-col items-start justify-center pl-4 border-l-[3px] border-foreground">
+          <span className="text-4xl font-extrabold leading-none text-foreground">{dayNum}</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-foreground/60 mt-0.5">{monthAbbr}</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-foreground/40">{weekdayAbbr}</span>
         </div>
-        <CardContent className="pt-4 pb-5 space-y-2.5 flex-1">
-          <h3 className="font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-            {event.title}
-          </h3>
-          <div className="space-y-1.5 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75Z" clipRule="evenodd" />
-              </svg>
-              <span>{dateStr} · {timeStr}</span>
-            </div>
-            {hostLabel && (
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                  <path d="M10 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.465 14.493a1.23 1.23 0 0 0 .41 1.412A9.957 9.957 0 0 0 10 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 0 0-13.074.003Z" />
-                </svg>
-                <span className="truncate">{hostLabel}</span>
-              </div>
-            )}
-            {event.location && (
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                  <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
-                </svg>
-                <span className="truncate">{event.location}</span>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      )}
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 py-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#555] mb-1">
+          {dateLabel} · {timeLabel}
+        </p>
+        <h3 className="text-lg font-bold leading-snug line-clamp-2 group-hover:text-primary transition-colors mb-1">
+          {event.title}
+        </h3>
+        {hostLabel && (
+          <p className="text-sm text-[#555] mb-1">
+            Hosted by <strong className="text-foreground">{hostLabel}</strong>
+          </p>
+        )}
+        {event.location && (
+          <p className="text-sm text-[#777] truncate">{event.location}</p>
+        )}
+      </div>
     </Link>
   );
 }
