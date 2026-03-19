@@ -132,7 +132,8 @@ function RootLayout() {
             {/* Header */}
             <header className="sticky top-0 z-50 w-full border-b-2 border-foreground bg-background">
               <div className="mx-auto flex h-14 w-full max-w-5xl items-center px-6">
-                <Link to="/" className="mr-8 flex items-center">
+                <Link to="/" className="mr-8 flex items-center gap-2">
+                  <img src="/logo.png" alt="" className="h-6 w-6 grayscale" />
                   <span className="text-xl font-extrabold tracking-tight">moim</span>
                 </Link>
                 <nav className="hidden md:flex items-center gap-6">
@@ -250,6 +251,7 @@ function RootLayout() {
             <footer className="border-t-2 border-foreground mt-12">
               <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
                 <div className="flex items-center gap-3">
+                  <img src="/logo.png" alt="" className="h-5 w-5 grayscale" />
                   <span className="text-base font-extrabold tracking-tight">moim</span>
                   <span className="text-[12px] text-[#888]">&mdash; Federated events & check-ins</span>
                 </div>
