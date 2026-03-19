@@ -6,7 +6,6 @@ import { languageLabel } from "~/shared/languages";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -86,55 +85,50 @@ function MyGroupsPage() {
           </CardHeader>
         </Card>
       ) : (
-        <div className="grid gap-3">
+        <div className="divide-y border-t border-b">
           {groups.map((group) => (
-            <Card key={group.id} className="rounded-lg py-2 gap-0 transition-colors hover:bg-accent/50">
-              <Link
-                to="/groups/$identifier/dashboard"
-                params={{ identifier: `@${group.handle}` }}
-                className="block"
-              >
-                <CardContent className="py-2">
-                  <div className="flex gap-3">
-                    <Avatar className="size-10 shrink-0">
-                      {group.avatarUrl && <AvatarImage src={group.avatarUrl} alt={group.name ?? group.handle} />}
-                      <AvatarFallback className="text-sm font-semibold bg-primary/10 text-primary">
-                        {(group.name ?? group.handle).charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold truncate">
-                          {group.name ?? group.handle}
-                        </span>
-                        <Badge variant="outline" className="text-xs shrink-0">
-                          {group.role}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">@{group.handle}</p>
-                      <div className="mt-1.5 flex flex-col gap-0.5 text-xs text-muted-foreground">
-                        <span>
-                          {group.followersCount} follower{group.followersCount !== 1 ? "s" : ""}
-                          {" · "}
-                          {group.membersCount} member{group.membersCount !== 1 ? "s" : ""}
-                          {languageLabel(group.language) && (
-                            <>{" · "}{languageLabel(group.language)}</>
-                          )}
-                        </span>
-                        <span>
-                          {group.upcomingEventsCount + group.pastEventsCount} event{group.upcomingEventsCount + group.pastEventsCount !== 1 ? "s" : ""}
-                          {group.upcomingEventsCount > 0 && (
-                            <span className="text-primary font-medium ml-1">
-                              ({group.upcomingEventsCount} upcoming)
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Link>
-            </Card>
+            <Link
+              key={group.id}
+              to="/groups/$identifier/dashboard"
+              params={{ identifier: `@${group.handle}` }}
+              className="flex items-center gap-3 py-4 px-2 hover:bg-[#fafafa] transition-colors"
+            >
+              <Avatar className="size-10 shrink-0">
+                {group.avatarUrl && <AvatarImage src={group.avatarUrl} alt={group.name ?? group.handle} />}
+                <AvatarFallback className="text-sm font-semibold bg-muted text-muted-foreground">
+                  {(group.name ?? group.handle).charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold truncate">
+                    {group.name ?? group.handle}
+                  </span>
+                  <Badge variant="outline" className="text-xs shrink-0 uppercase tracking-wide">
+                    {group.role}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">@{group.handle}</p>
+                <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+                  <span>
+                    {group.followersCount} follower{group.followersCount !== 1 ? "s" : ""}
+                    {" · "}
+                    {group.membersCount} member{group.membersCount !== 1 ? "s" : ""}
+                    {languageLabel(group.language) && (
+                      <>{" · "}{languageLabel(group.language)}</>
+                    )}
+                  </span>
+                  <span>
+                    {group.upcomingEventsCount + group.pastEventsCount} event{group.upcomingEventsCount + group.pastEventsCount !== 1 ? "s" : ""}
+                    {group.upcomingEventsCount > 0 && (
+                      <span className="font-medium ml-1">
+                        ({group.upcomingEventsCount} upcoming)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            </Link>
           ))}
         </div>
       )}

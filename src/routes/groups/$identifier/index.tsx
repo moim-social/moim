@@ -158,19 +158,19 @@ function ProfilePage() {
             <div className="flex items-center gap-4">
               <Avatar className="size-14 shrink-0">
                 {group.avatarUrl && <AvatarImage src={group.avatarUrl} alt={group.name ?? handle} />}
-                <AvatarFallback className="text-xl font-semibold bg-primary/10 text-primary">
+                <AvatarFallback className="text-xl font-semibold bg-muted text-muted-foreground">
                   {(group.name ?? handle).charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold tracking-tight truncate">
+                  <h2 className="text-xl font-extrabold tracking-tight truncate">
                     {group.name ?? `@${handle}`}
                   </h2>
                   {group.verified && (
-                    <BadgeCheck className="size-5 text-primary shrink-0" />
+                    <BadgeCheck className="size-5 text-foreground shrink-0" />
                   )}
-                  <Badge variant="secondary" className="shrink-0">Group</Badge>
+                  <Badge variant="outline" className="shrink-0 uppercase text-xs tracking-wide">Group</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">@{handle}</p>
               </div>
@@ -215,7 +215,7 @@ function ProfilePage() {
                 href={group.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-sm hover:underline"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
                   <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Zm4.943.25a.75.75 0 0 1 0-1.5h5.057a.75.75 0 0 1 .75.75v5.057a.75.75 0 0 1-1.5 0V6.56l-5.22 5.22a.75.75 0 0 1-1.06-1.06l5.22-5.22H9.193Z" clipRule="evenodd" />
@@ -341,7 +341,7 @@ function TimelineEvent({
     <div className="relative flex gap-4 pl-0">
       {/* Dot */}
       <div
-        className="relative z-10 mt-1.5 size-[15px] rounded-full border-2 border-background bg-foreground/40 shrink-0"
+        className="relative z-10 mt-1.5 size-[15px] rounded-full border-2 border-background bg-foreground shrink-0"
       />
 
       {/* Content */}
@@ -362,7 +362,7 @@ function TimelineEvent({
             params={{ eventId: event.id }}
             className="group"
           >
-            <h4 className="font-semibold group-hover:text-primary transition-colors">
+            <h4 className="font-semibold group-hover:underline transition-colors">
               {event.title}
             </h4>
           </Link>
@@ -405,7 +405,7 @@ function TimelineNote({
   return (
     <div className="relative flex gap-4 pl-0">
       {/* Dot */}
-      <div className="relative z-10 mt-1.5 size-[15px] rounded-full border-2 border-background bg-muted-foreground/40 shrink-0" />
+      <div className="relative z-10 mt-1.5 size-[15px] rounded-full border-2 border-background bg-[#ccc] shrink-0" />
 
       {/* Content */}
       <div className="flex-1 min-w-0 pb-1">
@@ -423,7 +423,7 @@ function TimelineNote({
           <Link
             to="/notes/$noteId"
             params={{ noteId: note.id }}
-            className="text-xs text-primary hover:underline inline-block"
+            className="text-xs text-muted-foreground hover:underline hover:text-foreground inline-block"
           >
             Permalink
           </Link>

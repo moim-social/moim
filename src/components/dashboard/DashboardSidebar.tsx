@@ -91,10 +91,10 @@ export function DashboardSidebar({
                     <Link
                       to={item.to}
                       onClick={onClose}
-                      className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
+                      className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
                         isActive
-                          ? "bg-accent font-medium text-accent-foreground"
-                          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                          ? "border-l-2 border-foreground bg-[#f5f5f5] font-semibold text-foreground"
+                          : "text-muted-foreground hover:bg-[#fafafa] hover:text-foreground"
                       }`}
                     >
                       <item.icon className="size-4" />
