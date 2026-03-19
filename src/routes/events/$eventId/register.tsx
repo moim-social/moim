@@ -171,7 +171,7 @@ function RegisterPage() {
       <div className="mx-auto max-w-lg px-4 py-12">
         <Card>
           <CardContent className="pt-6 text-center space-y-4">
-            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-muted">
               {existingRsvp.status === "waitlisted" ? (
                 <Ticket className="size-8 text-primary" />
               ) : (
@@ -383,7 +383,7 @@ function RegisterPage() {
       <div className="mx-auto max-w-lg px-4 py-12">
         <Card>
           <CardContent className="pt-6 text-center space-y-4">
-            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-muted">
               {resultStatus === "waitlisted" ? (
                 <Ticket className="size-8 text-primary" />
               ) : (
