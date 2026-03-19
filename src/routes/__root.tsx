@@ -246,16 +246,19 @@ function RootLayout() {
               </div>
             </main>
 
-            {/* Footer (desktop only) */}
-            <footer className="hidden md:block border-t">
-              <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
-                <p className="text-sm text-muted-foreground">
-                  Moim &mdash; Federated events & check-ins
-                </p>
-                <nav className="flex gap-4">
-                  <Link to="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Events</Link>
-                  <Link to="/places" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Places</Link>
-                </nav>
+            {/* Footer */}
+            <footer className="border-t-2 border-foreground mt-12">
+              <div className="mx-auto w-full max-w-5xl px-6 py-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <span className="text-lg font-extrabold tracking-tight">moim</span>
+                    <p className="text-[12px] text-[#888] mt-1">Federated events & check-ins</p>
+                  </div>
+                  <nav className="flex gap-6">
+                    <Link to="/events" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground transition-colors">Events</Link>
+                    <Link to="/places" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground transition-colors">Places</Link>
+                  </nav>
+                </div>
               </div>
             </footer>
 
