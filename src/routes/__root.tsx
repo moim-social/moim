@@ -137,7 +137,6 @@ function RootLayout() {
                 </Link>
                 <nav className="hidden md:flex items-center gap-6">
                   <NavLink to="/events">Events</NavLink>
-                  <NavLink to="/groups/my">Groups</NavLink>
                   <NavLink to="/places">Places</NavLink>
                 </nav>
                 {/* Hamburger button (mobile) */}
