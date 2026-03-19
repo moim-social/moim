@@ -127,71 +127,65 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div className="grid w-full" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
-        {days.map((day, i) => {
-          const inMonth = isCurrentMonth(day, currentYear, currentMonth);
-          const today = isToday(day);
-          const key = dateKey(day);
-          const dayEvents = eventsMap.get(key) ?? [];
-          const isSelected =
-            selectedDate != null && isSameDay(day, selectedDate);
+      {/* Calendar grid — editorial ledger */}
+      {(() => {
+        // Group days into weeks of 7
+        const weeks: Date[][] = [];
+        for (let i = 0; i < days.length; i += 7) {
+          weeks.push(days.slice(i, i + 7));
+        }
+        return weeks.map((week, wi) => (
+          <div key={wi} className="grid w-full border-b border-[#e5e5e5]" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
+            {week.map((day, di) => {
+              const inMonth = isCurrentMonth(day, currentYear, currentMonth);
+              const todayDay = isToday(day);
+              const key = dateKey(day);
+              const dayEvents = eventsMap.get(key) ?? [];
+              const isSelected = selectedDate != null && isSameDay(day, selectedDate);
+              const hasEvents = dayEvents.length > 0;
 
-          return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => handleDayClick(day)}
-              className={cn(
-                "flex flex-col items-center py-1.5 transition-colors overflow-hidden min-h-28",
-                "text-xs sm:text-sm",
-                "hover:bg-[#fafafa]",
-                !inMonth && "text-muted-foreground/40",
-                isSelected && "bg-[#f5f5f5] ring-1 ring-foreground/20",
-              )}
-            >
-              <span
-                className={cn(
-                  "size-6 flex items-center justify-center rounded-full text-xs sm:text-sm",
-                  today && "bg-foreground text-background font-bold",
-                )}
-              >
-                {day.getDate()}
-              </span>
-              {dayEvents.length > 0 && (
-                <div className="w-full mt-1 space-y-0.5 px-0.5">
-                  {dayEvents.slice(0, 2).map((evt) => {
-                    const start = new Date(evt.startsAt);
-                    const timeStr = start.toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      timeZone: evt.timezone ?? undefined,
-                    });
-                    const secondary = showCountry ? evt.country : evt.location;
-                    return (
-                      <div
-                        key={evt.id}
-                        className="text-left rounded px-1 py-0.5 truncate bg-muted border-l-2 border-l-foreground/40"
-                      >
-                        <span className="text-[10px] text-muted-foreground">{timeStr}</span>
-                        <p className="text-[10px] font-medium leading-tight truncate">{evt.title}</p>
-                        {secondary && (
-                          <span className="text-[9px] text-muted-foreground truncate block">{secondary}</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {dayEvents.length > 2 && (
-                    <span className="text-[9px] text-muted-foreground px-1">
-                      +{dayEvents.length - 2} more
-                    </span>
+              return (
+                <button
+                  key={di}
+                  type="button"
+                  onClick={() => handleDayClick(day)}
+                  className={cn(
+                    "flex flex-col items-start p-2 text-left min-h-[88px] transition-colors",
+                    di < 6 && "border-r border-[#f0f0f0]",
+                    !inMonth && "opacity-30",
+                    isSelected && "bg-[#f5f5f5]",
                   )}
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
+                >
+                  <span className={cn(
+                    "text-[13px] tabular-nums mb-1.5",
+                    todayDay
+                      ? "font-extrabold text-foreground"
+                      : hasEvents
+                        ? "font-semibold text-[#333]"
+                        : "text-[#bbb]",
+                  )}>
+                    {day.getDate()}
+                    {todayDay && <span className="ml-1 text-[9px] font-bold uppercase tracking-wide align-middle">today</span>}
+                  </span>
+                  {dayEvents.slice(0, 2).map((evt) => (
+                    <span
+                      key={evt.id}
+                      className="block text-[10px] leading-snug truncate w-full py-[1px]"
+                      title={evt.title}
+                    >
+                      <span className="inline-block w-1.5 h-1.5 bg-foreground mr-1 align-middle" />
+                      <span className="font-medium">{evt.title}</span>
+                    </span>
+                  ))}
+                  {dayEvents.length > 2 && (
+                    <span className="text-[10px] text-[#999]">+{dayEvents.length - 2}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ));
+      })()}
 
       {/* Selected day detail */}
       {selectedDate && (
