@@ -280,8 +280,8 @@ function EventCard({ event }: { event: EventItem }) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-[#fafafa] border border-[#e5e5e5]">
-              <span className="text-sm font-semibold text-muted-foreground">{timeStr}</span>
+            <div className="w-full h-full flex items-center justify-center bg-[#f5f5f5]">
+              <img src="/logo.png" alt="" className="w-8 h-8 opacity-20 grayscale" />
             </div>
           )}
         </div>
