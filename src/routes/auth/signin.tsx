@@ -5,14 +5,6 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -422,17 +414,15 @@ function SignInPage() {
   const showSteps = ["challenge", "waiting", "success"].includes(phase);
 
   return (
-    <main className="mx-auto max-w-md py-8">
-      <Card>
-        <CardHeader className="text-center">
-          <img src="/logo.png" alt="moim" className="mx-auto h-10 w-auto" />
-          <CardTitle className="text-2xl">Sign in</CardTitle>
-          <CardDescription>
-            Sign in with your Fediverse account
-          </CardDescription>
-        </CardHeader>
+    <main className="mx-auto max-w-sm py-12">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <img src="/logo.png" alt="" className="mx-auto h-8 w-8 grayscale mb-3" />
+        <h1 className="text-2xl font-extrabold tracking-tight">Sign in</h1>
+        <p className="text-[13px] text-[#888] mt-1">Sign in with your Fediverse account</p>
+      </div>
 
-        <CardContent className="space-y-6">
+      <div className="space-y-6">
           {from === "onboarding" && phase === "handle" && (
             <Alert>
               <AlertDescription>
@@ -600,20 +590,19 @@ function SignInPage() {
               </div>
             </div>
           )}
-        </CardContent>
+      </div>
 
-        <CardFooter className="justify-center">
-          <p className="text-sm text-muted-foreground">
-            New to the Fediverse?{" "}
-            <Link
-              to="/auth/onboarding"
-              className="underline hover:text-muted-foreground"
-            >
-              Get started
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+      <div className="text-center mt-8 pt-6 border-t border-[#e5e5e5]">
+        <p className="text-[13px] text-[#888]">
+          New to the Fediverse?{" "}
+          <Link
+            to="/auth/onboarding"
+            className="text-foreground underline underline-offset-2"
+          >
+            Get started
+          </Link>
+        </p>
+      </div>
 
       {/* Provider dialogs — one per provider, rendered from registry */}
       {AUTH_PROVIDERS.map((provider) => (
