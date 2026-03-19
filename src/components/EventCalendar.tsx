@@ -107,7 +107,7 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
         <Button variant="ghost" size="icon-xs" onClick={goToPrevMonth}>
           <ChevronLeft className="size-4" />
         </Button>
-        <span className="text-sm font-semibold">
+        <span className="text-sm font-extrabold tracking-tight">
           {formatMonthYear(currentYear, currentMonth)}
         </span>
         <Button variant="ghost" size="icon-xs" onClick={goToNextMonth}>
@@ -116,11 +116,11 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
       </div>
 
       {/* Weekday headers */}
-      <div className="grid" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
+      <div className="grid border-b border-[#e5e5e5]" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
         {WEEKDAYS.map((d) => (
           <div
             key={d}
-            className="text-center text-xs font-medium text-muted-foreground py-1"
+            className="text-center text-[11px] font-bold uppercase tracking-wide text-[#888] py-2"
           >
             {d}
           </div>
@@ -195,9 +195,9 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
 
       {/* Selected day detail */}
       {selectedDate && (
-        <div className="border rounded-lg p-4 space-y-3">
+        <div className="border-t-2 border-foreground pt-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-[#333]">
               {selectedDate.toLocaleDateString(undefined, {
                 weekday: "long",
                 month: "long",
@@ -214,11 +214,11 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
           </div>
 
           {selectedEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground py-2">
               No events on this day.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-[#f0f0f0]">
               {selectedEvents.map((evt) => {
                 const start = new Date(evt.startsAt);
                 const evtTz = evt.timezone ?? undefined;
@@ -233,20 +233,17 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
                     key={evt.id}
                     to="/events/$eventId"
                     params={{ eventId: evt.id }}
-                    className="flex items-start gap-3 rounded-md p-2 hover:bg-accent/50 transition-colors"
+                    className="flex items-start gap-3 py-3 first:pt-0 hover:bg-[#fafafa] transition-colors group"
                   >
-                    <Calendar
-                      className="size-4 mt-0.5 shrink-0 text-muted-foreground"
-                    />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-snug">
+                      <p className="text-[13px] font-semibold leading-snug group-hover:underline">
                         {evt.title}
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                      <div className="flex items-center gap-2 text-[11px] text-[#888] mt-0.5">
                         <span>{timeStr}</span>
                         {evt.location && (
                           <>
-                            <span>·</span>
+                            <span className="text-[#ddd]">&middot;</span>
                             <span className="truncate">{evt.location}</span>
                           </>
                         )}
