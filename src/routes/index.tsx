@@ -4,6 +4,14 @@ import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "~/components/ui/carousel";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -243,125 +251,203 @@ function HomePage() {
 const SLIDE_DURATION = 5000;
 
 function HeroCarousel({ slides }: { slides: CarouselSlide[] }) {
+  const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pausedRef = useRef(false);
+  const timeoutRef = useRef<number | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const timerStartedAtRef = useRef<number | null>(null);
+  const remainingRef = useRef(SLIDE_DURATION);
+  const cycleStartedWithRemainingRef = useRef(SLIDE_DURATION);
 
-  const clearTimers = useCallback(() => {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+  const clearScheduled = useCallback(() => {
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
   }, []);
 
-  const resumeTimers = useCallback(() => {
-    clearTimers();
-    const step = 50;
-    progressRef.current = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + (step / SLIDE_DURATION) * 100;
-        if (next >= 100) {
-          setCurrent((c) => (c + 1) % slides.length);
-          return 0;
-        }
-        return next;
-      });
-    }, step);
-  }, [slides.length, clearTimers]);
+  const getTimeLeft = useCallback(() => {
+    if (timerStartedAtRef.current === null) {
+      return remainingRef.current;
+    }
+
+    const elapsed = performance.now() - timerStartedAtRef.current;
+    return Math.max(0, cycleStartedWithRemainingRef.current - elapsed);
+  }, []);
+
+  const startCycle = useCallback((duration: number) => {
+    if (!api || slides.length <= 1) {
+      return;
+    }
+
+    clearScheduled();
+    const safeDuration = Math.max(1, duration);
+    cycleStartedWithRemainingRef.current = safeDuration;
+    remainingRef.current = safeDuration;
+    timerStartedAtRef.current = performance.now();
+    setProgress(((SLIDE_DURATION - safeDuration) / SLIDE_DURATION) * 100);
+
+    const updateProgress = () => {
+      const timeLeft = getTimeLeft();
+      remainingRef.current = timeLeft;
+      setProgress(((SLIDE_DURATION - timeLeft) / SLIDE_DURATION) * 100);
+
+      if (timeLeft > 0) {
+        frameRef.current = window.requestAnimationFrame(updateProgress);
+      }
+    };
+
+    frameRef.current = window.requestAnimationFrame(updateProgress);
+    timeoutRef.current = window.setTimeout(() => {
+      remainingRef.current = SLIDE_DURATION;
+      api.scrollNext();
+    }, safeDuration);
+  }, [api, clearScheduled, getTimeLeft, slides.length]);
+
+  const pauseAutoplay = useCallback(() => {
+    if (slides.length <= 1) {
+      return;
+    }
+
+    pausedRef.current = true;
+    const timeLeft = getTimeLeft();
+    remainingRef.current = timeLeft;
+    timerStartedAtRef.current = null;
+    setProgress(((SLIDE_DURATION - timeLeft) / SLIDE_DURATION) * 100);
+    clearScheduled();
+  }, [clearScheduled, getTimeLeft, slides.length]);
+
+  const resumeAutoplay = useCallback(() => {
+    if (slides.length <= 1) {
+      return;
+    }
+
+    pausedRef.current = false;
+    startCycle(remainingRef.current > 0 ? remainingRef.current : SLIDE_DURATION);
+  }, [slides.length, startCycle]);
 
   useEffect(() => {
-    if (!paused) resumeTimers();
-    return clearTimers;
-  }, [paused, resumeTimers, clearTimers]);
+    if (!api) {
+      return;
+    }
 
-  // Reset progress on manual slide change
+    const syncCarouselState = () => {
+      setCurrent(api.selectedScrollSnap());
+      remainingRef.current = SLIDE_DURATION;
+      timerStartedAtRef.current = null;
+      setProgress(0);
+      clearScheduled();
+
+      if (!pausedRef.current && slides.length > 1) {
+        startCycle(SLIDE_DURATION);
+      }
+    };
+
+    syncCarouselState();
+    api.on("select", syncCarouselState);
+    api.on("reInit", syncCarouselState);
+
+    return () => {
+      api.off("select", syncCarouselState);
+      api.off("reInit", syncCarouselState);
+    };
+  }, [api, clearScheduled, slides.length, startCycle]);
+
   useEffect(() => {
+    pausedRef.current = false;
+    remainingRef.current = SLIDE_DURATION;
     setProgress(0);
-    if (!paused) resumeTimers();
-  }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
+    setCurrent(0);
 
-  const goTo = (index: number) => {
-    setCurrent(index);
-  };
+    if (slides.length <= 1) {
+      clearScheduled();
+      timerStartedAtRef.current = null;
+    }
+  }, [clearScheduled, slides]);
 
-  const prev = () => goTo((current - 1 + slides.length) % slides.length);
-  const next = () => goTo((current + 1) % slides.length);
+  useEffect(() => clearScheduled, [clearScheduled]);
 
-  const slide = slides[current];
+  const slide = slides[current] ?? slides[0];
 
   return (
     <div
       className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onMouseEnter={pauseAutoplay}
+      onMouseLeave={resumeAutoplay}
     >
-      <div className="relative h-[200px] md:h-[340px] transition-all duration-500 overflow-hidden">
-        {slide.type === "banner" ? (
-          <BannerSlideContent slide={slide} />
-        ) : (
-          <EventSlideContent slide={slide} />
-        )}
-      </div>
-
-      {/* Navigation arrows */}
-      {slides.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={prev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 size-10 flex items-center justify-center rounded-full bg-black/20 text-white hover:bg-black/40 transition-colors"
-            aria-label="Previous slide"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-              <path fillRule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={next}
-            className="absolute right-4 top-1/2 -translate-y-1/2 size-10 flex items-center justify-center rounded-full bg-black/20 text-white hover:bg-black/40 transition-colors"
-            aria-label="Next slide"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-              <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
-            </svg>
-          </button>
-
-          {/* Per-slide indicator bars */}
-          {(() => {
-            const isLight = slide.type === "event" && !slide.headerImageUrl;
-            const activeColor = isLight ? "#111" : "white";
-            const inactiveColor = isLight ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.3)";
-            return (
-              <div className="absolute bottom-4 right-4 flex items-center gap-1.5">
-                {slides.map((_, i) => {
-                  if (i === current) {
-                    return (
-                      <div key={i} className="relative h-[3px] w-5 overflow-hidden rounded-full" style={{ background: inactiveColor }}>
-                        <div
-                          className="absolute inset-y-0 left-0 h-full rounded-full"
-                          style={{
-                            width: `${progress}%`,
-                            background: activeColor,
-                            transition: "width 50ms linear",
-                          }}
-                        />
-                      </div>
-                    );
-                  }
-                  return (
-                    <div
-                      key={i}
-                      className="h-[3px] w-5 rounded-full"
-                      style={{ background: inactiveColor }}
-                    />
-                  );
-                })}
+      <Carousel
+        setApi={setApi}
+        opts={{
+          align: "start",
+          loop: slides.length > 1,
+        }}
+        className="relative"
+      >
+        <CarouselContent className="ml-0">
+          {slides.map((item) => (
+            <CarouselItem key={`${item.type}-${item.id}`} className="pl-0">
+              <div className="relative h-[200px] overflow-hidden transition-all duration-500 md:h-[340px]">
+                {item.type === "banner" ? (
+                  <BannerSlideContent slide={item} />
+                ) : (
+                  <EventSlideContent slide={item} />
+                )}
               </div>
-            );
-          })()}
-        </>
-      )}
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+
+        {/* Navigation arrows */}
+        {slides.length > 1 && (
+          <>
+            <CarouselPrevious
+              className="left-4 top-1/2 size-10 -translate-y-1/2 rounded-full border-0 bg-black/20 text-white hover:bg-black/40 hover:text-white disabled:pointer-events-none disabled:opacity-40"
+            />
+            <CarouselNext
+              className="right-4 top-1/2 size-10 -translate-y-1/2 rounded-full border-0 bg-black/20 text-white hover:bg-black/40 hover:text-white disabled:pointer-events-none disabled:opacity-40"
+            />
+
+            {/* Per-slide indicator bars */}
+            {(() => {
+              const isLight = slide.type === "event" && !slide.headerImageUrl;
+              const activeColor = isLight ? "#111" : "white";
+              const inactiveColor = isLight ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.3)";
+              return (
+                <div className="absolute bottom-4 right-4 flex items-center gap-1.5">
+                  {slides.map((_, i) => {
+                    if (i === current) {
+                      return (
+                        <div key={i} className="relative h-[3px] w-5 overflow-hidden rounded-full" style={{ background: inactiveColor }}>
+                          <div
+                            className="absolute inset-y-0 left-0 h-full rounded-full"
+                            style={{
+                              width: `${progress}%`,
+                              background: activeColor,
+                            }}
+                          />
+                        </div>
+                      );
+                    }
+                    return (
+                      <div
+                        key={i}
+                        className="h-[3px] w-5 rounded-full"
+                        style={{ background: inactiveColor }}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </>
+        )}
+      </Carousel>
     </div>
   );
 }
