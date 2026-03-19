@@ -161,7 +161,7 @@ function CategoryDetailPage() {
   return (
     <div className="space-y-6">
       {/* Hero banner */}
-      <div className="rounded-xl p-6 bg-[#fafafa] border">
+      <div className="p-6 bg-[#fafafa] border border-b-2 border-b-foreground">
         <Link
           to="/categories"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -171,7 +171,7 @@ function CategoryDetailPage() {
           </svg>
           All categories
         </Link>
-        <h2 className="text-2xl font-bold mt-2">{category.label} Events</h2>
+        <h2 className="text-2xl font-extrabold tracking-tight mt-2">{category.label} Events</h2>
         <p className="text-muted-foreground text-sm mt-1">
           {category.description ?? `Follow this feed from your fediverse account to get notified about new ${category.label.toLowerCase()} events.`}
         </p>

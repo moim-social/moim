@@ -43,10 +43,9 @@ function CategoriesPage() {
               params={{ categoryId: cat.slug }}
               className="block"
             >
-              <Card className="overflow-hidden transition-shadow hover:shadow-md py-0 gap-0">
-                <div className="h-16 bg-[#fafafa]" />
-                <CardContent className="py-3 px-4">
-                  <p className="font-medium text-sm truncate">{cat.label}</p>
+              <Card className="overflow-hidden transition-colors hover:bg-[#fafafa] py-0 gap-0 bg-muted/30 border">
+                <CardContent className="py-4 px-4">
+                  <p className="font-bold text-base truncate tracking-tight">{cat.label}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">@feed_{cat.slug}</p>
                 </CardContent>
               </Card>
