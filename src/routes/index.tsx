@@ -158,56 +158,48 @@ function HomePage() {
 
       {/* Recent Check-ins */}
       {checkins.length > 0 && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold tracking-tight">Recent Check-ins</h2>
+        <section>
+          <div className="flex items-center justify-between pb-3 border-b-2 border-foreground mb-4">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-[#333]">Recent Check-ins</h2>
             <div className="flex items-center gap-3">
               {user && (
                 <Button size="sm" asChild>
                   <Link to="/places">Check In</Link>
                 </Button>
               )}
-              <Link to="/places" className="text-sm text-primary hover:underline">
-                View all →
+              <Link to="/places" className="text-[12px] text-[#888] hover:text-foreground underline underline-offset-2">
+                View all
               </Link>
             </div>
           </div>
-          <Card className="py-2">
-            <CardContent className="px-4 pt-2 pb-1 divide-y divide-border/60">
-              {checkins.map((checkin) => (
-                <div key={checkin.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                  <Avatar className="size-8 shrink-0">
-                    {checkin.userAvatarUrl && <AvatarImage src={checkin.userAvatarUrl} alt={checkin.userDisplayName} />}
-                    <AvatarFallback className="text-xs">
-                      {checkin.userDisplayName.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">
-                      <span className="font-medium">{checkin.userDisplayName}</span>
-                      {" checked in at "}
-                      <Link
-                        to="/places/$placeId"
-                        params={{ placeId: checkin.placeId }}
-                        className="inline-flex items-center gap-0.5 font-medium text-primary underline underline-offset-2"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-3.5 shrink-0">
-                          <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
-                        </svg>
-                        {checkin.placeName}
-                      </Link>
-                    </p>
-                    {checkin.note && (
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">{checkin.note}</p>
-                    )}
+          <div className="divide-y divide-[#f0f0f0]">
+            {checkins.map((checkin) => (
+              <div key={checkin.id} className="flex items-start gap-3 py-3 first:pt-0">
+                <Avatar className="size-8 shrink-0">
+                  {checkin.userAvatarUrl && <AvatarImage src={checkin.userAvatarUrl} alt={checkin.userDisplayName} />}
+                  <AvatarFallback className="text-xs bg-muted">
+                    {checkin.userDisplayName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold truncate">{checkin.userDisplayName}</span>
+                    <span className="text-[11px] text-[#999] shrink-0">{timeAgo(checkin.createdAt)}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {timeAgo(checkin.createdAt)}
-                  </span>
+                  <Link
+                    to="/places/$placeId"
+                    params={{ placeId: checkin.placeId }}
+                    className="text-[13px] text-[#555] hover:text-foreground hover:underline underline-offset-2"
+                  >
+                    {checkin.placeName}
+                  </Link>
+                  {checkin.note && (
+                    <p className="text-[12px] text-[#888] mt-0.5 truncate">{checkin.note}</p>
+                  )}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
