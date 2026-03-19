@@ -184,17 +184,19 @@ function HomePage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-semibold truncate">{checkin.userDisplayName}</span>
+                    <span className="text-[11px] text-[#bbb]">&middot;</span>
                     <span className="text-[11px] text-[#999] shrink-0">{timeAgo(checkin.createdAt)}</span>
                   </div>
                   <Link
                     to="/places/$placeId"
                     params={{ placeId: checkin.placeId }}
-                    className="text-[13px] text-[#555] hover:text-foreground hover:underline underline-offset-2"
+                    className="inline-flex items-center gap-1 text-[13px] font-semibold text-foreground hover:underline underline-offset-2 mt-0.5"
                   >
+                    <span className="text-[11px] font-normal text-[#999]">at</span>
                     {checkin.placeName}
                   </Link>
                   {checkin.note && (
-                    <p className="text-[12px] text-[#888] mt-0.5 truncate">{checkin.note}</p>
+                    <p className="text-[12px] text-[#666] mt-1 italic">{checkin.note}</p>
                   )}
                 </div>
               </div>
