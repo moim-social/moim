@@ -582,11 +582,12 @@ function EventDetailPage() {
               </div>
             </div>
 
+            {/* Map shown in sidebar on desktop, inline on mobile only */}
             {event.placeLatitude && event.placeLongitude && (
               <button
                 type="button"
                 onClick={() => setMapOpen(true)}
-                className="w-full rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-shadow"
+                className="w-full rounded overflow-hidden cursor-pointer hover:ring-1 hover:ring-foreground/20 transition-shadow md:hidden"
               >
                 <LeafletMap
                   center={[parseFloat(event.placeLatitude), parseFloat(event.placeLongitude)]}
@@ -598,7 +599,7 @@ function EventDetailPage() {
                     id: event.placeId ?? "place",
                     color: "red",
                   }]}
-                  height="150px"
+                  height="120px"
                   className="pointer-events-none"
                 />
               </button>
