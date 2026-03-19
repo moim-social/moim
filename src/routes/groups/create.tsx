@@ -10,7 +10,6 @@ import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
-import { Card, CardContent } from "~/components/ui/card";
 
 export const Route = createFileRoute("/groups/create")({
   component: CreateGroupPage,
@@ -28,47 +27,22 @@ const STEPS = ["Group Info", "Categories", "Moderators"] as const;
 
 function Stepper({ currentStep }: { currentStep: number }) {
   return (
-    <Card className="rounded-lg">
-      <CardContent className="py-5">
-        <div className="relative flex justify-between">
-          {/* Connecting lines behind circles */}
-          <div className="absolute top-4 left-0 right-0 flex items-center px-12">
-            <div className={`h-px flex-1 ${currentStep > 0 ? "bg-primary" : "bg-border"}`} />
-            <div className={`h-px flex-1 ${currentStep > 1 ? "bg-primary" : "bg-border"}`} />
+    <div className="flex">
+      {STEPS.map((label, idx) => {
+        const isCompleted = idx < currentStep;
+        const isActive = idx === currentStep;
+        return (
+          <div key={label} className="flex-1 text-center">
+            <div className={`text-[11px] font-semibold uppercase tracking-wide pb-2 ${
+              isCompleted || isActive ? "font-extrabold text-foreground" : "text-[#bbb]"
+            }`}>
+              {idx + 1} &middot; {label}
+            </div>
+            <div className={`h-[3px] ${isCompleted || isActive ? "bg-foreground" : "bg-[#e5e5e5]"}`} />
           </div>
-          {STEPS.map((label, idx) => {
-            const isCompleted = idx < currentStep;
-            const isActive = idx === currentStep;
-            return (
-              <div key={label} className="relative z-10 flex flex-col items-center gap-1.5">
-                <div
-                  className={`size-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    isCompleted || isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {isCompleted ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
-                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-                    </svg>
-                  ) : (
-                    <span>{String(idx + 1).padStart(2, "0")}</span>
-                  )}
-                </div>
-                <span
-                  className={`text-xs whitespace-nowrap ${
-                    isActive || isCompleted ? "font-medium text-foreground" : "text-muted-foreground"
-                  }`}
-                >
-                  {label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+        );
+      })}
+    </div>
   );
 }
 
@@ -249,7 +223,9 @@ function CreateGroupPage() {
 
   return (
     <main className="mx-auto max-w-2xl space-y-6">
-      <h2 className="text-2xl font-semibold tracking-tight">Create Event Group</h2>
+      <div className="pb-4 border-b-2 border-foreground">
+        <h2 className="text-2xl font-extrabold tracking-tight">Create Group</h2>
+      </div>
 
       {/* Stepper */}
       {(phase === "basic" || phase === "categories" || phase === "moderators") && (
@@ -258,22 +234,20 @@ function CreateGroupPage() {
 
       {/* Step 1: Group Info */}
       {phase === "basic" && (
-        <Card className="rounded-lg">
-          <CardContent className="pt-6">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!handle || !name || !summary) return;
-                setPhase("categories");
-              }}
-              className="space-y-6"
-            >
-              <div>
-                <h3 className="text-lg font-semibold">Group Information</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Set up the basic details for your event group.
-                </p>
-              </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!handle || !name || !summary) return;
+            setPhase("categories");
+          }}
+          className="space-y-5"
+        >
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-[#333]">Group Information</h3>
+            <p className="text-[13px] text-[#888] mt-1">
+              Set up the basic details for your event group.
+            </p>
+          </div>
 
               {errorBox}
 
@@ -367,22 +341,18 @@ function CreateGroupPage() {
                   </svg>
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+        </form>
       )}
 
       {/* Step 2: Categories */}
       {phase === "categories" && (
-        <Card className="rounded-lg">
-          <CardContent className="pt-6">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold">Categories</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Select categories that best describe your group's focus.
-                </p>
-              </div>
+        <div className="space-y-5">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-[#333]">Categories</h3>
+            <p className="text-[13px] text-[#888] mt-1">
+              Select categories that best describe your group's focus.
+            </p>
+          </div>
 
               <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2">
                 {categories.map((cat) => (
@@ -418,27 +388,23 @@ function CreateGroupPage() {
                   </svg>
                 </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
       {/* Step 3: Moderators */}
       {phase === "moderators" && (
-        <Card className="rounded-lg">
-          <CardContent className="pt-6">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold">Moderators</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Add moderators who will help manage this group.
-                </p>
-              </div>
+        <div className="space-y-5">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-[#333]">Moderators</h3>
+            <p className="text-[13px] text-[#888] mt-1">
+              Add moderators who will help manage this group.
+            </p>
+          </div>
 
               {errorBox}
 
               {/* Info callout */}
-              <Alert className="border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+              <Alert className="border-[#e5e5e5] bg-[#fafafa] text-[#555]">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
                   <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clipRule="evenodd" />
                 </svg>
@@ -541,63 +507,55 @@ function CreateGroupPage() {
                   </svg>
                 </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
       {/* Submitting */}
       {phase === "submitting" && (
-        <Card className="rounded-lg">
-          <CardContent className="py-16 text-center">
-            <p className="text-muted-foreground">Creating your group...</p>
-          </CardContent>
-        </Card>
+        <div className="py-16 text-center">
+          <p className="text-muted-foreground">Creating your group...</p>
+        </div>
       )}
 
       {/* Success */}
       {phase === "success" && (
-        <Card className="rounded-lg">
-          <CardContent className="pt-6 space-y-4">
-            <Alert className="border-green-300 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
-              <AlertDescription>Group created successfully!</AlertDescription>
-            </Alert>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => navigate({ to: "/groups/$identifier/dashboard", params: { identifier: `@${createdHandle}` } })}
-              >
-                Go to Dashboard
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate({ to: "/groups/$identifier", params: { identifier: `@${createdHandle}` } })}
-              >
-                View Public Page
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Alert className="border-[#e5e5e5] bg-[#fafafa] text-[#333]">
+            <AlertDescription>Group created successfully!</AlertDescription>
+          </Alert>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => navigate({ to: "/groups/$identifier/dashboard", params: { identifier: `@${createdHandle}` } })}
+            >
+              Go to Dashboard
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate({ to: "/groups/$identifier", params: { identifier: `@${createdHandle}` } })}
+            >
+              View Public Page
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Error */}
       {phase === "error" && (
-        <Card className="rounded-lg">
-          <CardContent className="pt-6 space-y-4">
-            {errorBox}
-            <div className="flex gap-3">
-              <Button onClick={() => setPhase("moderators")}>Retry</Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setPhase("basic");
-                  setError("");
-                }}
-              >
-                Start over
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          {errorBox}
+          <div className="flex gap-3">
+            <Button onClick={() => setPhase("moderators")}>Retry</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPhase("basic");
+                setError("");
+              }}
+            >
+              Start over
+            </Button>
+          </div>
+        </div>
       )}
     </main>
   );

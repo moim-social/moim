@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useIsMobile } from "~/hooks/useIsMobile";
 import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
 import {
   formatDistance,
@@ -10,10 +9,6 @@ import {
   type PlaceCategoryOption,
   type PlaceCategorySummary,
 } from "~/lib/place";
-import {
-  Card,
-  CardContent,
-} from "~/components/ui/card";
 import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
 import { LeafletMap, type MapMarker } from "~/components/LeafletMap";
@@ -44,7 +39,7 @@ export const Route = createFileRoute("/places/")({
 
 function formatCategory(category: PlaceCategorySummary | null | undefined): string | null {
   if (!category || !category.label) return null;
-  return `${category.emoji ?? ""} ${category.label}`.trim();
+  return category.label;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -402,41 +397,36 @@ function CheckinsPage() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      {/* Header — editorial 2px border bottom */}
+      <div className="flex items-center justify-between pb-4 border-b-2 border-foreground">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Check-ins</h2>
-          <p className="mt-1 text-muted-foreground">
+          <h2 className="text-2xl font-extrabold tracking-tight">Check-ins</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
             See where people are hanging out nearby.
           </p>
         </div>
         {user && (
-          <Button onClick={openNewCheckin} className="hidden md:inline-flex">
+          <Button size="sm" onClick={openNewCheckin}>
             <MapPin className="size-4" />
             Check In
           </Button>
         )}
       </div>
 
-      {user && (
-        <Button onClick={openNewCheckin} className="w-full md:hidden">
-          <MapPin className="size-4" />
-          Check In
-        </Button>
-      )}
-
       {/* Map */}
-      <LeafletMap
-        center={mapCenter ?? undefined}
-        markers={[...nearbyMarkers, ...pickedMarker]}
-        circle={pinnedLocation ? { center: [parseFloat(pinnedLocation.lat), parseFloat(pinnedLocation.lng)], radiusKm: zoomToRadius(mapZoom) } : undefined}
-        fitToMarkers={false}
-        onMapClick={handleMapClick}
-        onMarkerClick={handleMarkerClick}
-        onZoomEnd={setMapZoom}
-        height={isMobile ? "350px" : "500px"}
-      />
+      <div className="border border-[#e5e5e5] rounded overflow-hidden">
+        <LeafletMap
+          center={mapCenter ?? undefined}
+          markers={[...nearbyMarkers, ...pickedMarker]}
+          circle={pinnedLocation ? { center: [parseFloat(pinnedLocation.lat), parseFloat(pinnedLocation.lng)], radiusKm: zoomToRadius(mapZoom) } : undefined}
+          fitToMarkers={false}
+          onMapClick={handleMapClick}
+          onMarkerClick={handleMarkerClick}
+          onZoomEnd={setMapZoom}
+          height={isMobile ? "300px" : "400px"}
+        />
+      </div>
 
       {/* Nearby places — horizontal scroll */}
       {gpsLoading ? (
@@ -444,9 +434,9 @@ function CheckinsPage() {
       ) : nearbyLoading ? (
         <p className="text-sm text-muted-foreground">Finding nearby places...</p>
       ) : nearbyPlaces.length > 0 ? (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Nearby</h3>
-          <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-3">Nearby</h3>
+          <div className="flex gap-2 overflow-x-auto pb-2 snap-x">
             {nearbyPlaces.map((place) => (
               <NearbyPlaceCard
                 key={place.id}
@@ -458,73 +448,89 @@ function CheckinsPage() {
           </div>
         </div>
       ) : mapCenter ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="size-4" />
-          <span>No places nearby yet. Tap the map to check in somewhere new!</span>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          No places nearby yet. Tap the map to check in somewhere new.
+        </p>
       ) : null}
 
-      {/* Recent check-ins for selected place */}
+      {/* Selected place detail */}
       {selectedPlace && (
-        <Card>
-          <CardContent className="pt-5 pb-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {selectedPlace.category?.emoji && (
-                  <span className="text-xl">{selectedPlace.category.emoji}</span>
+        <div className="border-t-2 border-foreground pt-5">
+          {/* Place header */}
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-extrabold tracking-tight">{selectedPlace.name}</h3>
+              <div className="flex items-center gap-2 mt-1 text-[13px] text-muted-foreground">
+                <span>{formatDistance(selectedPlace.distance)} away</span>
+                {selectedPlace.checkinCount > 0 && (
+                  <>
+                    <span className="text-[#ddd]">&middot;</span>
+                    <span>{selectedPlace.checkinCount} check-in{selectedPlace.checkinCount !== 1 ? "s" : ""}</span>
+                  </>
                 )}
-                <div>
-                  <h3 className="text-sm font-semibold leading-tight">{selectedPlace.name}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDistance(selectedPlace.distance)} away
-                    {selectedPlace.checkinCount > 0 && ` · ${selectedPlace.checkinCount} check-in${selectedPlace.checkinCount !== 1 ? "s" : ""}`}
-                  </p>
-                </div>
+                {selectedPlace.category?.label && (
+                  <>
+                    <span className="text-[#ddd]">&middot;</span>
+                    <span>{selectedPlace.category.label}</span>
+                  </>
+                )}
               </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {user && (
+                <Button size="sm" onClick={() => {
+                  setCheckinError("");
+                  setDialogOpen(true);
+                }}>
+                  Check In
+                </Button>
+              )}
               <Link
                 to="/places/$placeId"
                 params={{ placeId: selectedPlace.id }}
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline shrink-0"
+                className="inline-flex items-center gap-1 text-xs border rounded px-2 py-1 text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
               >
-                View details
+                Details
                 <ExternalLink className="size-3" />
               </Link>
             </div>
+          </div>
 
-            {placeCheckinsLoading ? (
-              <div className="flex items-center gap-2 py-3">
-                <div className="size-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Loading check-ins...</span>
-              </div>
-            ) : placeCheckins.length > 0 ? (
-              <div className="divide-y">
-                {placeCheckins.map((c) => (
-                  <div key={c.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                    <Avatar className="size-8 shrink-0 mt-0.5">
-                      {c.userAvatarUrl && <AvatarImage src={c.userAvatarUrl} alt={c.userDisplayName} />}
-                      <AvatarFallback className="text-xs">
-                        {c.userDisplayName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">{c.userDisplayName}</span>
-                        <span className="text-[11px] text-muted-foreground/60 shrink-0">
-                          {formatRelativeTime(c.createdAt)}
-                        </span>
-                      </div>
-                      {c.note && (
-                        <p className="mt-0.5 text-sm text-muted-foreground">{c.note}</p>
-                      )}
+          {/* Recent check-ins */}
+          <h4 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-3">Recent Check-ins</h4>
+          {placeCheckinsLoading ? (
+            <div className="flex items-center gap-2 py-4">
+              <div className="size-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Loading...</span>
+            </div>
+          ) : placeCheckins.length > 0 ? (
+            <div className="divide-y divide-[#f0f0f0]">
+              {placeCheckins.map((c) => (
+                <div key={c.id} className="flex items-start gap-3 py-3">
+                  <Avatar className="size-8 shrink-0">
+                    {c.userAvatarUrl && <AvatarImage src={c.userAvatarUrl} alt={c.userDisplayName} />}
+                    <AvatarFallback className="text-xs bg-muted">
+                      {c.userDisplayName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-semibold">{c.userDisplayName}</span>
+                      <span className="text-[11px] text-[#999]">
+                        {formatRelativeTime(c.createdAt)}
+                      </span>
                     </div>
+                    {c.note && (
+                      <p className="mt-1 text-[13px] text-[#666]">{c.note}</p>
+                    )}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground/60 py-2">No check-ins yet. Be the first!</p>
-            )}
-          </CardContent>
-        </Card>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-3">No check-ins yet. Be the first!</p>
+          )}
+        </div>
       )}
 
       {/* Confirmation card */}
@@ -547,7 +553,7 @@ function CheckinsPage() {
             <DialogHeader>
               <DialogTitle>
                 {selectedPlace
-                  ? `Check in at ${selectedPlace.category?.emoji ?? ""} ${selectedPlace.name}`.trim()
+                  ? `Check in at ${selectedPlace.name}`
                   : "Check in at a new place"}
               </DialogTitle>
               <DialogDescription>
@@ -572,7 +578,6 @@ function CheckinsPage() {
                             className="flex-none snap-start rounded-md border border-border px-3 py-2 text-left hover:bg-accent transition-colors"
                           >
                             <div className="flex items-center gap-1">
-                              {place.category?.emoji && <span className="text-sm">{place.category.emoji}</span>}
                               <span className="text-sm font-medium truncate max-w-[120px]">{place.name}</span>
                             </div>
                             <span className="text-[11px] text-muted-foreground">{formatDistance(place.distance)}</span>
@@ -609,47 +614,33 @@ function NearbyPlaceCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`flex-none snap-start w-[160px] rounded-lg border p-3 text-left transition-all ${
+      className={`flex-none snap-start w-[180px] rounded border px-3 py-2.5 text-left transition-all ${
         selected
-          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-          : "border-border hover:border-primary/40 hover:bg-accent"
+          ? "border-2 border-foreground bg-[#f5f5f5]"
+          : "border-[#e5e5e5] hover:border-[#999] hover:bg-[#fafafa]"
       }`}
     >
-      <div className="flex items-center gap-1.5">
-        {place.category?.emoji && (
-          <span className="text-lg">{place.category.emoji}</span>
-        )}
-        <span className="font-medium text-sm truncate">{place.name}</span>
-      </div>
-      <div className="mt-1 text-xs text-muted-foreground">
+      <p className="font-semibold text-[13px] truncate">{place.name}</p>
+      <p className="text-[11px] text-[#888] mt-0.5">
         {formatDistance(place.distance)}
-      </div>
-      <div className="mt-2">
-        {place.latestCheckin ? (
-          <div className="flex items-center gap-1.5">
-            <Avatar className="size-4">
-              {place.latestCheckin.userAvatarUrl && (
-                <AvatarImage src={place.latestCheckin.userAvatarUrl} alt={place.latestCheckin.userDisplayName} />
-              )}
-              <AvatarFallback className="text-[8px]">
-                {place.latestCheckin.userDisplayName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-[11px] text-muted-foreground truncate">
-              {place.latestCheckin.userDisplayName}
-            </span>
-            <span className="text-[11px] text-muted-foreground/60 shrink-0">
-              {formatRelativeTime(place.latestCheckin.createdAt)}
-            </span>
-          </div>
-        ) : place.checkinCount > 0 ? (
-          <span className="text-[11px] text-muted-foreground">
-            {place.checkinCount} check-in{place.checkinCount !== 1 ? "s" : ""}
-          </span>
-        ) : (
-          <span className="text-[11px] text-muted-foreground/60">No check-ins yet</span>
-        )}
-      </div>
+        {place.category?.label && ` · ${place.category.label}`}
+      </p>
+      {place.latestCheckin ? (
+        <div className="flex items-center gap-1.5 mt-2">
+          <Avatar className="size-4">
+            {place.latestCheckin.userAvatarUrl && (
+              <AvatarImage src={place.latestCheckin.userAvatarUrl} alt={place.latestCheckin.userDisplayName} />
+            )}
+            <AvatarFallback className="text-[8px] bg-muted">
+              {place.latestCheckin.userDisplayName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-[11px] text-[#999] truncate">{place.latestCheckin.userDisplayName}</span>
+          <span className="text-[11px] text-[#bbb] shrink-0">{formatRelativeTime(place.latestCheckin.createdAt)}</span>
+        </div>
+      ) : place.checkinCount > 0 ? (
+        <p className="text-[11px] text-[#999] mt-2">{place.checkinCount} check-in{place.checkinCount !== 1 ? "s" : ""}</p>
+      ) : null}
     </button>
   );
 }
@@ -666,46 +657,51 @@ function ConfirmationCard({
   onDismiss: () => void;
 }) {
   return (
-    <Card className="relative overflow-hidden">
+    <div className="relative border border-[#e5e5e5] rounded overflow-hidden">
       <button
         type="button"
         onClick={onDismiss}
-        className="absolute top-3 right-3 rounded-full p-1 hover:bg-accent transition-colors"
+        className="absolute top-3 right-3 p-1 hover:bg-[#f0f0f0] rounded transition-colors z-10"
       >
-        <X className="size-4 text-muted-foreground" />
+        <X className="size-4 text-[#888]" />
       </button>
-      <CardContent className="pt-6 space-y-3">
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-            Checked in
-          </Badge>
+
+      {/* Map snapshot */}
+      {confirmation.mapImageUrl && (
+        <img
+          src={confirmation.mapImageUrl}
+          alt={`Map of ${confirmation.placeName}`}
+          className="w-full h-[140px] object-cover"
+        />
+      )}
+
+      <div className="p-4 space-y-2">
+        {/* Success indicator */}
+        <div className="flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="#16a34a"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm3.78 5.28-4.5 5.5a.75.75 0 0 1-1.14.01l-2-2.25a.75.75 0 0 1 1.12-1l1.42 1.6 3.96-4.84a.75.75 0 0 1 1.14.98Z"/></svg>
+          <span className="text-[12px] font-semibold text-[#16a34a]">Checked in</span>
         </div>
-        <h3 className="font-semibold">
-          {confirmation.placeEmoji && <span className="mr-1">{confirmation.placeEmoji}</span>}
-          {confirmation.placeName}
-        </h3>
+
+        <h3 className="font-bold tracking-tight">{confirmation.placeName}</h3>
+
         {confirmation.note && (
-          <p className="text-sm text-muted-foreground italic">"{confirmation.note}"</p>
+          <p className="text-[13px] text-[#666]">{confirmation.note}</p>
         )}
-        <div className="flex items-center gap-4">
-          {confirmation.mapImageUrl && (
-            <img
-              src={confirmation.mapImageUrl}
-              alt={`Map of ${confirmation.placeName}`}
-              className="w-24 h-24 rounded-md object-cover border"
-            />
-          )}
-          <div className="flex-1 space-y-2">
-            <p className="text-xs text-muted-foreground">
-              {new Date(confirmation.createdAt).toLocaleString()}
-            </p>
-            <Button variant="outline" size="sm" onClick={onCopyLink} className="gap-1.5">
-              {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-              {copied ? "Copied!" : "Copy link"}
-            </Button>
-          </div>
+
+        <div className="flex items-center justify-between pt-1 border-t border-[#f0f0f0]">
+          <span className="text-[11px] text-[#999]">
+            {new Date(confirmation.createdAt).toLocaleString()}
+          </span>
+          <button
+            type="button"
+            onClick={onCopyLink}
+            className="text-[12px] text-[#888] hover:text-foreground underline underline-offset-2 flex items-center gap-1"
+          >
+            {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+            {copied ? "Copied!" : "Copy link"}
+          </button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

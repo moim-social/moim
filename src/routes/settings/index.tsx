@@ -3,9 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
-import { Card, CardContent } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
-import { Separator } from "~/components/ui/separator";
 import { LinkAccountDialog } from "~/components/LinkAccountDialog";
 import { LANGUAGES } from "~/shared/languages";
 
@@ -90,18 +88,19 @@ function SettingsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6">
-      <h2 className="text-2xl font-semibold tracking-tight">Settings</h2>
+    <main className="mx-auto max-w-2xl">
+      {/* Header */}
+      <div className="pb-4 border-b-2 border-foreground mb-6">
+        <h2 className="text-2xl font-extrabold tracking-tight">Settings</h2>
+      </div>
 
-      <Card className="rounded-lg">
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold">Federation</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Configure how your posts appear on the fediverse.
-              </p>
-            </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#333]">Federation</h3>
+          <p className="text-[13px] text-[#888] mt-1">
+            Configure how your posts appear on the fediverse.
+          </p>
+        </div>
 
             {error && (
               <Alert variant="destructive">
@@ -110,7 +109,7 @@ function SettingsPage() {
             )}
 
             {success && (
-              <Alert className="border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
+              <Alert className="border-border bg-muted/30 text-foreground">
                 <AlertDescription>Settings saved.</AlertDescription>
               </Alert>
             )}
@@ -121,7 +120,7 @@ function SettingsPage() {
                 id="language"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <option value="">Auto (instance default)</option>
                 {LANGUAGES.map((l) => (
@@ -133,25 +132,21 @@ function SettingsPage() {
               </p>
             </div>
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={submitting}>
-                {submitting ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={submitting}>
+            {submitting ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </form>
 
-      <Separator />
-
-      <Card className="rounded-lg">
-        <CardContent className="pt-6 space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold">Linked Accounts</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Fediverse accounts linked to your Moim identity.
-            </p>
-          </div>
+      {/* Linked Accounts */}
+      <section className="mt-8 border-t-2 border-foreground pt-6 space-y-4">
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#333]">Linked Accounts</h3>
+          <p className="text-[13px] text-[#888] mt-1">
+            Fediverse accounts linked to your Moim identity.
+          </p>
+        </div>
 
           {accountError && (
             <Alert variant="destructive">
@@ -202,11 +197,10 @@ function SettingsPage() {
             </div>
           )}
 
-          <Button variant="outline" onClick={() => setLinkDialogOpen(true)}>
-            Link New Account
-          </Button>
-        </CardContent>
-      </Card>
+          <Button variant="outline" size="sm" onClick={() => setLinkDialogOpen(true)}>
+          Link New Account
+        </Button>
+      </section>
 
       <LinkAccountDialog
         open={linkDialogOpen}

@@ -29,14 +29,6 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --color-emerald-50: var(--emerald-50);
-  --color-emerald-100: var(--emerald-100);
-  --color-emerald-300: var(--emerald-300);
-  --color-emerald-500: var(--emerald-500);
-  --color-emerald-600: var(--emerald-600);
-  --color-emerald-700: var(--emerald-700);
-  --color-emerald-900: var(--emerald-900);
-  --color-emerald-950: var(--emerald-950);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -44,39 +36,31 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --emerald-50: oklch(0.979 0.021 166.113);
-  --emerald-100: oklch(0.950 0.052 163.051);
-  --emerald-300: oklch(0.845 0.143 164.978);
-  --emerald-500: oklch(0.696 0.17 162.48);
-  --emerald-600: oklch(0.596 0.145 163.225);
-  --emerald-700: oklch(0.508 0.118 165.612);
-  --emerald-900: oklch(0.344 0.07 165.288);
-  --emerald-950: oklch(0.283 0.05 163.45);
+  --radius: 0.375rem;
+  --background: #ffffff;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --primary: #111111;
+  --primary-foreground: #ffffff;
+  --secondary: #fafafa;
+  --secondary-foreground: #111111;
+  --muted: #fafafa;
+  --muted-foreground: #888888;
+  --accent: #fafafa;
+  --accent-foreground: #111111;
+  --destructive: #dc2626;
+  --destructive-foreground: #dc2626;
+  --border: #e5e5e5;
+  --input: #dddddd;
+  --ring: #111111;
+  --chart-1: #111111;
+  --chart-2: #555555;
+  --chart-3: #888888;
+  --chart-4: #bbbbbb;
+  --chart-5: #dddddd;
 }
 
 @layer base {

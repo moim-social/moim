@@ -285,14 +285,14 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
       <div className="space-y-2">
         <div className={`flex items-center gap-2 rounded-md border-2 p-3 ${
           isGroupPlace
-            ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 border-l-4 border-l-emerald-500"
+            ? "border-foreground bg-muted border-l-4 border-l-foreground"
             : "border-primary bg-primary/5"
         }`}>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-semibold">{value.name}</p>
               {isGroupPlace && (
-                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold">
+                <Badge className="bg-foreground hover:bg-foreground/90 text-background text-[10px] font-semibold">
                   Group venue
                 </Badge>
               )}
@@ -302,7 +302,7 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
             )}
             {value.category?.label && (
               <Badge variant="secondary" className="mt-1 text-[10px]">
-                {`${value.category.emoji ?? ""} ${value.category.label}`.trim()}
+                {value.category.label}
               </Badge>
             )}
             {value.latitude && value.longitude && (
@@ -438,7 +438,7 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
             return (
               <li key={place.id}>
                 {showGroupHeader && (
-                  <div className="px-3 py-1.5 bg-emerald-600 dark:bg-emerald-700 text-white text-[11px] font-semibold uppercase tracking-wider">
+                  <div className="px-3 py-1.5 bg-foreground text-background text-[11px] font-semibold uppercase tracking-wider">
                     Group Venues
                   </div>
                 )}
@@ -446,14 +446,14 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
                   onClick={() => selectPlace(place)}
                   className={`px-3 py-2.5 cursor-pointer transition-colors ${
                     isGroup
-                      ? "border-l-4 border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
-                      : "border-b border-border last:border-b-0 hover:bg-primary/10"
+                      ? "border-l-4 border-l-foreground bg-muted hover:bg-muted"
+                      : "border-b border-border last:border-b-0 hover:bg-muted"
                   }`}
                 >
                   <div className="font-medium text-sm flex items-center gap-1.5">
                     {place.name}
                     {isGroup && (
-                      <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] py-0 px-1.5 font-semibold">
+                      <Badge className="bg-foreground hover:bg-foreground/90 text-background text-[10px] py-0 px-1.5 font-semibold">
                         Group
                       </Badge>
                     )}
@@ -467,12 +467,12 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
                   </div>
                   {place.category?.label && (
                     <div className="mt-1 text-[11px] text-muted-foreground">
-                      {`${place.category.emoji ?? ""} ${place.category.label}`.trim()}
+                      {place.category.label}
                     </div>
                   )}
                 </div>
                 {showDivider && (
-                  <div className="border-b-2 border-emerald-300 dark:border-emerald-700" />
+                  <div className="border-b-2 border-border" />
                 )}
               </li>
             );

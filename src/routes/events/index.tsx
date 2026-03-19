@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEventCategories, useEventCategoryMap } from "~/hooks/useEventCategories";
-import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -208,9 +206,18 @@ function EventsPage() {
           </CardHeader>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} />
+        <div>
+          {groupEventsByDate(events).map(([dateKey, dateEvents]) => (
+            <div key={dateKey}>
+              <div className="sticky top-14 z-10 bg-background py-2 border-b-2 border-foreground">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-[#333]">{dateKey}</h3>
+              </div>
+              <div className="divide-y">
+                {dateEvents.map((event) => (
+                  <EventCard key={event.id} event={event} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -218,23 +225,35 @@ function EventsPage() {
   );
 }
 
+function groupEventsByDate(events: EventItem[]): [string, EventItem[]][] {
+  const groups = new Map<string, EventItem[]>();
+  for (const event of events) {
+    const start = new Date(event.startsAt);
+    const dateKey = start.toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      timeZone: event.timezone ?? undefined,
+    });
+    const existing = groups.get(dateKey);
+    if (existing) {
+      existing.push(event);
+    } else {
+      groups.set(dateKey, [event]);
+    }
+  }
+  return Array.from(groups.entries());
+}
+
 function EventCard({ event }: { event: EventItem }) {
   const { categoryMap } = useEventCategoryMap();
   const start = new Date(event.startsAt);
   const eventTz = event.timezone ?? undefined;
-  const dateStr = start.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: eventTz,
-  });
   const timeStr = start.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: eventTz,
   });
-  const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
-
   const hostLabel = event.groupHandle
     ? (event.groupName ?? `@${event.groupHandle}`)
     : event.organizerHandle
@@ -250,70 +269,46 @@ function EventCard({ event }: { event: EventItem }) {
   const hostIsExternal = !event.groupHandle && !!event.organizerActorUrl;
 
   return (
-    <Link to="/events/$eventId" params={{ eventId: event.id }} className="group block cursor-pointer">
-      <Card className="rounded-lg overflow-hidden transition-shadow hover:shadow-md h-full flex flex-col gap-0 py-0 cursor-pointer">
-        {/* Header banner */}
-        <div
-          className="h-24 relative bg-cover bg-center"
-          style={{
-            background: event.headerImageUrl
-              ? `linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.2)), url(${event.headerImageUrl}) center/cover no-repeat`
-              : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
-          }}
-        >
-          {event.categoryId && (
-            <Link
-              to="/categories/$categoryId"
-              params={{ categoryId: event.categoryId }}
-              onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-3 left-4"
-            >
-              <Badge
-                variant="secondary"
-                className="bg-white/20 text-white border-white/30 text-xs hover:bg-white/30 transition-colors"
-              >
-                {categoryMap.get(event.categoryId) ?? event.categoryId}
-              </Badge>
-            </Link>
-          )}
-          {event.country && (
-            <Badge
-              variant="secondary"
-              className="absolute bottom-3 right-4 bg-white/20 text-white border-white/30 text-xs"
-            >
-              {event.country}
-            </Badge>
+    <Link to="/events/$eventId" params={{ eventId: event.id }} className="group block">
+      <div className="flex items-start gap-4 py-4 hover:bg-[#fafafa] transition-colors px-2">
+        {/* Fixed-width left column: image or time */}
+        <div className="shrink-0 w-[120px] h-[80px] overflow-hidden rounded" style={{ minWidth: 120 }}>
+          {event.headerImageUrl ? (
+            <img
+              src={event.headerImageUrl}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-[#f5f5f5]">
+              <img src="/logo.png" alt="" className="w-8 h-8 opacity-20 grayscale" />
+            </div>
           )}
         </div>
 
         {/* Event info */}
-        <CardContent className="pt-4 pb-5 space-y-2.5 flex-1">
-          <h3 className="font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold tracking-tight leading-snug line-clamp-2 group-hover:underline">
             {event.title}
           </h3>
-
-          <div className="space-y-1.5 text-sm text-muted-foreground">
-            {/* Date */}
-            <div className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75Z" clipRule="evenodd" />
-              </svg>
-              <span>{dateStr} · {timeStr}</span>
-            </div>
-
-            {/* Host */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground mt-1">
+            <span>{timeStr}</span>
+            {event.location && (
+              <>
+                <span className="text-[#ddd]">&middot;</span>
+                <span className="truncate max-w-[200px]">{event.location}</span>
+              </>
+            )}
             {hostLabel && (
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                  <path d="M10 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.465 14.493a1.23 1.23 0 0 0 .41 1.412A9.957 9.957 0 0 0 10 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 0 0-13.074.003Z" />
-                </svg>
+              <>
+                <span className="text-[#ddd]">&middot;</span>
                 {hostLink ? (
                   hostIsExternal ? (
                     <a
                       href={hostLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="truncate hover:underline hover:text-foreground cursor-pointer"
+                      className="hover:underline hover:text-foreground"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {hostLabel}
@@ -321,30 +316,36 @@ function EventCard({ event }: { event: EventItem }) {
                   ) : (
                     <Link
                       to={hostLink}
-                      className="truncate hover:underline hover:text-foreground cursor-pointer"
+                      className="hover:underline hover:text-foreground"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {hostLabel}
                     </Link>
                   )
                 ) : (
-                  <span className="truncate">{hostLabel}</span>
+                  <span>{hostLabel}</span>
                 )}
-              </div>
-            )}
-
-            {/* Location */}
-            {event.location && (
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 shrink-0">
-                  <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
-                </svg>
-                <span className="truncate">{event.location}</span>
-              </div>
+              </>
             )}
           </div>
-        </CardContent>
-      </Card>
+          {event.categoryId && (
+            <Link
+              to="/categories/$categoryId"
+              params={{ categoryId: event.categoryId }}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-block mt-1.5"
+            >
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wide font-semibold">
+                {categoryMap.get(event.categoryId) ?? event.categoryId}
+              </Badge>
+            </Link>
+          )}
+        </div>
+
+        {event.country && (
+          <span className="shrink-0 text-xs text-muted-foreground">{event.country}</span>
+        )}
+      </div>
     </Link>
   );
 }

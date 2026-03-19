@@ -4,7 +4,6 @@ import { usePostHog } from "posthog-js/react";
 import { useEventCategories } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
 import { Alert, AlertDescription } from "~/components/ui/alert";
-import { Card, CardContent } from "~/components/ui/card";
 import { type SelectedPlace } from "~/components/PlacePicker";
 import { datetimeLocalToUTC } from "~/lib/timezone";
 
@@ -245,7 +244,9 @@ function CreateEventPage() {
 
   return (
     <main className="mx-auto max-w-2xl space-y-4">
-      <h2 className="text-2xl font-semibold tracking-tight">Create Event</h2>
+      <div className="pb-4 border-b-2 border-foreground">
+        <h2 className="text-2xl font-extrabold tracking-tight">Create Event</h2>
+      </div>
 
       {/* Stepper */}
       {(phase === "basic" || phase === "questions") && (
@@ -346,7 +347,7 @@ function CreateEventPage() {
           />
 
           {/* Info callout */}
-          <Alert className="border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+          <Alert className="border-[#e5e5e5] bg-[#fafafa] text-[#555]">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
               <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clipRule="evenodd" />
             </svg>
@@ -379,27 +380,25 @@ function CreateEventPage() {
 
       {/* Error */}
       {phase === "error" && (
-        <Card className="rounded-lg">
-          <CardContent className="pt-6 space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <div className="flex gap-3">
-              <Button onClick={() => setPhase("questions")}>Retry</Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setPhase("basic");
-                  setError("");
-                }}
-              >
-                Start over
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <div className="flex gap-3">
+            <Button onClick={() => setPhase("questions")}>Retry</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPhase("basic");
+                setError("");
+              }}
+            >
+              Start over
+            </Button>
+          </div>
+        </div>
       )}
     </main>
   );

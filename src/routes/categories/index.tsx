@@ -1,10 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEventCategories } from "~/hooks/useEventCategories";
-import { pickGradient } from "~/shared/gradients";
-import {
-  Card,
-  CardContent,
-} from "~/components/ui/card";
 
 export const Route = createFileRoute("/categories/")({
   component: CategoriesPage,
@@ -27,39 +22,30 @@ function CategoriesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Categories</h2>
-        <p className="text-muted-foreground mt-1">
-          Browse events by category. Follow category feeds from your fediverse account.
+    <div>
+      {/* Header */}
+      <div className="pb-4 border-b-2 border-foreground mb-6">
+        <h2 className="text-2xl font-extrabold tracking-tight">Categories</h2>
+        <p className="text-sm text-[#888] mt-1">
+          Browse events by category. Follow feeds from your fediverse account.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {categories.map((cat) => {
-          const [gradFrom, gradTo] = pickGradient(cat.slug);
-          return (
-            <Link
-              key={cat.slug}
-              to="/categories/$categoryId"
-              params={{ categoryId: cat.slug }}
-              className="block"
-            >
-              <Card className="overflow-hidden transition-shadow hover:shadow-md py-0 gap-0">
-                <div
-                  className="h-16"
-                  style={{
-                    background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
-                  }}
-                />
-                <CardContent className="py-3 px-4">
-                  <p className="font-medium text-sm truncate">{cat.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">@feed_{cat.slug}</p>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
+      <div className="divide-y divide-[#f0f0f0]">
+        {categories.map((cat) => (
+          <Link
+            key={cat.slug}
+            to="/categories/$categoryId"
+            params={{ categoryId: cat.slug }}
+            className="flex items-center justify-between py-4 first:pt-0 hover:bg-[#fafafa] transition-colors group"
+          >
+            <div>
+              <span className="text-[15px] font-bold tracking-tight group-hover:underline">{cat.label}</span>
+              <p className="text-[12px] text-[#999] mt-0.5">@feed_{cat.slug}</p>
+            </div>
+            <span className="text-[13px] text-[#bbb]">&rsaquo;</span>
+          </Link>
+        ))}
       </div>
     </div>
   );

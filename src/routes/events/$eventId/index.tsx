@@ -9,7 +9,6 @@ import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, users, userFediverseAccounts } from "~/server/db/schema";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
-import { pickGradient } from "~/shared/gradients";
 import { renderMarkdown } from "~/lib/markdown";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -451,8 +450,6 @@ function EventDetailPage() {
       ? `${localStartDate} ${localStartTime} — ${localEndTime}`
       : `${localStartDate} ${localStartTime} — ${localEndDate} ${localEndTime}`;
 
-  const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
-
   const rsvpContent = event.externalUrl ? (
     <>
       <Separator />
@@ -657,77 +654,153 @@ function EventDetailPage() {
   return (
     <div className="pb-24 md:pb-0">
       {/* Hero */}
-      <div
-        className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen px-6 py-12 md:py-16 pb-20 md:pb-24 bg-cover bg-center"
-        style={{
-          background: event.headerImageUrl
-            ? `linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.3)), url(${event.headerImageUrl}) center/cover no-repeat`
-            : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
-        }}
-      >
-        <div className="mx-auto max-w-5xl">
-          {event.categoryId && (
-            <Badge variant="secondary" className="mb-3 bg-white/20 text-white border-white/30 hover:bg-white/30">
-              {categoryMap.get(event.categoryId) ?? event.categoryId}
-            </Badge>
-          )}
-          <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
-            {event.title}
-          </h1>
-          {event.groupHandle ? (
-            <p className="mt-3 text-white/80">
-              Hosted by{" "}
-              <Link
-                to="/groups/$identifier"
-                params={{ identifier: `@${event.groupHandle}` }}
-                className="text-white underline underline-offset-2 hover:text-white/90"
-              >
-                {event.groupName ?? `@${event.groupHandle}`}
-              </Link>
-            </p>
-          ) : event.organizerHandle ? (
-            <p className="mt-3 text-white/80">
-              Hosted by{" "}
-              {event.organizerActorUrl ? (
-                <a
-                  href={event.organizerActorUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+      {event.headerImageUrl ? (
+        <div
+          className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen px-6 py-12 md:py-16 pb-20 md:pb-24 bg-cover bg-center"
+          style={{
+            background: `linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.3)), url(${event.headerImageUrl}) center/cover no-repeat`,
+          }}
+        >
+          <div className="mx-auto max-w-5xl">
+            {event.categoryId && (
+              <Badge variant="secondary" className="mb-3 bg-black/50 text-white border-transparent text-[10px] font-semibold uppercase tracking-wide hover:bg-black/60">
+                {categoryMap.get(event.categoryId) ?? event.categoryId}
+              </Badge>
+            )}
+            <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+              {event.title}
+            </h1>
+            {event.groupHandle ? (
+              <p className="mt-3 text-white/80">
+                Hosted by{" "}
+                <Link
+                  to="/groups/$identifier"
+                  params={{ identifier: `@${event.groupHandle}` }}
                   className="text-white underline underline-offset-2 hover:text-white/90"
                 >
-                  @{event.organizerHandle}
-                </a>
-              ) : (
-                <span className="text-white">@{event.organizerHandle}</span>
-              )}
-            </p>
-          ) : null}
-          {data.canEdit && (
-            <div className="mt-4 flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-                asChild
-              >
-                <Link to="/events/$eventId/edit" params={{ eventId }}>
-                  Edit Event
+                  {event.groupName ?? `@${event.groupHandle}`}
                 </Link>
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-                asChild
-              >
-                <Link to="/events/$eventId/dashboard" params={{ eventId }}>
-                  Dashboard
-                </Link>
-              </Button>
-            </div>
-          )}
+              </p>
+            ) : event.organizerHandle ? (
+              <p className="mt-3 text-white/80">
+                Hosted by{" "}
+                {event.organizerActorUrl ? (
+                  <a
+                    href={event.organizerActorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white underline underline-offset-2 hover:text-white/90"
+                  >
+                    @{event.organizerHandle}
+                  </a>
+                ) : (
+                  <span className="text-white">@{event.organizerHandle}</span>
+                )}
+              </p>
+            ) : null}
+            {data.canEdit && (
+              <div className="mt-4 flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+                  asChild
+                >
+                  <Link to="/events/$eventId/edit" params={{ eventId }}>
+                    Edit Event
+                  </Link>
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+                  asChild
+                >
+                  <Link to="/events/$eventId/dashboard" params={{ eventId }}>
+                    Dashboard
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div
+          className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-8 w-screen px-6 py-12 md:py-16 pb-20 md:pb-24 border-b-2 border-foreground overflow-hidden"
+          style={{ background: "#fafafa" }}
+        >
+          {/* Watermark date */}
+          <div
+            className="pointer-events-none absolute right-8 top-1/2 -translate-y-1/2 select-none font-extrabold leading-none text-foreground opacity-[0.06]"
+            style={{ fontSize: "96px" }}
+            aria-hidden="true"
+          >
+            {start.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: eventTz })}
+          </div>
+          <div className="relative mx-auto max-w-5xl">
+            {event.categoryId && (
+              <Badge variant="outline" className="mb-3 border border-border text-[#555] bg-transparent text-[10px] font-semibold uppercase tracking-wide">
+                {categoryMap.get(event.categoryId) ?? event.categoryId}
+              </Badge>
+            )}
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">
+              {event.title}
+            </h1>
+            {event.groupHandle ? (
+              <p className="mt-3 text-[#666]">
+                Hosted by{" "}
+                <Link
+                  to="/groups/$identifier"
+                  params={{ identifier: `@${event.groupHandle}` }}
+                  className="font-semibold text-[#333] underline underline-offset-2 hover:text-foreground"
+                >
+                  {event.groupName ?? `@${event.groupHandle}`}
+                </Link>
+              </p>
+            ) : event.organizerHandle ? (
+              <p className="mt-3 text-[#666]">
+                Hosted by{" "}
+                {event.organizerActorUrl ? (
+                  <a
+                    href={event.organizerActorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-[#333] underline underline-offset-2 hover:text-foreground"
+                  >
+                    @{event.organizerHandle}
+                  </a>
+                ) : (
+                  <span className="font-semibold text-[#333]">@{event.organizerHandle}</span>
+                )}
+              </p>
+            ) : null}
+            {data.canEdit && (
+              <div className="mt-4 flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="border border-border text-[#333] hover:bg-muted"
+                  asChild
+                >
+                  <Link to="/events/$eventId/edit" params={{ eventId }}>
+                    Edit Event
+                  </Link>
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="border border-border text-[#333] hover:bg-muted"
+                  asChild
+                >
+                  <Link to="/events/$eventId/dashboard" params={{ eventId }}>
+                    Dashboard
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Two-column layout — pulled up to overlap hero */}
       <div className="relative -mt-14 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8">
@@ -773,7 +846,7 @@ function EventDetailPage() {
           {event.description && (
             <Card className="rounded-lg">
               <CardHeader>
-                <CardTitle className="text-base">About</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">About</CardTitle>
               </CardHeader>
               <CardContent>
                 <div
@@ -788,13 +861,13 @@ function EventDetailPage() {
           {organizers.length > 0 && (
             <Card className="rounded-lg">
               <CardHeader>
-                <CardTitle className="text-base">Organizers</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">Organizers</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-3 overflow-x-auto pb-2">
                   {organizers.map((o, i) => {
                     const initials = (o.name ?? o.handle ?? "?").charAt(0).toUpperCase();
-                    const fallbackBg = o.isExternal ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary";
+                    const fallbackBg = "bg-muted text-muted-foreground";
                     const avatar = o.imageUrl ? (
                       <img
                         src={o.imageUrl}
@@ -846,7 +919,7 @@ function EventDetailPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         title={tooltip}
-                        className="flex flex-col items-center text-center w-36 rounded-lg border p-4 hover:bg-accent transition-colors shrink-0"
+                        className="flex flex-col items-center text-center w-36 rounded border p-4 hover:bg-accent transition-colors shrink-0"
                       >
                         {content}
                       </a>
@@ -854,7 +927,7 @@ function EventDetailPage() {
                       <div
                         key={isExternal ? `ext-${i}` : o.handle}
                         title={tooltip}
-                        className="flex flex-col items-center text-center w-36 rounded-lg border p-4 shrink-0"
+                        className="flex flex-col items-center text-center w-36 rounded border p-4 shrink-0"
                       >
                         {content}
                       </div>
@@ -870,7 +943,7 @@ function EventDetailPage() {
             <Card className="rounded-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Discussion</CardTitle>
+                  <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">Discussion</CardTitle>
                   {eventNoteApUrl && publicInquiries.length > 0 && (
                     <RemoteDiscussionDialog apUrl={eventNoteApUrl} />
                   )}

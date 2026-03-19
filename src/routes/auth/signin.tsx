@@ -88,14 +88,14 @@ function StepIndicator({ phase }: { phase: Phase }) {
           <div key={step.label} className="flex items-center gap-1">
             {i > 0 && (
               <div
-                className={`h-0.5 w-6 ${isCompleted || isActive ? "bg-primary" : "bg-border"}`}
+                className={`h-0.5 w-6 ${isCompleted || isActive ? "bg-foreground" : "bg-border"}`}
               />
             )}
             <div className="flex items-center gap-1.5">
               <div
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
                   isCompleted || isActive
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-foreground text-background"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
@@ -425,7 +425,7 @@ function SignInPage() {
     <main className="mx-auto max-w-md py-8">
       <Card>
         <CardHeader className="text-center">
-          <img src="/logo.png" alt="moim" className="mx-auto h-10 w-auto" />
+          <img src="/logo.png" alt="moim" className="mx-auto h-10 w-auto grayscale" />
           <CardTitle className="text-2xl">Sign in</CardTitle>
           <CardDescription>
             Sign in with your Fediverse account
@@ -504,8 +504,8 @@ function SignInPage() {
                     key={emoji}
                     className={
                       expectedEmojis.includes(emoji)
-                        ? "text-3xl p-3 rounded-lg text-center bg-primary/20 ring-2 ring-primary"
-                        : "text-3xl p-3 rounded-lg text-center bg-muted opacity-40"
+                        ? "text-3xl p-3 text-center border-2 border-foreground bg-[#f5f5f5]"
+                        : "text-3xl p-3 text-center bg-muted opacity-40"
                     }
                   >
                     {emoji}
@@ -534,7 +534,7 @@ function SignInPage() {
 
           {phase === "waiting" && (
             <div className="space-y-4 text-center">
-              <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+              <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-foreground" />
               <p className="text-sm text-muted-foreground">
                 Verifying your poll response...
               </p>
@@ -607,7 +607,7 @@ function SignInPage() {
             New to the Fediverse?{" "}
             <Link
               to="/auth/onboarding"
-              className="text-primary hover:underline"
+              className="underline hover:text-muted-foreground"
             >
               Get started
             </Link>

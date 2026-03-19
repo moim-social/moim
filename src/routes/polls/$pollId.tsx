@@ -7,13 +7,6 @@ import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { polls, actors } from "~/server/db/schema";
 import { env } from "~/server/env";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
 import { GaugeBar } from "~/components/dashboard/GaugeBar";
 import { RemoteVoteDialog } from "~/components/RemoteVoteDialog";
 
@@ -154,79 +147,78 @@ function PollResultPage() {
   const apUrl = meta?.apUrl ?? poll.apUrl;
 
   return (
-    <div className="mx-auto max-w-2xl p-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-2">
-            <CardTitle className="text-lg">{poll.question}</CardTitle>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Badge variant="secondary" className="text-xs">
-                {poll.type === "single" ? "Single choice" : "Multiple choice"}
-              </Badge>
-              {!isOpen && (
-                <Badge variant="outline" className="text-xs">
-                  Closed
-                </Badge>
-              )}
-            </div>
-          </div>
-          {group && (
-            <p className="text-sm text-muted-foreground">
-              by{" "}
-              <Link
-                to="/groups/$identifier"
-                params={{ identifier: `@${group.handle}` }}
-                className="hover:underline"
-              >
-                {group.name ?? `@${group.handle}`}
-              </Link>
-            </p>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2.5">
-            {poll.options.map((option, i) => (
-              <GaugeBar
-                key={option.id}
-                label={option.label}
-                count={option.count}
-                total={totalVotes}
-                colorIndex={i}
-              />
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              {poll.totalVoters} voter{poll.totalVoters !== 1 ? "s" : ""}
+    <div className="mx-auto max-w-2xl">
+      {/* Header */}
+      <div className="pb-5 border-b-2 border-foreground">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-[#555] border border-[#ddd] px-1.5 py-0">
+            {poll.type === "single" ? "Single choice" : "Multiple choice"}
+          </span>
+          {!isOpen && (
+            <span className="text-[10px] font-bold uppercase tracking-wide text-[#888] border border-[#e5e5e5] px-1.5 py-0">
+              Closed
             </span>
-            <span>
-              {new Date(poll.createdAt).toLocaleDateString(undefined, {
+          )}
+        </div>
+        <h2 className="text-2xl font-extrabold tracking-tight">{poll.question}</h2>
+        {group && (
+          <p className="text-[13px] text-[#888] mt-1">
+            by{" "}
+            <Link
+              to="/groups/$identifier"
+              params={{ identifier: `@${group.handle}` }}
+              className="text-[#555] hover:underline underline-offset-2"
+            >
+              {group.name ?? `@${group.handle}`}
+            </Link>
+          </p>
+        )}
+      </div>
+
+      {/* Results */}
+      <div className="mt-6 space-y-3">
+        {poll.options.map((option, i) => (
+          <GaugeBar
+            key={option.id}
+            label={option.label}
+            count={option.count}
+            total={totalVotes}
+            colorIndex={i}
+          />
+        ))}
+      </div>
+
+      {/* Meta */}
+      <div className="flex items-center justify-between text-[12px] text-[#888] mt-4 pt-4 border-t border-[#f0f0f0]">
+        <span>
+          <strong className="text-[#333]">{poll.totalVoters}</strong> voter{poll.totalVoters !== 1 ? "s" : ""}
+        </span>
+        <span>
+          {new Date(poll.createdAt).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}
+          {poll.expiresAt && isOpen && (
+            <>
+              {" · expires "}
+              {new Date(poll.expiresAt).toLocaleDateString(undefined, {
                 month: "short",
                 day: "numeric",
-                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
               })}
-              {poll.expiresAt && isOpen && (
-                <>
-                  {" · expires "}
-                  {new Date(poll.expiresAt).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </>
-              )}
-            </span>
-          </div>
-
-          {isOpen && apUrl && (
-            <div className="border-t pt-4 flex justify-end">
-              <RemoteVoteDialog apUrl={apUrl} />
-            </div>
+            </>
           )}
-        </CardContent>
-      </Card>
+        </span>
+      </div>
+
+      {/* Vote action */}
+      {isOpen && apUrl && (
+        <div className="border-t border-[#e5e5e5] mt-4 pt-4 flex justify-end">
+          <RemoteVoteDialog apUrl={apUrl} />
+        </div>
+      )}
     </div>
   );
 }

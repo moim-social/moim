@@ -183,42 +183,22 @@ function OnboardingPage() {
     <main className="mx-auto max-w-2xl py-8">
       <Card>
         <CardHeader className="space-y-3">
-          <img src="/logo.png" alt="moim" className="mx-auto h-10 w-auto" />
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={prev}
-              className={step === 0 ? "invisible" : ""}
-            >
-              ← Back
-            </Button>
-
-            <div className="flex items-center gap-2">
-              {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => goTo(i)}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    i === step
-                      ? "w-6 bg-primary"
-                      : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                  }`}
-                  aria-label={`Go to step ${i + 1}`}
-                />
-              ))}
-            </div>
-
-            {step < TOTAL_STEPS - 1 ? (
-              <Button variant="ghost" size="sm" onClick={next}>
-                Next →
-              </Button>
-            ) : (
-              <Button variant="ghost" size="sm" className="invisible">
-                Next →
-              </Button>
-            )}
+          <img src="/logo.png" alt="moim" className="mx-auto h-10 w-auto grayscale" />
+          {/* Step dots */}
+          <div className="flex items-center justify-center gap-2">
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => goTo(i)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === step
+                    ? "w-6 bg-foreground"
+                    : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                }`}
+                aria-label={`Go to step ${i + 1}`}
+              />
+            ))}
           </div>
         </CardHeader>
 
@@ -382,7 +362,7 @@ function OnboardingPage() {
                     },
                   ].map((item) => (
                     <div key={item.num} className="flex gap-4 items-start">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background text-sm font-semibold">
                         {item.num}
                       </div>
                       <div>
@@ -407,13 +387,36 @@ function OnboardingPage() {
           </div>
         </CardContent>
 
+        {/* Navigation buttons */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#f0f0f0]">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={prev}
+            className={step === 0 ? "invisible" : ""}
+          >
+            ← Back
+          </Button>
+          {step < TOTAL_STEPS - 1 ? (
+            <Button size="sm" onClick={next}>
+              Next →
+            </Button>
+          ) : (
+            <Button size="sm" asChild>
+              <Link to="/auth/signin" search={{ from: "onboarding" }}>
+                Sign in →
+              </Link>
+            </Button>
+          )}
+        </div>
+
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link
               to="/auth/signin"
               search={{ from: "onboarding" }}
-              className="text-primary hover:underline"
+              className="underline hover:text-muted-foreground"
             >
               Sign in
             </Link>

@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
-import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { pickGradient } from "~/shared/gradients";
 import { cn } from "~/lib/utils";
 import {
   getCalendarGrid,
@@ -108,7 +107,7 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
         <Button variant="ghost" size="icon-xs" onClick={goToPrevMonth}>
           <ChevronLeft className="size-4" />
         </Button>
-        <span className="text-sm font-semibold">
+        <span className="text-sm font-extrabold tracking-tight">
           {formatMonthYear(currentYear, currentMonth)}
         </span>
         <Button variant="ghost" size="icon-xs" onClick={goToNextMonth}>
@@ -117,11 +116,11 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
       </div>
 
       {/* Weekday headers */}
-      <div className="grid" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
+      <div className="grid border-b border-[#e5e5e5]" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
         {WEEKDAYS.map((d) => (
           <div
             key={d}
-            className="text-center text-xs font-medium text-muted-foreground py-1"
+            className="text-center text-[11px] font-bold uppercase tracking-wide text-[#888] py-2"
           >
             {d}
           </div>
@@ -129,78 +128,80 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
       </div>
 
       {/* Calendar grid */}
-      <div className="grid w-full" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
-        {days.map((day, i) => {
-          const inMonth = isCurrentMonth(day, currentYear, currentMonth);
-          const today = isToday(day);
-          const key = dateKey(day);
-          const dayEvents = eventsMap.get(key) ?? [];
-          const isSelected =
-            selectedDate != null && isSameDay(day, selectedDate);
+      {(() => {
+        const allWeeks: Date[][] = [];
+        for (let i = 0; i < days.length; i += 7) {
+          allWeeks.push(days.slice(i, i + 7));
+        }
+        // Only show weeks that contain at least one day of the current month
+        const weeks = allWeeks.filter((week) =>
+          week.some((d) => isCurrentMonth(d, currentYear, currentMonth))
+        );
+        return weeks.map((week, wi) => (
+          <div key={wi} className="grid w-full border-b border-[#e5e5e5]" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
+            {week.map((day, di) => {
+              const inMonth = isCurrentMonth(day, currentYear, currentMonth);
+              const todayDay = isToday(day);
+              const key = dateKey(day);
+              const dayEvents = eventsMap.get(key) ?? [];
+              const isSelected = selectedDate != null && isSameDay(day, selectedDate);
+              const hasEvents = dayEvents.length > 0;
 
-          return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => handleDayClick(day)}
-              className={cn(
-                "flex flex-col items-center py-1.5 rounded-md transition-colors overflow-hidden min-h-28",
-                "text-xs sm:text-sm",
-                "hover:bg-accent/50",
-                !inMonth && "text-muted-foreground/40",
-                isSelected && "bg-accent ring-1 ring-primary/30",
-              )}
-            >
-              <span
-                className={cn(
-                  "size-6 flex items-center justify-center rounded-full text-xs sm:text-sm",
-                  today && "bg-primary text-primary-foreground font-bold ring-2 ring-primary/30",
-                )}
-              >
-                {day.getDate()}
-              </span>
-              {dayEvents.length > 0 && (
-                <div className="w-full mt-1 space-y-0.5 px-0.5">
+              return (
+                <button
+                  key={di}
+                  type="button"
+                  onClick={() => handleDayClick(day)}
+                  className={cn(
+                    "flex flex-col items-start p-1.5 text-left min-h-[96px] min-w-0 overflow-hidden transition-colors",
+                    di < 6 && "border-r border-[#f0f0f0]",
+                    !inMonth && "opacity-25",
+                    isSelected && "bg-[#f5f5f5]",
+                  )}
+                >
+                  <span className={cn(
+                    "text-[12px] tabular-nums mb-1",
+                    todayDay
+                      ? "font-extrabold text-foreground underline underline-offset-2"
+                      : hasEvents
+                        ? "font-semibold text-[#333]"
+                        : "text-[#ccc]",
+                  )}>
+                    {day.getDate()}
+                  </span>
                   {dayEvents.slice(0, 2).map((evt) => {
-                    const [color] = pickGradient(evt.categoryId || evt.id);
                     const start = new Date(evt.startsAt);
                     const timeStr = start.toLocaleTimeString(undefined, {
                       hour: "2-digit",
                       minute: "2-digit",
                       timeZone: evt.timezone ?? undefined,
                     });
-                    const secondary = showCountry ? evt.country : evt.location;
                     return (
                       <div
                         key={evt.id}
-                        className="text-left rounded px-1 py-0.5 truncate"
-                        style={{ backgroundColor: `${color}20`, borderLeft: `2px solid ${color}` }}
+                        className="w-full border-l-2 border-l-foreground/40 pl-1 mb-0.5 truncate"
+                        title={evt.title}
                       >
-                        <span className="text-[10px] text-muted-foreground">{timeStr}</span>
+                        <span className="text-[9px] text-[#999]">{timeStr}</span>
                         <p className="text-[10px] font-medium leading-tight truncate">{evt.title}</p>
-                        {secondary && (
-                          <span className="text-[9px] text-muted-foreground truncate block">{secondary}</span>
-                        )}
                       </div>
                     );
                   })}
                   {dayEvents.length > 2 && (
-                    <span className="text-[9px] text-muted-foreground px-1">
-                      +{dayEvents.length - 2} more
-                    </span>
+                    <span className="text-[9px] text-[#999] pl-1">+{dayEvents.length - 2} more</span>
                   )}
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
+                </button>
+              );
+            })}
+          </div>
+        ));
+      })()}
 
       {/* Selected day detail */}
       {selectedDate && (
-        <div className="border rounded-lg p-4 space-y-3">
+        <div className="border-t-2 border-foreground pt-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-[#333]">
               {selectedDate.toLocaleDateString(undefined, {
                 weekday: "long",
                 month: "long",
@@ -217,11 +218,11 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
           </div>
 
           {selectedEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground py-2">
               No events on this day.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-[#f0f0f0]">
               {selectedEvents.map((evt) => {
                 const start = new Date(evt.startsAt);
                 const evtTz = evt.timezone ?? undefined;
@@ -230,28 +231,23 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
                   minute: "2-digit",
                   timeZone: evtTz,
                 });
-                const [color] = pickGradient(evt.categoryId || evt.id);
 
                 return (
                   <Link
                     key={evt.id}
                     to="/events/$eventId"
                     params={{ eventId: evt.id }}
-                    className="flex items-start gap-3 rounded-md p-2 hover:bg-accent/50 transition-colors"
+                    className="flex items-start gap-3 py-3 first:pt-0 hover:bg-[#fafafa] transition-colors group"
                   >
-                    <Calendar
-                      className="size-4 mt-0.5 shrink-0"
-                      style={{ color }}
-                    />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-snug">
+                      <p className="text-[13px] font-semibold leading-snug group-hover:underline">
                         {evt.title}
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                      <div className="flex items-center gap-2 text-[11px] text-[#888] mt-0.5">
                         <span>{timeStr}</span>
                         {evt.location && (
                           <>
-                            <span>·</span>
+                            <span className="text-[#ddd]">&middot;</span>
                             <span className="truncate">{evt.location}</span>
                           </>
                         )}

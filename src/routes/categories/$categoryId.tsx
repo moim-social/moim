@@ -1,14 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
-import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent } from "~/components/ui/card";
 import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
 import { EventCalendar, type CalendarEvent } from "~/components/EventCalendar";
 import { UpcomingEventList } from "~/components/UpcomingEventList";
 import { useIsMobile } from "~/hooks/useIsMobile";
-import { CalendarPlus, ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 function slugToLabel(slug: string) {
   return slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -137,7 +135,6 @@ function CategoryDetailPage() {
     );
   }
 
-  const [gradFrom, gradTo] = pickGradient(categoryId);
   const feedHandle = country
     ? `feed_${categoryId}_${country.toLowerCase()}`
     : `feed_${categoryId}`;
@@ -162,44 +159,38 @@ function CategoryDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Hero banner */}
-      <div
-        className="rounded-xl p-6 text-white"
-        style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
-      >
+      {/* Header */}
+      <div className="pb-5 border-b-2 border-foreground">
         <Link
           to="/categories"
-          className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors"
+          className="inline-flex items-center gap-1 text-[12px] text-[#888] hover:text-foreground transition-colors"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-3.5">
-            <path fillRule="evenodd" d="M9.78 4.22a.75.75 0 0 1 0 1.06L7.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06L5.47 8.53a.75.75 0 0 1 0-1.06l3.25-3.25a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
-          </svg>
-          All categories
+          &larr; All categories
         </Link>
-        <h2 className="text-2xl font-bold mt-2">{category.label} Events</h2>
-        <p className="text-white/80 text-sm mt-1">
-          {category.description ?? `Follow this feed from your fediverse account to get notified about new ${category.label.toLowerCase()} events.`}
+        <h2 className="text-2xl font-extrabold tracking-tight mt-2">{category.label}</h2>
+        <p className="text-[13px] text-[#666] mt-1">
+          {category.description ?? `Follow this feed to get notified about new ${category.label.toLowerCase()} events.`}
         </p>
 
-        <div className="mt-4 flex items-center justify-between">
-          <span className="text-xs text-white/60">@{feedHandle}</span>
+        <div className="mt-4 flex items-center gap-4">
+          <span className="text-[12px] text-[#999]">@{feedHandle}</span>
           <div className="flex items-center gap-2">
             <RemoteFollowDialog actorHandle={feedHandle}>
               <button
-                title={`Remote follow @${feedHandle}`}
-                className="text-white/70 hover:text-white transition-colors"
+                title={`Follow @${feedHandle}`}
+                className="text-[12px] text-[#888] hover:text-foreground border border-[#ddd] rounded px-2 py-0.5 transition-colors"
               >
-                <UserPlus className="size-5" />
+                Follow
               </button>
             </RemoteFollowDialog>
             <a
               href={country
                 ? `/categories/${categoryId}/countries/${country}/events.ics`
                 : `/categories/${categoryId}/events.ics`}
-              title={`Subscribe to ${category.label}${country ? ` (${country})` : ""} calendar`}
-              className="text-white/70 hover:text-white transition-colors"
+              title={`Subscribe to calendar`}
+              className="text-[12px] text-[#888] hover:text-foreground border border-[#ddd] rounded px-2 py-0.5 transition-colors"
             >
-              <CalendarPlus className="size-5" />
+              ICS
             </a>
           </div>
         </div>
@@ -231,23 +222,18 @@ function CategoryDetailPage() {
       {loading ? (
         <p className="text-muted-foreground">Loading...</p>
       ) : !isMobile ? (
-        <Card className="rounded-lg">
-          <CardContent className="pt-6">
-            <EventCalendar
-              events={calendarEvents}
-              showCountry={!country}
-              onMonthChange={handleMonthChange}
-            />
-          </CardContent>
-        </Card>
+        <EventCalendar
+          events={calendarEvents}
+          showCountry={!country}
+          onMonthChange={handleMonthChange}
+        />
       ) : (
         <div className="space-y-4">
-          {/* Month navigation for list view */}
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="icon-xs" onClick={goToPrevMonth}>
               <ChevronLeft className="size-4" />
             </Button>
-            <span className="text-sm font-semibold">
+            <span className="text-sm font-extrabold tracking-tight">
               {formatMonthYear(currentYear, currentMonth)}
             </span>
             <Button variant="ghost" size="icon-xs" onClick={goToNextMonth}>
