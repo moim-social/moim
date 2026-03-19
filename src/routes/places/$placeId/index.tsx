@@ -196,22 +196,7 @@ function PlaceDetailPage() {
             {place.name}
           </h2>
           {place.address && (
-            <p className="text-muted-foreground mt-1">{place.address}</p>
-          )}
-          {mapLinks.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {mapLinks.map(({ label, url }) => (
-                <a
-                  key={label}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="border rounded px-2 py-0.5 text-xs hover:bg-[#fafafa] transition-colors"
-                >
-                  {label}
-                </a>
-              ))}
-            </div>
+            <p className="text-[14px] text-[#666] mt-1">{place.address}</p>
           )}
         </div>
         <div className="flex gap-2">
@@ -229,16 +214,7 @@ function PlaceDetailPage() {
         </div>
       </div>
 
-      {/* Tags */}
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {tags.map((tag) => (
-            <Badge key={tag.slug} variant="outline" className="text-[10px] uppercase tracking-wide font-semibold">{tag.label}</Badge>
-          ))}
-        </div>
-      )}
-
-      {/* Map */}
+      {/* Map — full width */}
       {hasCoords && (
         <div className="border border-[#e5e5e5] rounded overflow-hidden">
           <LeafletMap
@@ -256,10 +232,19 @@ function PlaceDetailPage() {
         </div>
       )}
 
-      {/* Two-column layout */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8">
-        {/* Main column */}
-        <div className="space-y-8">
+      {/* Tags */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <Badge key={tag.slug} variant="outline" className="text-[10px] uppercase tracking-wide font-semibold">{tag.label}</Badge>
+          ))}
+        </div>
+      )}
+
+      {/* Two-column: check-ins + metadata */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-0">
+        {/* Left: about + check-ins */}
+        <div className="md:border-r md:border-[#e5e5e5] md:pr-8 space-y-8 pb-8 md:pb-0">
           {/* About */}
           {place.description && (
             <section>
@@ -303,42 +288,62 @@ function PlaceDetailPage() {
           </section>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-5">
-          {/* Info panel */}
-          <div className="border border-[#e5e5e5] rounded p-4 space-y-3 text-sm">
+        {/* Right: metadata */}
+        <div className="md:pl-8 space-y-6 border-t md:border-t-0 border-[#e5e5e5] pt-6 md:pt-0">
+          {/* Location info */}
+          <div className="space-y-4">
             {place.address && (
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wide text-[#888]">Address</span>
-                <p className="mt-0.5 text-[13px]">{place.address}</p>
+                <h4 className="text-[10px] font-bold uppercase tracking-wide text-[#888] mb-1">Address</h4>
+                <p className="text-[14px] text-[#333]">{place.address}</p>
               </div>
             )}
             {place.website && (
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wide text-[#888]">Website</span>
-                <p className="mt-0.5 text-[13px]">
-                  <a
-                    href={place.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2 break-all hover:text-foreground"
-                  >
-                    {place.website}
-                  </a>
-                </p>
+                <h4 className="text-[10px] font-bold uppercase tracking-wide text-[#888] mb-1">Website</h4>
+                <a
+                  href={place.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[14px] text-[#333] underline underline-offset-2 break-all hover:text-foreground"
+                >
+                  {place.website}
+                </a>
               </div>
             )}
-            <div className="border-t border-[#f0f0f0] pt-3 flex justify-between">
+            {mapLinks.length > 0 && (
+              <div>
+                <h4 className="text-[10px] font-bold uppercase tracking-wide text-[#888] mb-1.5">Open in Maps</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {mapLinks.map(({ label, url }) => (
+                    <a
+                      key={label}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="border border-[#ddd] rounded px-2.5 py-1 text-[12px] text-[#555] hover:border-[#999] hover:text-foreground transition-colors"
+                    >
+                      {label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Stats */}
+          <div className="border-t border-[#e5e5e5] pt-4">
+            <div className="flex justify-between items-center">
               <span className="text-[13px] text-[#888]">Total check-ins</span>
-              <span className="text-[13px] font-bold">{checkinCount}</span>
+              <span className="text-[18px] font-extrabold">{checkinCount}</span>
             </div>
           </div>
 
           {/* Upcoming events */}
           {upcomingEvents.length > 0 && (
-            <div className="border border-[#e5e5e5] rounded p-4">
-              <h3 className="text-[10px] font-bold uppercase tracking-wide text-[#888] mb-3">Upcoming Events</h3>
-              <div className="divide-y divide-[#f0f0f0]">
+            <div className="border-t border-[#e5e5e5] pt-4">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-3">Upcoming Events</h3>
+              <div className="space-y-3">
                 {upcomingEvents.map((event) => {
                   const d = new Date(event.startsAt);
                   return (
@@ -346,12 +351,12 @@ function PlaceDetailPage() {
                       key={event.id}
                       to="/events/$eventId"
                       params={{ eventId: event.id }}
-                      className="block py-2 first:pt-0 last:pb-0 hover:text-foreground transition-colors"
+                      className="block group"
                     >
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#555]">
-                        {d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#888]">
+                        {d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                       </p>
-                      <p className="text-[13px] font-semibold mt-0.5">{event.title}</p>
+                      <p className="text-[14px] font-semibold mt-0.5 group-hover:underline">{event.title}</p>
                     </Link>
                   );
                 })}
