@@ -44,20 +44,22 @@
 
 ## Color Palette
 
-### Grayscale (primary)
+### Grayscale (primary) — CSS Variable Mapping
 
-| Value | Use |
-|-------|-----|
-| #111 | Primary text, CTA buttons, active nav, editorial borders |
-| #333 | Section headers, secondary headings |
-| #555 | Labels, uppercase meta text |
-| #888 | Muted text, icons |
-| #999 | Timestamps, tertiary text |
-| #ddd | Outline button borders, input borders |
-| #e5e5e5 | Card borders, dividers |
-| #f0f0f0 | Light inner separators |
-| #fafafa | Subtle background (no-image hero, dashboard bg) |
-| #fff | Page background, cards |
+Update the existing OKLCH values in `globals.css` to match these hex equivalents. All shadcn/ui components continue using `text-foreground`, `bg-muted`, `border-border`, etc.
+
+| Value | CSS Variable | Tailwind Class | Use |
+|-------|-------------|----------------|-----|
+| #111 | `--foreground`, `--primary` | `text-foreground`, `bg-primary` | Primary text, CTA buttons, active nav, editorial borders |
+| #333 | (use inline or custom utility) | `text-[#333]` | Section headers, secondary headings |
+| #555 | (use inline or custom utility) | `text-[#555]` | Labels, uppercase meta text |
+| #888 | `--muted-foreground` | `text-muted-foreground` | Muted text, icons |
+| #999 | (use inline or custom utility) | `text-[#999]` | Timestamps, tertiary text |
+| #ddd | `--input` | `border-input` | Outline button borders, input borders |
+| #e5e5e5 | `--border` | `border-border` | Card borders, dividers |
+| #f0f0f0 | (use inline or custom utility) | `border-[#f0f0f0]` | Light inner separators |
+| #fafafa | `--muted`, `--secondary` | `bg-muted`, `bg-secondary` | Subtle background (no-image hero, dashboard bg) |
+| #fff | `--background`, `--card` | `bg-background`, `bg-card` | Page background, cards |
 
 ### Semantic (used sparingly)
 
@@ -145,6 +147,12 @@ All badges: uppercase, 10px font, 600 weight, border-radius 2-3px.
 - Bottom border: 2px solid #111
 
 **Profile dropdown:** Settings, My Groups, My Events, Sign Out.
+
+**Navigation changes from current:**
+- Current nav labels "Events" and "Check-ins" → renamed to "EVENTS", "GROUPS", "PLACES"
+- "GROUPS" is a new top-level nav item (currently groups are only accessible via My Groups)
+- "Check-ins" renamed to "PLACES" to match the broader scope (place detail, check-ins, nearby)
+- Current mobile uses a bottom tab bar (Events, Check-ins, Profile) → changes to hamburger menu with vertical nav links. This is a structural change.
 
 ### Homepage Hero Carousel
 
@@ -261,10 +269,74 @@ Shared carousel with banners and featured events (current behavior preserved).
 
 **Check-in confirmation card:** map snapshot image, green checkmark (#16a34a) + "Checked in" text, place name, note, copy link.
 
+### Categories Page
+
+**Category listing (/categories):**
+- Grid of category cards. Current gradient headers replaced with #fafafa background + large bold category name.
+- Card: 1px border #e0e0e0, 6px radius, category name (18px w700), event count below.
+- No emoji, no color.
+
+**Category detail (/categories/$categoryId):**
+- Header: category name (26px w800), event count, ICS subscribe link. Bottom border 2px #111.
+- Event listing below uses same grid view treatment as event cards grid.
+
+### Auth Pages
+
+**Sign-in (/auth/signin):**
+- Centered card, max-w-sm. Wordmark "moim" at top. Three sign-in method buttons stacked vertically (outline style). Clean, minimal.
+- Same 4px radius, 1px borders, no gradients.
+
+**Onboarding (/auth/onboarding):**
+- Same centered card treatment. Form inputs follow the standard input style (1px #ddd, focus #111).
+
+### Polls & Notes Pages
+
+**Poll detail (/polls/$pollId):**
+- Header: question text (22px w800), group name, bottom border 2px #111.
+- Vote options: 1px border cards, 4px radius. Selected = 2px #111 border. Results shown as inline percentage bar (grayscale fill).
+
+**Note detail (/notes/$noteId):**
+- Minimal page. Author info (avatar + name + handle), timestamp, markdown content. Bottom border 2px #111 on header.
+
+### Calendar Page
+
+**Calendar (/calendar):**
+- Same treatment as group events calendar. EventCalendar component styled with editorial tokens. Day cells with event dots use #111 instead of current accent color.
+
+## Implementation Notes
+
+### Font Family
+
+Keep system sans-serif (`font-sans` / `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`). The editorial character comes from weight contrast and letter-spacing, not a custom typeface.
+
+### Tailwind Config Changes
+
+- Update `--radius` in globals.css from `0.625rem` (10px) to `0.25rem` (4px). This cascades to all shadcn components.
+- Update OKLCH values in globals.css to match the hex grayscale palette.
+- Remove emerald accent color definitions.
+
+### Component-Level Changes
+
+- **Card** (`src/components/ui/card.tsx`): Remove `rounded-xl` → `rounded`, remove `shadow-sm`, keep `py-6 gap-6` as defaults (pages already override when needed).
+- **Badge** (`src/components/ui/badge.tsx`): Change `rounded-full` → `rounded-sm` (new 4px base). Adjust variants for grayscale borders.
+- **Button** (`src/components/ui/button.tsx`): Update primary to #111 bg, update outline border to #ddd.
+- **Input** (`src/components/ui/input.tsx`): Focus state: `border-color #111` with a subtle `ring-1 ring-[#111]/20` for accessibility (preserves focus visibility without blue color).
+
+### Focus State & Accessibility
+
+Focus ring is preserved for keyboard navigation but recolored: `focus-visible:border-[#111] focus-visible:ring-1 focus-visible:ring-[#111]/20`. This meets WCAG 2.1 focus-visible requirements while staying grayscale.
+
+### Dark Mode
+
+Dark mode is **out of scope** for this redesign. The existing `@custom-variant dark` in globals.css and dark variant styles may be left in place but will not be updated. Light mode only for now.
+
+### Homepage Layout Change
+
+The homepage event listing changes from a 3-column card grid to a list view. This is an intentional layout change to match the editorial style, not just a style change.
+
 ## What Does NOT Change
 
-- Navigation structure (Events, Groups, Places)
-- Information architecture on all pages
+- Information architecture on all pages (same data, same sections)
 - Map behavior and interaction patterns (Leaflet, markers, radius, fullscreen dialog)
 - RSVP/registration flow
 - Discussion threading
