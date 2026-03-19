@@ -206,9 +206,18 @@ function EventsPage() {
           </CardHeader>
         </Card>
       ) : (
-        <div className="divide-y border-t border-b">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} />
+        <div>
+          {groupEventsByDate(events).map(([dateKey, dateEvents]) => (
+            <div key={dateKey}>
+              <div className="sticky top-14 z-10 bg-background py-2 border-b-2 border-foreground">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-[#333]">{dateKey}</h3>
+              </div>
+              <div className="divide-y">
+                {dateEvents.map((event) => (
+                  <EventCard key={event.id} event={event} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -216,12 +225,30 @@ function EventsPage() {
   );
 }
 
+function groupEventsByDate(events: EventItem[]): [string, EventItem[]][] {
+  const groups = new Map<string, EventItem[]>();
+  for (const event of events) {
+    const start = new Date(event.startsAt);
+    const dateKey = start.toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      timeZone: event.timezone ?? undefined,
+    });
+    const existing = groups.get(dateKey);
+    if (existing) {
+      existing.push(event);
+    } else {
+      groups.set(dateKey, [event]);
+    }
+  }
+  return Array.from(groups.entries());
+}
+
 function EventCard({ event }: { event: EventItem }) {
   const { categoryMap } = useEventCategoryMap();
   const start = new Date(event.startsAt);
   const eventTz = event.timezone ?? undefined;
-  const month = start.toLocaleDateString(undefined, { month: "short", timeZone: eventTz });
-  const day = start.toLocaleDateString(undefined, { day: "numeric", timeZone: eventTz });
   const timeStr = start.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
@@ -243,53 +270,56 @@ function EventCard({ event }: { event: EventItem }) {
 
   return (
     <Link to="/events/$eventId" params={{ eventId: event.id }} className="group block">
-      <div className="flex items-start gap-5 py-5 hover:bg-[#fafafa] transition-colors px-2">
-        {/* Date column or image thumbnail */}
-        {event.headerImageUrl ? (
+      <div className="flex items-start gap-4 py-4 hover:bg-[#fafafa] transition-colors px-2">
+        {/* Image thumbnail if available */}
+        {event.headerImageUrl && (
           <img
             src={event.headerImageUrl}
             alt=""
-            className="shrink-0 w-[140px] h-[94px] rounded object-cover"
+            className="shrink-0 w-[120px] h-[80px] rounded object-cover"
           />
-        ) : (
-          <div className="shrink-0 w-[140px] h-[94px] flex flex-col items-start justify-center pl-4 border-l-[3px] border-foreground">
-            <span className="text-4xl font-extrabold leading-none text-foreground">{day}</span>
-            <span className="text-xs font-semibold uppercase tracking-wide text-foreground/60 mt-0.5">{month}</span>
-          </div>
         )}
 
         {/* Event info */}
-        <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex-1 min-w-0">
           <h3 className="font-bold tracking-tight leading-snug line-clamp-2 group-hover:underline">
             {event.title}
           </h3>
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground mt-1">
             <span>{timeStr}</span>
-            {event.location && <span className="truncate max-w-[200px]">{event.location}</span>}
+            {event.location && (
+              <>
+                <span className="text-[#ddd]">&middot;</span>
+                <span className="truncate max-w-[200px]">{event.location}</span>
+              </>
+            )}
             {hostLabel && (
-              hostLink ? (
-                hostIsExternal ? (
-                  <a
-                    href={hostLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline hover:text-foreground"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {hostLabel}
-                  </a>
+              <>
+                <span className="text-[#ddd]">&middot;</span>
+                {hostLink ? (
+                  hostIsExternal ? (
+                    <a
+                      href={hostLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline hover:text-foreground"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {hostLabel}
+                    </a>
+                  ) : (
+                    <Link
+                      to={hostLink}
+                      className="hover:underline hover:text-foreground"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {hostLabel}
+                    </Link>
+                  )
                 ) : (
-                  <Link
-                    to={hostLink}
-                    className="hover:underline hover:text-foreground"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {hostLabel}
-                  </Link>
-                )
-              ) : (
-                <span>{hostLabel}</span>
-              )
+                  <span>{hostLabel}</span>
+                )}
+              </>
             )}
           </div>
           {event.categoryId && (
@@ -297,9 +327,9 @@ function EventCard({ event }: { event: EventItem }) {
               to="/categories/$categoryId"
               params={{ categoryId: event.categoryId }}
               onClick={(e) => e.stopPropagation()}
-              className="inline-block"
+              className="inline-block mt-1.5"
             >
-              <Badge variant="outline" className="text-xs uppercase tracking-wide">
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wide font-semibold">
                 {categoryMap.get(event.categoryId) ?? event.categoryId}
               </Badge>
             </Link>
