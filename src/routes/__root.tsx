@@ -207,12 +207,26 @@ function RootLayout() {
                 <div className="md:hidden border-t border-foreground/20 bg-background">
                   <nav className="mx-auto max-w-5xl flex flex-col px-6 py-4 gap-3">
                     <Link to="/events" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Events</Link>
+                    <Link to="/groups/my" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Groups</Link>
                     <Link to="/places" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Places</Link>
                     {loaded && user && (
                       <>
                         <hr className="border-foreground/10" />
-                        <span className="text-[13px] text-[#555]">@{user.handle}</span>
-                        <button type="button" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground text-left" onClick={() => { handleSignOut(); setMenuOpen(false); }}>Sign out</button>
+                        <span className="text-[13px] text-muted-foreground">@{user.handle}</span>
+                        <Link to="/groups/my" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>My Groups</Link>
+                        <Link to="/calendar" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>My Calendar</Link>
+                        <Link to="/settings" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Settings</Link>
+                        <hr className="border-foreground/10" />
+                        <Link to="/groups/create" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Create Group</Link>
+                        <Link to="/events/create" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Create Event</Link>
+                        {user.isAdmin && (
+                          <>
+                            <hr className="border-foreground/10" />
+                            <Link to="/admin" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
+                          </>
+                        )}
+                        <hr className="border-foreground/10" />
+                        <button type="button" className="text-[13px] text-[#555] hover:text-foreground text-left" onClick={() => { handleSignOut(); setMenuOpen(false); }}>Sign out</button>
                       </>
                     )}
                     {loaded && !user && (
