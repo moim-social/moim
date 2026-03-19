@@ -329,7 +329,7 @@ function MonthlyCalendar({
                       <div
                         className={`text-xs mb-0.5 ${
                           isToday
-                            ? "bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center font-bold"
+                            ? "bg-foreground text-background rounded-full w-5 h-5 flex items-center justify-center font-bold"
                             : "text-muted-foreground"
                         }`}
                       >
@@ -340,12 +340,12 @@ function MonthlyCalendar({
                           <a
                             key={ev.id}
                             href={`/events/${ev.id}`}
-                            className={`block text-[10px] leading-tight truncate rounded px-1 py-0.5 ${
+                            className={`block text-[10px] leading-tight truncate px-1 py-0.5 border-l-2 bg-muted ${
                               ev.type === "rsvp"
-                                ? "bg-primary/10 text-primary"
+                                ? "border-l-foreground"
                                 : ev.type === "hosting"
-                                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                  : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                  ? "border-l-foreground/60"
+                                  : "border-l-foreground/30"
                             }`}
                             title={ev.title}
                           >
@@ -379,7 +379,7 @@ function MonthlyCalendar({
               return (
                 <div key={dateKey}>
                   <div
-                    className={`text-xs font-medium mb-2 ${isToday ? "text-primary" : "text-muted-foreground"}`}
+                    className={`text-xs font-medium mb-2 ${isToday ? "font-bold text-foreground" : "text-muted-foreground"}`}
                   >
                     {date.toLocaleDateString(undefined, {
                       weekday: "short",
@@ -393,12 +393,12 @@ function MonthlyCalendar({
                       <a
                         key={ev.id}
                         href={`/events/${ev.id}`}
-                        className={`flex items-center gap-2 rounded-md border-l-2 border border-border px-3 py-1.5 hover:bg-muted/50 transition-colors ${
+                        className={`flex items-center gap-2 border-l-2 border border-border px-3 py-1.5 hover:bg-muted/50 transition-colors ${
                           ev.type === "rsvp"
-                            ? "border-l-primary bg-primary/5"
+                            ? "border-l-foreground"
                             : ev.type === "hosting"
-                              ? "border-l-emerald-500 bg-emerald-500/5"
-                              : "border-l-amber-500 bg-amber-500/5"
+                              ? "border-l-foreground/60"
+                              : "border-l-foreground/30"
                         }`}
                       >
                         <div className="min-w-0 flex-1">
@@ -431,15 +431,15 @@ function MonthlyCalendar({
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary/20" />
+            <span className="inline-block w-0.5 h-3 bg-foreground" />
             RSVP&apos;d
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500/20" />
+            <span className="inline-block w-0.5 h-3 bg-foreground/60" />
             Hosting
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-500/20" />
+            <span className="inline-block w-0.5 h-3 bg-foreground/30" />
             <Bookmark className="size-3" />
             Bookmarked
           </div>

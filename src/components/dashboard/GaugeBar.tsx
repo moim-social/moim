@@ -1,14 +1,14 @@
 const GAUGE_COLORS = [
-  "#3b82f6", // blue
-  "#f59e0b", // amber
-  "#10b981", // emerald
-  "#ef4444", // red
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#06b6d4", // cyan
-  "#f97316", // orange
-  "#6366f1", // indigo
-  "#14b8a6", // teal
+  "#111111", // near black
+  "#555555", // dark gray
+  "#888888", // mid gray
+  "#aaaaaa", // light gray
+  "#333333",
+  "#666666",
+  "#999999",
+  "#222222",
+  "#444444",
+  "#777777",
 ];
 
 export function GaugeBar({
@@ -32,9 +32,9 @@ export function GaugeBar({
           {count} ({pct}%)
         </span>
       </div>
-      <div className="h-3 rounded-full bg-muted overflow-hidden">
+      <div className="h-3 bg-muted overflow-hidden">
         <div
-          className="h-full rounded-full transition-all"
+          className="h-full transition-all"
           style={{
             width: `${pct}%`,
             backgroundColor: GAUGE_COLORS[colorIndex % GAUGE_COLORS.length],

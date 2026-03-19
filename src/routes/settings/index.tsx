@@ -110,7 +110,7 @@ function SettingsPage() {
             )}
 
             {success && (
-              <Alert className="border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
+              <Alert className="border-border bg-muted/30 text-foreground">
                 <AlertDescription>Settings saved.</AlertDescription>
               </Alert>
             )}

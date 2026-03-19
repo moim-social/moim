@@ -202,7 +202,7 @@ function OnboardingPage() {
                   onClick={() => goTo(i)}
                   className={`h-2 rounded-full transition-all duration-300 ${
                     i === step
-                      ? "w-6 bg-primary"
+                      ? "w-6 bg-foreground"
                       : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                   }`}
                   aria-label={`Go to step ${i + 1}`}
@@ -382,7 +382,7 @@ function OnboardingPage() {
                     },
                   ].map((item) => (
                     <div key={item.num} className="flex gap-4 items-start">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background text-sm font-semibold">
                         {item.num}
                       </div>
                       <div>
@@ -413,7 +413,7 @@ function OnboardingPage() {
             <Link
               to="/auth/signin"
               search={{ from: "onboarding" }}
-              className="text-primary hover:underline"
+              className="underline hover:text-muted-foreground"
             >
               Sign in
             </Link>

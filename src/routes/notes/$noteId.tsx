@@ -111,7 +111,7 @@ function NoteDetailPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
+            <div className="size-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-semibold shrink-0">
               {(note.actorName ?? note.actorHandle).charAt(0).toUpperCase()}
             </div>
             <div>
