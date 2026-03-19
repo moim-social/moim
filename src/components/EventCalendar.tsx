@@ -149,7 +149,7 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
                   type="button"
                   onClick={() => handleDayClick(day)}
                   className={cn(
-                    "flex flex-col items-start p-1.5 text-left min-h-[96px] transition-colors",
+                    "flex flex-col items-start p-1.5 text-left min-h-[96px] min-w-0 overflow-hidden transition-colors",
                     di < 6 && "border-r border-[#f0f0f0]",
                     !inMonth && "opacity-25",
                     isSelected && "bg-[#f5f5f5]",
