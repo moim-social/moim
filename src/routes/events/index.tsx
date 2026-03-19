@@ -276,7 +276,8 @@ function EventCard({ event }: { event: EventItem }) {
           <img
             src={event.headerImageUrl}
             alt=""
-            className="shrink-0 w-[120px] h-[80px] rounded object-cover"
+            className="shrink-0 rounded object-cover"
+            style={{ width: 120, height: 80, minWidth: 120, maxWidth: 120 }}
           />
         )}
 

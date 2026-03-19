@@ -582,7 +582,8 @@ function EventListRow({ event }: { event: EventItem }) {
           src={event.headerImageUrl}
           alt=""
           aria-hidden="true"
-          className="w-[140px] h-[94px] rounded object-cover shrink-0"
+          className="rounded object-cover shrink-0"
+          style={{ width: 140, height: 94, minWidth: 140, maxWidth: 140 }}
         />
       ) : (
         <div className="w-[140px] h-[94px] shrink-0 flex flex-col items-start justify-center pl-4 border-l-[3px] border-foreground">
