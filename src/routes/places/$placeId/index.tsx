@@ -343,20 +343,27 @@ function PlaceDetailPage() {
           {upcomingEvents.length > 0 && (
             <div className="border-t border-[#e5e5e5] pt-4">
               <h3 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-3">Upcoming Events</h3>
-              <div className="space-y-3">
+              <div className="divide-y divide-[#f0f0f0]">
                 {upcomingEvents.map((event) => {
                   const d = new Date(event.startsAt);
+                  const dayNum = d.getDate().toString();
+                  const monthAbbr = d.toLocaleDateString(undefined, { month: "short" });
+                  const timeStr = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
                   return (
                     <Link
                       key={event.id}
                       to="/events/$eventId"
                       params={{ eventId: event.id }}
-                      className="block group"
+                      className="flex items-start gap-3 py-3 first:pt-0 last:pb-0 group"
                     >
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#888]">
-                        {d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
-                      </p>
-                      <p className="text-[14px] font-semibold mt-0.5 group-hover:underline">{event.title}</p>
+                      <div className="shrink-0 w-10 text-center border-l-[3px] border-foreground pl-2">
+                        <span className="text-xl font-extrabold leading-none">{dayNum}</span>
+                        <span className="block text-[10px] font-semibold uppercase tracking-wide text-[#888]">{monthAbbr}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold leading-snug group-hover:underline line-clamp-2">{event.title}</p>
+                        <p className="text-[11px] text-[#888] mt-0.5">{timeStr}</p>
+                      </div>
                     </Link>
                   );
                 })}
