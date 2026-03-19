@@ -243,17 +243,18 @@ function EventCard({ event }: { event: EventItem }) {
 
   return (
     <Link to="/events/$eventId" params={{ eventId: event.id }} className="group block">
-      <div className="flex items-start gap-4 py-4 hover:bg-[#fafafa] transition-colors px-2">
+      <div className="flex items-start gap-5 py-5 hover:bg-[#fafafa] transition-colors px-2">
         {/* Date column or image thumbnail */}
         {event.headerImageUrl ? (
-          <div
-            className="shrink-0 w-16 h-16 bg-cover bg-center border"
-            style={{ backgroundImage: `url(${event.headerImageUrl})` }}
+          <img
+            src={event.headerImageUrl}
+            alt=""
+            className="shrink-0 w-[140px] h-[94px] rounded object-cover"
           />
         ) : (
-          <div className="shrink-0 w-12 text-center">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">{month}</p>
-            <p className="text-2xl font-extrabold tracking-tight leading-none">{day}</p>
+          <div className="shrink-0 w-[140px] h-[94px] flex flex-col items-start justify-center pl-4 border-l-[3px] border-foreground">
+            <span className="text-4xl font-extrabold leading-none text-foreground">{day}</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-foreground/60 mt-0.5">{month}</span>
           </div>
         )}
 
