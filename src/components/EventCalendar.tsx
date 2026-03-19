@@ -129,10 +129,14 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
 
       {/* Calendar grid */}
       {(() => {
-        const weeks: Date[][] = [];
+        const allWeeks: Date[][] = [];
         for (let i = 0; i < days.length; i += 7) {
-          weeks.push(days.slice(i, i + 7));
+          allWeeks.push(days.slice(i, i + 7));
         }
+        // Only show weeks that contain at least one day of the current month
+        const weeks = allWeeks.filter((week) =>
+          week.some((d) => isCurrentMonth(d, currentYear, currentMonth))
+        );
         return weeks.map((week, wi) => (
           <div key={wi} className="grid w-full border-b border-[#e5e5e5]" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
             {week.map((day, di) => {
