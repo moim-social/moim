@@ -1,15 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
 import { languageLabel } from "~/shared/languages";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
 
 export const Route = createFileRoute("/groups/my")({
   component: MyGroupsPage,
@@ -60,40 +53,33 @@ function MyGroupsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between pb-4 border-b-2 border-foreground mb-6">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">My Groups</h2>
-          <p className="text-muted-foreground mt-1">
-            Groups you host or moderate.
-          </p>
+          <h2 className="text-2xl font-extrabold tracking-tight">My Groups</h2>
+          <p className="text-sm text-[#888] mt-1">Groups you host or moderate.</p>
         </div>
-        <Button asChild>
+        <Button size="sm" asChild>
           <Link to="/groups/create">Create Group</Link>
         </Button>
       </div>
 
       {groups.length === 0 ? (
-        <Card className="flex items-center justify-center py-16 rounded-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-base text-muted-foreground">
-              No groups yet
-            </CardTitle>
-            <CardDescription>
-              Create a group to start hosting events.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <div className="text-center py-16">
+          <p className="text-[15px] font-semibold text-[#888]">No groups yet</p>
+          <p className="text-[13px] text-[#bbb] mt-1">Create a group to start hosting events.</p>
+        </div>
       ) : (
-        <div className="divide-y border-t border-b">
+        <div className="divide-y divide-[#f0f0f0]">
           {groups.map((group) => (
             <Link
               key={group.id}
               to="/groups/$identifier/dashboard"
               params={{ identifier: `@${group.handle}` }}
-              className="flex items-center gap-3 py-4 px-2 hover:bg-[#fafafa] transition-colors"
+              className="flex items-start gap-4 py-5 first:pt-0 hover:bg-[#fafafa] transition-colors group"
             >
-              <Avatar className="size-10 shrink-0">
+              <Avatar className="size-11 shrink-0">
                 {group.avatarUrl && <AvatarImage src={group.avatarUrl} alt={group.name ?? group.handle} />}
                 <AvatarFallback className="text-sm font-semibold bg-muted text-muted-foreground">
                   {(group.name ?? group.handle).charAt(0).toUpperCase()}
@@ -101,31 +87,25 @@ function MyGroupsPage() {
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold truncate">
+                  <span className="text-[15px] font-bold tracking-tight truncate group-hover:underline">
                     {group.name ?? group.handle}
                   </span>
-                  <Badge variant="outline" className="text-xs shrink-0 uppercase tracking-wide">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#555] border border-[#ddd] px-1.5 py-0 shrink-0">
                     {group.role}
-                  </Badge>
+                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground">@{group.handle}</p>
-                <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                  <span>
-                    {group.followersCount} follower{group.followersCount !== 1 ? "s" : ""}
-                    {" · "}
-                    {group.membersCount} member{group.membersCount !== 1 ? "s" : ""}
-                    {languageLabel(group.language) && (
-                      <>{" · "}{languageLabel(group.language)}</>
-                    )}
-                  </span>
-                  <span>
-                    {group.upcomingEventsCount + group.pastEventsCount} event{group.upcomingEventsCount + group.pastEventsCount !== 1 ? "s" : ""}
-                    {group.upcomingEventsCount > 0 && (
-                      <span className="font-medium ml-1">
-                        ({group.upcomingEventsCount} upcoming)
-                      </span>
-                    )}
-                  </span>
+                <p className="text-[12px] text-[#999] mt-0.5">@{group.handle}</p>
+
+                {/* Stats row */}
+                <div className="flex flex-wrap items-center gap-x-3 text-[12px] text-[#888] mt-2">
+                  <span><strong className="text-[#333]">{group.followersCount}</strong> followers</span>
+                  <span><strong className="text-[#333]">{group.membersCount}</strong> members</span>
+                  {group.upcomingEventsCount > 0 && (
+                    <span><strong className="text-[#333]">{group.upcomingEventsCount}</strong> upcoming</span>
+                  )}
+                  {languageLabel(group.language) && (
+                    <span>{languageLabel(group.language)}</span>
+                  )}
                 </div>
               </div>
             </Link>
