@@ -1,10 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent } from "~/components/ui/card";
-import { Separator } from "~/components/ui/separator";
 import {
-  CalendarDays,
   Copy,
   Check,
   RefreshCw,
@@ -61,11 +58,12 @@ function MyCalendarPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6">
-      <h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-        <CalendarDays className="size-6" />
-        My Calendar
-      </h2>
+    <main className="mx-auto max-w-3xl space-y-6">
+      {/* Header */}
+      <div className="pb-4 border-b-2 border-foreground">
+        <h2 className="text-2xl font-extrabold tracking-tight">My Calendar</h2>
+        <p className="text-sm text-muted-foreground mt-1">Your RSVP'd, hosted, and bookmarked events.</p>
+      </div>
 
       <MonthlyCalendar
         events={calendarEvents}
@@ -73,17 +71,15 @@ function MyCalendarPage() {
         onMonthChange={setCurrentMonth}
       />
 
-      <Separator />
-
-      <Card className="rounded-lg">
-        <CardContent className="pt-6 space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold">Calendar Subscription</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Subscribe to a calendar feed of your RSVP&apos;d and bookmarked
-              events in Google Calendar, Apple Calendar, or any calendar app.
-            </p>
-          </div>
+      {/* Calendar subscription */}
+      <section className="border-t-2 border-foreground pt-5 space-y-4">
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#333]">Calendar Subscription</h3>
+          <p className="text-sm text-muted-foreground mt-2">
+            Subscribe to a calendar feed of your RSVP&apos;d and bookmarked
+            events in Google Calendar, Apple Calendar, or any calendar app.
+          </p>
+        </div>
 
           {calendarToken ? (
             <div className="space-y-3">
@@ -192,8 +188,7 @@ function MyCalendarPage() {
               Generate Calendar URL
             </Button>
           )}
-        </CardContent>
-      </Card>
+      </section>
     </main>
   );
 }
@@ -280,26 +275,26 @@ function MonthlyCalendar({
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
-    <Card className="rounded-lg">
-      <CardContent className="pt-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{monthLabel}</h3>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" onClick={goToday}>
-              Today
-            </Button>
-            <Button variant="ghost" size="icon-sm" onClick={prevMonth}>
-              <ChevronLeft className="size-4" />
-            </Button>
-            <Button variant="ghost" size="icon-sm" onClick={nextMonth}>
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
+    <div className="space-y-4">
+      {/* Month header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-extrabold tracking-tight">{monthLabel}</h3>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={goToday} className="text-[13px]">
+            Today
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={prevMonth}>
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={nextMonth}>
+            <ChevronRight className="size-4" />
+          </Button>
         </div>
+      </div>
 
         {/* Grid view (md+) */}
-        <div className="hidden md:block">
-          <div className="grid grid-cols-7 text-center text-xs font-medium text-muted-foreground">
+        <div className="hidden md:block border border-[#e5e5e5] rounded overflow-hidden">
+          <div className="grid grid-cols-7 text-center text-[11px] font-bold uppercase tracking-wide text-[#888] bg-[#fafafa]">
             {dayNames.map((d) => (
               <div key={d} className="py-2">
                 {d}
@@ -307,7 +302,7 @@ function MonthlyCalendar({
             ))}
           </div>
 
-          <div className="grid grid-cols-7 border-t border-l">
+          <div className="grid grid-cols-7">
             {weeks.flat().map((day, i) => {
               const dateKey = day
                 ? `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
@@ -320,17 +315,17 @@ function MonthlyCalendar({
               return (
                 <div
                   key={i}
-                  className={`min-h-[72px] border-r border-b p-1 ${
-                    day === null ? "bg-muted/30" : ""
-                  }`}
+                  className={`min-h-[80px] border-t border-r border-[#f0f0f0] p-1.5 ${
+                    day === null ? "bg-[#fafafa]" : "hover:bg-[#fafafa] transition-colors"
+                  } ${i % 7 === 0 ? "border-l-0" : ""}`}
                 >
                   {day !== null && (
                     <>
                       <div
-                        className={`text-xs mb-0.5 ${
+                        className={`text-[12px] mb-1 ${
                           isToday
-                            ? "bg-foreground text-background rounded-full w-5 h-5 flex items-center justify-center font-bold"
-                            : "text-muted-foreground"
+                            ? "bg-foreground text-background rounded-full w-6 h-6 flex items-center justify-center font-bold"
+                            : "text-[#888] w-6 h-6 flex items-center justify-center"
                         }`}
                       >
                         {day}
@@ -340,7 +335,7 @@ function MonthlyCalendar({
                           <a
                             key={ev.id}
                             href={`/events/${ev.id}`}
-                            className={`block text-[10px] leading-tight truncate px-1 py-0.5 border-l-2 bg-muted ${
+                            className={`block text-[10px] leading-tight truncate px-1 py-0.5 rounded-sm border-l-2 bg-[#f5f5f5] hover:bg-[#eee] transition-colors ${
                               ev.type === "rsvp"
                                 ? "border-l-foreground"
                                 : ev.type === "hosting"
@@ -353,7 +348,7 @@ function MonthlyCalendar({
                           </a>
                         ))}
                         {dayEvents.length > 3 && (
-                          <span className="text-[10px] text-muted-foreground px-1">
+                          <span className="text-[10px] text-[#999] px-1">
                             +{dayEvents.length - 3} more
                           </span>
                         )}
@@ -367,84 +362,76 @@ function MonthlyCalendar({
         </div>
 
         {/* List view (mobile) */}
-        <div className="md:hidden space-y-4">
+        <div className="md:hidden">
           {datesWithEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
+            <p className="text-sm text-muted-foreground py-6 text-center">
               No events this month.
             </p>
           ) : (
-            datesWithEvents.map(([dateKey, dayEvents]) => {
-              const date = new Date(dateKey + "T00:00:00");
-              const isToday = dateKey === todayKey;
-              return (
-                <div key={dateKey}>
-                  <div
-                    className={`text-xs font-medium mb-2 ${isToday ? "font-bold text-foreground" : "text-muted-foreground"}`}
-                  >
-                    {date.toLocaleDateString(undefined, {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                    {isToday && " (Today)"}
+            <div className="space-y-5">
+              {datesWithEvents.map(([dateKey, dayEvents]) => {
+                const date = new Date(dateKey + "T00:00:00");
+                const isTodayDate = dateKey === todayKey;
+                return (
+                  <div key={dateKey}>
+                    <div className={`text-[11px] font-bold uppercase tracking-wide mb-2 pb-1 border-b border-[#e5e5e5] ${isTodayDate ? "text-foreground" : "text-[#888]"}`}>
+                      {date.toLocaleDateString(undefined, {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                      {isTodayDate && " — Today"}
+                    </div>
+                    <div className="divide-y divide-[#f0f0f0]">
+                      {dayEvents.map((ev) => (
+                        <a
+                          key={ev.id}
+                          href={`/events/${ev.id}`}
+                          className={`flex items-start gap-3 py-2.5 border-l-2 pl-3 hover:bg-[#fafafa] transition-colors ${
+                            ev.type === "rsvp"
+                              ? "border-l-foreground"
+                              : ev.type === "hosting"
+                                ? "border-l-foreground/60"
+                                : "border-l-foreground/30"
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-semibold leading-snug">
+                              {ev.title}
+                            </p>
+                            <p className="text-[11px] text-[#888] mt-0.5">
+                              {new Date(ev.startsAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                              {ev.type === "favourite" && (
+                                <Bookmark className="size-2.5 inline ml-1.5" />
+                              )}
+                            </p>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    {dayEvents.map((ev) => (
-                      <a
-                        key={ev.id}
-                        href={`/events/${ev.id}`}
-                        className={`flex items-center gap-2 border-l-2 border border-border px-3 py-1.5 hover:bg-muted/50 transition-colors ${
-                          ev.type === "rsvp"
-                            ? "border-l-foreground"
-                            : ev.type === "hosting"
-                              ? "border-l-foreground/60"
-                              : "border-l-foreground/30"
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">
-                            {ev.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(ev.startsAt).toLocaleTimeString(
-                              undefined,
-                              {
-                                hour: "numeric",
-                                minute: "2-digit",
-                              },
-                            )}
-                            {ev.type === "favourite" && (
-                              <span className="ml-1.5 inline-flex items-center gap-0.5">
-                                <Bookmark className="size-2.5" />
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+        {/* Legend */}
+        <div className="flex items-center gap-5 text-[11px] text-[#888] pt-2 border-t border-[#f0f0f0]">
           <div className="flex items-center gap-1.5">
-            <span className="inline-block w-0.5 h-3 bg-foreground" />
+            <span className="inline-block w-[3px] h-3 bg-foreground rounded-full" />
             RSVP&apos;d
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="inline-block w-0.5 h-3 bg-foreground/60" />
+            <span className="inline-block w-[3px] h-3 bg-foreground/60 rounded-full" />
             Hosting
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="inline-block w-0.5 h-3 bg-foreground/30" />
+            <span className="inline-block w-[3px] h-3 bg-foreground/30 rounded-full" />
             <Bookmark className="size-3" />
             Bookmarked
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
