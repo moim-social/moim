@@ -6,12 +6,6 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { posts, actors } from "~/server/db/schema";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
 
 const getNoteMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ noteId: z.string() })))
@@ -108,32 +102,31 @@ function NoteDetailPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-semibold shrink-0">
-              {(note.actorName ?? note.actorHandle).charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <CardTitle className="text-base">
-                {note.actorName ?? note.actorHandle}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                @{note.actorHandle}
-              </p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: note.content }}
-          />
-          <p className="text-xs text-muted-foreground">
-            {dateStr} at {timeStr}
+      {/* Author header */}
+      <div className="flex items-center gap-3 pb-5 border-b-2 border-foreground">
+        <div className="size-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-semibold shrink-0">
+          {(note.actorName ?? note.actorHandle).charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <p className="text-[15px] font-bold tracking-tight">
+            {note.actorName ?? note.actorHandle}
           </p>
-        </CardContent>
-      </Card>
+          <p className="text-[12px] text-[#888]">
+            @{note.actorHandle}
+          </p>
+        </div>
+        <span className="ml-auto text-[11px] text-[#999]">
+          {dateStr} · {timeStr}
+        </span>
+      </div>
+
+      {/* Content */}
+      <div className="mt-6">
+        <div
+          className="prose prose-sm max-w-none text-[14px] text-[#333] leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: note.content }}
+        />
+      </div>
     </div>
   );
 }
