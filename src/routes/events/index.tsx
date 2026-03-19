@@ -271,15 +271,20 @@ function EventCard({ event }: { event: EventItem }) {
   return (
     <Link to="/events/$eventId" params={{ eventId: event.id }} className="group block">
       <div className="flex items-start gap-4 py-4 hover:bg-[#fafafa] transition-colors px-2">
-        {/* Image thumbnail if available */}
-        {event.headerImageUrl && (
-          <img
-            src={event.headerImageUrl}
-            alt=""
-            className="shrink-0 rounded object-cover"
-            style={{ width: 120, height: 80, minWidth: 120, maxWidth: 120 }}
-          />
-        )}
+        {/* Fixed-width left column: image or time */}
+        <div className="shrink-0 w-[120px] h-[80px] overflow-hidden rounded" style={{ minWidth: 120 }}>
+          {event.headerImageUrl ? (
+            <img
+              src={event.headerImageUrl}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-[#fafafa] border border-[#e5e5e5]">
+              <span className="text-sm font-semibold text-muted-foreground">{timeStr}</span>
+            </div>
+          )}
+        </div>
 
         {/* Event info */}
         <div className="flex-1 min-w-0">
