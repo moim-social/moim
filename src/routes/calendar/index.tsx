@@ -291,73 +291,80 @@ function MonthlyCalendar({
         </div>
       </div>
 
-        {/* Grid view (md+) */}
-        <div className="hidden md:block border border-[#e5e5e5] rounded overflow-hidden">
-          <div className="grid grid-cols-7 text-center text-[11px] font-bold uppercase tracking-wide text-[#888] bg-[#fafafa]">
+        {/* Grid view (md+) — editorial ledger style */}
+        <div className="hidden md:block">
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 border-b-2 border-foreground">
             {dayNames.map((d) => (
-              <div key={d} className="py-2">
+              <div key={d} className="py-1.5 text-center text-[11px] font-bold uppercase tracking-wide text-[#333]">
                 {d}
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7">
-            {weeks.flat().map((day, i) => {
-              const dateKey = day
-                ? `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-                : null;
-              const dayEvents = dateKey
-                ? eventsByDate.get(dateKey) ?? []
-                : [];
-              const isToday = dateKey === todayKey;
+          {/* Weeks */}
+          {weeks.map((week, wi) => (
+            <div key={wi} className="grid grid-cols-7 border-b border-[#e5e5e5]">
+              {week.map((day, di) => {
+                const dateKey = day
+                  ? `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+                  : null;
+                const dayEvents = dateKey ? eventsByDate.get(dateKey) ?? [] : [];
+                const isToday = dateKey === todayKey;
+                const hasEvents = dayEvents.length > 0;
 
-              return (
-                <div
-                  key={i}
-                  className={`min-h-[80px] border-t border-r border-[#f0f0f0] p-1.5 ${
-                    day === null ? "bg-[#fafafa]" : "hover:bg-[#fafafa] transition-colors"
-                  } ${i % 7 === 0 ? "border-l-0" : ""}`}
-                >
-                  {day !== null && (
-                    <>
-                      <div
-                        className={`text-[12px] mb-1 ${
+                return (
+                  <div
+                    key={di}
+                    className={`min-h-[88px] p-2 ${
+                      di < 6 ? "border-r border-[#f0f0f0]" : ""
+                    } ${day === null ? "opacity-30" : ""}`}
+                  >
+                    {day !== null && (
+                      <>
+                        <div className={`text-[13px] mb-1.5 tabular-nums ${
                           isToday
-                            ? "bg-foreground text-background rounded-full w-6 h-6 flex items-center justify-center font-bold"
-                            : "text-[#888] w-6 h-6 flex items-center justify-center"
-                        }`}
-                      >
-                        {day}
-                      </div>
-                      <div className="space-y-0.5">
+                            ? "font-extrabold text-foreground"
+                            : hasEvents
+                              ? "font-semibold text-[#333]"
+                              : "text-[#bbb]"
+                        }`}>
+                          {day}
+                          {isToday && <span className="ml-1 text-[9px] font-bold uppercase tracking-wide align-middle">today</span>}
+                        </div>
                         {dayEvents.slice(0, 3).map((ev) => (
                           <a
                             key={ev.id}
                             href={`/events/${ev.id}`}
-                            className={`block text-[10px] leading-tight truncate px-1.5 py-0.5 rounded-sm transition-colors ${
-                              ev.type === "rsvp"
-                                ? "bg-foreground text-background font-semibold hover:bg-foreground/80"
-                                : ev.type === "hosting"
-                                  ? "bg-[#e5e5e5] border-l-2 border-l-foreground font-medium hover:bg-[#ddd]"
-                                  : "bg-[#f5f5f5] text-[#888] border-l-2 border-l-[#ccc] hover:bg-[#eee]"
-                            }`}
+                            className="block text-[10px] leading-snug truncate py-[1px] hover:underline"
                             title={ev.title}
                           >
-                            {ev.type === "favourite" && "★ "}{ev.title}
+                            <span className={`inline-block w-1.5 h-1.5 mr-1 align-middle ${
+                              ev.type === "rsvp"
+                                ? "bg-foreground"
+                                : ev.type === "hosting"
+                                  ? "bg-[#888]"
+                                  : "bg-[#ccc]"
+                            }`} />
+                            <span className={
+                              ev.type === "rsvp"
+                                ? "font-semibold text-foreground"
+                                : ev.type === "hosting"
+                                  ? "font-medium text-[#555]"
+                                  : "text-[#888]"
+                            }>{ev.title}</span>
                           </a>
                         ))}
                         {dayEvents.length > 3 && (
-                          <span className="text-[10px] text-[#999] px-1">
-                            +{dayEvents.length - 3} more
-                          </span>
+                          <span className="text-[10px] text-[#999]">+{dayEvents.length - 3}</span>
                         )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         {/* List view (mobile) */}
@@ -422,18 +429,18 @@ function MonthlyCalendar({
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 text-[11px] pt-3 border-t border-[#f0f0f0]">
+        <div className="flex items-center gap-5 text-[11px] text-[#888] pt-3">
           <div className="flex items-center gap-1.5">
-            <span className="inline-block px-1.5 py-0.5 bg-foreground text-background text-[9px] font-bold rounded-sm">Going</span>
-            <span className="text-[#888]">RSVP&apos;d</span>
+            <span className="inline-block w-1.5 h-1.5 bg-foreground" />
+            RSVP&apos;d
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="inline-block px-1.5 py-0.5 bg-[#e5e5e5] text-[#333] text-[9px] font-bold rounded-sm">Host</span>
-            <span className="text-[#888]">Hosting</span>
+            <span className="inline-block w-1.5 h-1.5 bg-[#888]" />
+            Hosting
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[#999]">★</span>
-            <span className="text-[#888]">Bookmarked</span>
+            <span className="inline-block w-1.5 h-1.5 bg-[#ccc]" />
+            Bookmarked
           </div>
         </div>
     </div>
