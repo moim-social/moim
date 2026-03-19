@@ -552,7 +552,7 @@ function RegisterPage() {
                 onClick={() => setSelectedTierId(t.id)}
                 className={`w-full text-left rounded-lg border-2 p-4 transition-all ${
                   isSelected
-                    ? "border-primary bg-accent/50 shadow-sm"
+                    ? "border-primary bg-accent/50"
                     : "border-border hover:border-primary/40"
                 } ${!isOpen ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               >
