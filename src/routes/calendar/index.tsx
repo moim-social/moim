@@ -6,7 +6,6 @@ import {
   Check,
   RefreshCw,
   Trash2,
-  Bookmark,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -335,16 +334,16 @@ function MonthlyCalendar({
                           <a
                             key={ev.id}
                             href={`/events/${ev.id}`}
-                            className={`block text-[10px] leading-tight truncate px-1 py-0.5 rounded-sm border-l-2 bg-[#f5f5f5] hover:bg-[#eee] transition-colors ${
+                            className={`block text-[10px] leading-tight truncate px-1.5 py-0.5 rounded-sm transition-colors ${
                               ev.type === "rsvp"
-                                ? "border-l-foreground"
+                                ? "bg-foreground text-background font-semibold hover:bg-foreground/80"
                                 : ev.type === "hosting"
-                                  ? "border-l-foreground/60"
-                                  : "border-l-foreground/30"
+                                  ? "bg-[#e5e5e5] border-l-2 border-l-foreground font-medium hover:bg-[#ddd]"
+                                  : "bg-[#f5f5f5] text-[#888] border-l-2 border-l-[#ccc] hover:bg-[#eee]"
                             }`}
                             title={ev.title}
                           >
-                            {ev.title}
+                            {ev.type === "favourite" && "★ "}{ev.title}
                           </a>
                         ))}
                         {dayEvents.length > 3 && (
@@ -387,12 +386,12 @@ function MonthlyCalendar({
                         <a
                           key={ev.id}
                           href={`/events/${ev.id}`}
-                          className={`flex items-start gap-3 py-2.5 border-l-2 pl-3 hover:bg-[#fafafa] transition-colors ${
+                          className={`flex items-center gap-3 py-2.5 pl-3 hover:bg-[#fafafa] transition-colors ${
                             ev.type === "rsvp"
-                              ? "border-l-foreground"
+                              ? "border-l-[3px] border-l-foreground"
                               : ev.type === "hosting"
-                                ? "border-l-foreground/60"
-                                : "border-l-foreground/30"
+                                ? "border-l-[3px] border-l-foreground/60"
+                                : "border-l-[3px] border-l-[#ccc]"
                           }`}
                         >
                           <div className="min-w-0 flex-1">
@@ -401,11 +400,17 @@ function MonthlyCalendar({
                             </p>
                             <p className="text-[11px] text-[#888] mt-0.5">
                               {new Date(ev.startsAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
-                              {ev.type === "favourite" && (
-                                <Bookmark className="size-2.5 inline ml-1.5" />
-                              )}
                             </p>
                           </div>
+                          <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm ${
+                            ev.type === "rsvp"
+                              ? "bg-foreground text-background"
+                              : ev.type === "hosting"
+                                ? "bg-[#e5e5e5] text-[#333]"
+                                : "text-[#999]"
+                          }`}>
+                            {ev.type === "rsvp" ? "Going" : ev.type === "hosting" ? "Host" : "★"}
+                          </span>
                         </a>
                       ))}
                     </div>
@@ -417,19 +422,18 @@ function MonthlyCalendar({
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-5 text-[11px] text-[#888] pt-2 border-t border-[#f0f0f0]">
+        <div className="flex items-center gap-4 text-[11px] pt-3 border-t border-[#f0f0f0]">
           <div className="flex items-center gap-1.5">
-            <span className="inline-block w-[3px] h-3 bg-foreground rounded-full" />
-            RSVP&apos;d
+            <span className="inline-block px-1.5 py-0.5 bg-foreground text-background text-[9px] font-bold rounded-sm">Going</span>
+            <span className="text-[#888]">RSVP&apos;d</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="inline-block w-[3px] h-3 bg-foreground/60 rounded-full" />
-            Hosting
+            <span className="inline-block px-1.5 py-0.5 bg-[#e5e5e5] text-[#333] text-[9px] font-bold rounded-sm">Host</span>
+            <span className="text-[#888]">Hosting</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="inline-block w-[3px] h-3 bg-foreground/30 rounded-full" />
-            <Bookmark className="size-3" />
-            Bookmarked
+            <span className="text-[#999]">★</span>
+            <span className="text-[#888]">Bookmarked</span>
           </div>
         </div>
     </div>
