@@ -9,12 +9,6 @@ import { places } from "~/server/db/schema";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -24,7 +18,6 @@ import {
 } from "~/components/ui/dialog";
 import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
-import { Separator } from "~/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { usePostHog } from "posthog-js/react";
 import { LeafletMap } from "~/components/LeafletMap";
@@ -240,139 +233,130 @@ function PlaceDetailPage() {
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {tags.map((tag) => (
-            <Badge key={tag.slug} variant="secondary">{tag.label}</Badge>
+            <Badge key={tag.slug} variant="outline" className="text-[10px] uppercase tracking-wide font-semibold">{tag.label}</Badge>
           ))}
         </div>
       )}
 
       {/* Map */}
       {hasCoords && (
-        <LeafletMap
-          center={[parseFloat(place.latitude!), parseFloat(place.longitude!)]}
-          zoom={15}
-          markers={[{
-            lat: parseFloat(place.latitude!),
-            lng: parseFloat(place.longitude!),
-            label: place.name,
-            id: place.id,
-            glyph: place.category?.emoji ?? null,
-          }]}
-          height="300px"
-        />
+        <div className="border border-[#e5e5e5] rounded overflow-hidden">
+          <LeafletMap
+            center={[parseFloat(place.latitude!), parseFloat(place.longitude!)]}
+            zoom={15}
+            markers={[{
+              lat: parseFloat(place.latitude!),
+              lng: parseFloat(place.longitude!),
+              label: place.name,
+              id: place.id,
+              glyph: place.category?.emoji ?? null,
+            }]}
+            height="240px"
+          />
+        </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8">
         {/* Main column */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="space-y-8">
           {/* About */}
           {place.description && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">About</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{place.description}</p>
-              </CardContent>
-            </Card>
+            <section>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-3">About</h3>
+              <p className="text-[14px] text-[#444] leading-relaxed whitespace-pre-wrap">{place.description}</p>
+            </section>
           )}
 
           {/* Recent check-ins */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">
-                Recent Check-ins ({checkinCount})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recentCheckins.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No check-ins yet. Be the first!</p>
-              ) : (
-                <div className="space-y-4">
-                  {recentCheckins.map((checkin) => (
-                    <div key={checkin.id} className="flex items-start gap-3">
-                      <Avatar className="size-8">
-                        {checkin.userAvatarUrl && <AvatarImage src={checkin.userAvatarUrl} alt={checkin.userDisplayName} />}
-                        <AvatarFallback className="text-xs">
-                          {checkin.userDisplayName.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium">{checkin.userDisplayName}</span>
-                          <span className="text-muted-foreground text-xs">
-                            {new Date(checkin.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {checkin.note && (
-                          <p className="text-sm text-muted-foreground mt-0.5">{checkin.note}</p>
-                        )}
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-3">
+              Recent Check-ins ({checkinCount})
+            </h3>
+            {recentCheckins.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-3">No check-ins yet. Be the first!</p>
+            ) : (
+              <div className="divide-y divide-[#f0f0f0]">
+                {recentCheckins.map((checkin) => (
+                  <div key={checkin.id} className="flex items-start gap-3 py-3 first:pt-0">
+                    <Avatar className="size-8 shrink-0">
+                      {checkin.userAvatarUrl && <AvatarImage src={checkin.userAvatarUrl} alt={checkin.userDisplayName} />}
+                      <AvatarFallback className="text-xs bg-muted">
+                        {checkin.userDisplayName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-semibold">{checkin.userDisplayName}</span>
+                        <span className="text-[11px] text-[#999]">
+                          {new Date(checkin.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
+                      {checkin.note && (
+                        <p className="mt-1 text-[13px] text-[#666]">{checkin.note}</p>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Info card */}
-          <Card>
-            <CardContent className="pt-6 space-y-3 text-sm">
-              {place.address && (
-                <div>
-                  <span className="text-xs uppercase tracking-widest text-muted-foreground">Address</span>
-                  <p className="mt-0.5">{place.address}</p>
-                </div>
-              )}
-              {place.website && (
-                <div>
-                  <span className="text-xs uppercase tracking-widest text-muted-foreground">Website</span>
-                  <p className="mt-0.5">
-                    <a
-                      href={place.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline break-all"
-                    >
-                      {place.website}
-                    </a>
-                  </p>
-                </div>
-              )}
-              <Separator />
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total check-ins</span>
-                <span className="font-medium">{checkinCount}</span>
+        <div className="space-y-5">
+          {/* Info panel */}
+          <div className="border border-[#e5e5e5] rounded p-4 space-y-3 text-sm">
+            {place.address && (
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wide text-[#888]">Address</span>
+                <p className="mt-0.5 text-[13px]">{place.address}</p>
               </div>
-            </CardContent>
-          </Card>
+            )}
+            {place.website && (
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wide text-[#888]">Website</span>
+                <p className="mt-0.5 text-[13px]">
+                  <a
+                    href={place.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 break-all hover:text-foreground"
+                  >
+                    {place.website}
+                  </a>
+                </p>
+              </div>
+            )}
+            <div className="border-t border-[#f0f0f0] pt-3 flex justify-between">
+              <span className="text-[13px] text-[#888]">Total check-ins</span>
+              <span className="text-[13px] font-bold">{checkinCount}</span>
+            </div>
+          </div>
 
           {/* Upcoming events */}
           {upcomingEvents.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">Upcoming Events</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {upcomingEvents.map((event) => (
+            <div className="border border-[#e5e5e5] rounded p-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-wide text-[#888] mb-3">Upcoming Events</h3>
+              <div className="divide-y divide-[#f0f0f0]">
+                {upcomingEvents.map((event) => {
+                  const d = new Date(event.startsAt);
+                  return (
                     <Link
                       key={event.id}
                       to="/events/$eventId"
                       params={{ eventId: event.id }}
-                      className="block text-sm hover:text-primary transition-colors"
+                      className="block py-2 first:pt-0 last:pb-0 hover:text-foreground transition-colors"
                     >
-                      <span className="font-medium">{event.title}</span>
-                      <span className="text-muted-foreground ml-2">
-                        {new Date(event.startsAt).toLocaleDateString()}
-                      </span>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#555]">
+                        {d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      </p>
+                      <p className="text-[13px] font-semibold mt-0.5">{event.title}</p>
                     </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       </div>
