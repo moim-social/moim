@@ -183,7 +183,7 @@ function OnboardingPage() {
     <main className="mx-auto max-w-2xl py-8">
       <Card>
         <CardHeader className="space-y-3">
-          <img src="/logo.png" alt="moim" className="mx-auto h-10 w-auto" />
+          <img src="/logo.png" alt="moim" className="mx-auto h-10 w-auto grayscale" />
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
