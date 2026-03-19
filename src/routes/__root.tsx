@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
-import { CalendarDays, MapPin, User } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import appCss from "~/styles/globals.css?url";
 
 type SessionUser = { handle: string; displayName: string; avatarUrl?: string | null; isAdmin?: boolean } | null;
@@ -88,7 +88,7 @@ function NavLink(props: { to: string; children: React.ReactNode }) {
   return (
     <Link
       to={props.to}
-      className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] transition-colors hover:text-foreground [&.active]:font-bold [&.active]:text-foreground [&.active]:border-b-2 [&.active]:border-foreground [&.active]:pb-px"
     >
       {props.children}
     </Link>
@@ -100,6 +100,7 @@ function RootLayout() {
   const [user, setUser] = useState<SessionUser>(null);
   const [loaded, setLoaded] = useState(false);
   const [bottomBar, setBottomBar] = useState<ReactNode>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -129,17 +130,26 @@ function RootLayout() {
         <BottomBarSlotContext.Provider value={{ setBottomBar }}>
           <div className="relative flex min-h-screen flex-col">
             {/* Header */}
-            <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <header className="sticky top-0 z-50 w-full border-b-2 border-foreground bg-background">
               <div className="mx-auto flex h-14 w-full max-w-5xl items-center px-6">
-                <Link to="/" className="mr-8 flex items-center gap-2">
-                  <img src="/logo.png" alt="Moim" style={{ height: 28, width: "auto" }} />
-                  <span className="text-lg font-bold tracking-tight">Moim</span>
+                <Link to="/" className="mr-8 flex items-center">
+                  <span className="text-xl font-extrabold tracking-tight">moim</span>
                 </Link>
                 <nav className="hidden md:flex items-center gap-6">
                   <NavLink to="/events">Events</NavLink>
-                  <NavLink to="/places">Check-ins</NavLink>
+                  <NavLink to="/groups/my">Groups</NavLink>
+                  <NavLink to="/places">Places</NavLink>
                 </nav>
-                <div className="ml-auto flex items-center gap-3">
+                {/* Hamburger button (mobile) */}
+                <button
+                  type="button"
+                  className="ml-auto md:hidden p-2 text-foreground"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-label="Toggle menu"
+                >
+                  {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+                </button>
+                <div className="ml-auto hidden md:flex items-center gap-3">
                   {loaded && (
                     user ? (
                       <DropdownMenu>
@@ -151,7 +161,7 @@ function RootLayout() {
                                 {(user.displayName || user.handle).charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="hidden md:inline text-sm">@{user.handle}</span>
+                            <span className="hidden md:inline text-[13px] text-[#555]">@{user.handle}</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
@@ -193,6 +203,29 @@ function RootLayout() {
                   )}
                 </div>
               </div>
+              {/* Mobile menu overlay */}
+              {menuOpen && (
+                <div className="md:hidden border-t border-foreground/20 bg-background">
+                  <nav className="mx-auto max-w-5xl flex flex-col px-6 py-4 gap-3">
+                    <Link to="/events" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Events</Link>
+                    <Link to="/groups/my" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Groups</Link>
+                    <Link to="/places" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Places</Link>
+                    {loaded && user && (
+                      <>
+                        <hr className="border-foreground/10" />
+                        <span className="text-[13px] text-[#555]">@{user.handle}</span>
+                        <button type="button" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground text-left" onClick={() => { handleSignOut(); setMenuOpen(false); }}>Sign out</button>
+                      </>
+                    )}
+                    {loaded && !user && (
+                      <>
+                        <hr className="border-foreground/10" />
+                        <Link to="/auth/signin" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Sign in</Link>
+                      </>
+                    )}
+                  </nav>
+                </div>
+              )}
             </header>
 
             {/* Main content */}
@@ -210,44 +243,20 @@ function RootLayout() {
                 </p>
                 <nav className="flex gap-4">
                   <Link to="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Events</Link>
-                  <Link to="/places" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Check-ins</Link>
+                  <Link to="/groups/my" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Groups</Link>
+                  <Link to="/places" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Places</Link>
                 </nav>
               </div>
             </footer>
 
-            {/* Bottom bar slot + tab bar (mobile only) */}
-            <div className="fixed bottom-0 inset-x-0 z-50 md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-              {bottomBar && (
-                <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            {/* Bottom bar slot (mobile only, for page-specific CTAs) */}
+            {bottomBar && (
+              <div className="fixed bottom-0 inset-x-0 z-50 md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+                <div className="border-t bg-background">
                   {bottomBar}
                 </div>
-              )}
-              <nav className="border-t bg-background">
-              <div className="flex items-center justify-around h-14">
-                <Link
-                  to="/events"
-                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground [&.active]:text-foreground"
-                >
-                  <CalendarDays className="size-5" />
-                  <span className="text-[10px] font-medium">Events</span>
-                </Link>
-                <Link
-                  to="/places"
-                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground [&.active]:text-foreground"
-                >
-                  <MapPin className="size-5" />
-                  <span className="text-[10px] font-medium">Check-ins</span>
-                </Link>
-                <Link
-                  to={user ? "/settings" : "/auth/signin"}
-                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground [&.active]:text-foreground"
-                >
-                  <User className="size-5" />
-                  <span className="text-[10px] font-medium">{user ? "Profile" : "Sign in"}</span>
-                </Link>
               </div>
-              </nav>
-            </div>
+            )}
           </div>
           <Scripts />
         </BottomBarSlotContext.Provider>
