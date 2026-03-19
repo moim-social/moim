@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
-import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import {
@@ -393,7 +392,6 @@ function BannerSlideContent({ slide }: { slide: BannerSlide }) {
 
 function EventSlideContent({ slide }: { slide: EventSlide }) {
   const { categoryMap } = useEventCategoryMap();
-  const [gradFrom, gradTo] = pickGradient(slide.categoryId || slide.id);
   const start = new Date(slide.startsAt);
   const dateStr = start.toLocaleDateString(undefined, {
     weekday: "short",
@@ -417,7 +415,7 @@ function EventSlideContent({ slide }: { slide: EventSlide }) {
       style={{
         background: slide.headerImageUrl
           ? `linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.3)), url(${slide.headerImageUrl}) center/cover no-repeat`
-          : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
+          : "#fafafa",
       }}
     >
       <div className="mx-auto max-w-5xl w-full" style={{ color: "white" }}>
@@ -502,8 +500,6 @@ function EventCard({ event }: { event: EventItem }) {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
-
   const hostLabel = event.groupHandle
     ? (event.groupName ?? `@${event.groupHandle}`)
     : event.organizerHandle
@@ -518,7 +514,7 @@ function EventCard({ event }: { event: EventItem }) {
           style={{
             background: event.headerImageUrl
               ? `linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.2)), url(${event.headerImageUrl}) center/cover no-repeat`
-              : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
+              : "#fafafa",
           }}
         >
           {event.categoryId && (

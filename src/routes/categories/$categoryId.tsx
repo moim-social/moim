@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
-import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
@@ -137,7 +136,6 @@ function CategoryDetailPage() {
     );
   }
 
-  const [gradFrom, gradTo] = pickGradient(categoryId);
   const feedHandle = country
     ? `feed_${categoryId}_${country.toLowerCase()}`
     : `feed_${categoryId}`;
@@ -163,13 +161,10 @@ function CategoryDetailPage() {
   return (
     <div className="space-y-6">
       {/* Hero banner */}
-      <div
-        className="rounded-xl p-6 text-white"
-        style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
-      >
+      <div className="rounded-xl p-6 bg-[#fafafa] border">
         <Link
           to="/categories"
-          className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-3.5">
             <path fillRule="evenodd" d="M9.78 4.22a.75.75 0 0 1 0 1.06L7.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06L5.47 8.53a.75.75 0 0 1 0-1.06l3.25-3.25a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
@@ -177,17 +172,17 @@ function CategoryDetailPage() {
           All categories
         </Link>
         <h2 className="text-2xl font-bold mt-2">{category.label} Events</h2>
-        <p className="text-white/80 text-sm mt-1">
+        <p className="text-muted-foreground text-sm mt-1">
           {category.description ?? `Follow this feed from your fediverse account to get notified about new ${category.label.toLowerCase()} events.`}
         </p>
 
         <div className="mt-4 flex items-center justify-between">
-          <span className="text-xs text-white/60">@{feedHandle}</span>
+          <span className="text-xs text-muted-foreground">@{feedHandle}</span>
           <div className="flex items-center gap-2">
             <RemoteFollowDialog actorHandle={feedHandle}>
               <button
                 title={`Remote follow @${feedHandle}`}
-                className="text-white/70 hover:text-white transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 <UserPlus className="size-5" />
               </button>
@@ -197,7 +192,7 @@ function CategoryDetailPage() {
                 ? `/categories/${categoryId}/countries/${country}/events.ics`
                 : `/categories/${categoryId}/events.ics`}
               title={`Subscribe to ${category.label}${country ? ` (${country})` : ""} calendar`}
-              className="text-white/70 hover:text-white transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <CalendarPlus className="size-5" />
             </a>

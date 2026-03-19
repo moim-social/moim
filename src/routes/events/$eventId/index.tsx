@@ -9,7 +9,6 @@ import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, users, userFediverseAccounts } from "~/server/db/schema";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
-import { pickGradient } from "~/shared/gradients";
 import { renderMarkdown } from "~/lib/markdown";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -451,8 +450,6 @@ function EventDetailPage() {
       ? `${localStartDate} ${localStartTime} — ${localEndTime}`
       : `${localStartDate} ${localStartTime} — ${localEndDate} ${localEndTime}`;
 
-  const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
-
   const rsvpContent = event.externalUrl ? (
     <>
       <Separator />
@@ -662,7 +659,7 @@ function EventDetailPage() {
         style={{
           background: event.headerImageUrl
             ? `linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.3)), url(${event.headerImageUrl}) center/cover no-repeat`
-            : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
+            : "#fafafa",
         }}
       >
         <div className="mx-auto max-w-5xl">

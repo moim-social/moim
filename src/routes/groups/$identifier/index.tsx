@@ -8,7 +8,6 @@ import { db } from "~/server/db/client";
 import { actors } from "~/server/db/schema";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { languageLabel } from "~/shared/languages";
-import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
@@ -270,7 +269,7 @@ function ProfilePage() {
                   </div>
                   {place.category && (
                     <Badge variant="secondary" className="text-xs shrink-0">
-                      {`${place.category.emoji ?? ""} ${place.category.label}`.trim()}
+                      {place.category.label}
                     </Badge>
                   )}
                 </Link>
@@ -337,14 +336,12 @@ function TimelineEvent({
     minute: "2-digit",
   });
   const postedAt = formatRelativeDate(new Date(event.createdAt));
-  const [gradFrom] = pickGradient(event.categoryId || event.id);
 
   return (
     <div className="relative flex gap-4 pl-0">
       {/* Dot */}
       <div
-        className="relative z-10 mt-1.5 size-[15px] rounded-full border-2 border-background shrink-0"
-        style={{ backgroundColor: gradFrom }}
+        className="relative z-10 mt-1.5 size-[15px] rounded-full border-2 border-background bg-foreground/40 shrink-0"
       />
 
       {/* Content */}

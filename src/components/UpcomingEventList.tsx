@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { Clock, MapPin } from "lucide-react";
-import { pickGradient } from "~/shared/gradients";
 import type { CalendarEvent } from "~/components/EventCalendar";
 
 type UpcomingEventListProps = {
@@ -57,8 +56,6 @@ export function UpcomingEventList({ events }: UpcomingEventListProps) {
                 minute: "2-digit",
                 timeZone: evtTz,
               });
-              const [color] = pickGradient(event.categoryId || event.id);
-
               return (
                 <Link
                   key={event.id}
@@ -67,8 +64,8 @@ export function UpcomingEventList({ events }: UpcomingEventListProps) {
                   className="flex items-stretch hover:bg-accent/50 transition-colors first:rounded-t-lg last:rounded-b-lg"
                 >
                   <div
-                    className="shrink-0 rounded-l-lg"
-                    style={{ backgroundColor: color, width: 3 }}
+                    className="shrink-0 rounded-l-lg bg-foreground/30"
+                    style={{ width: 3 }}
                   />
                   <div className="flex-1 min-w-0 px-3 py-2.5">
                     <p className="text-sm font-medium leading-snug">{event.title}</p>

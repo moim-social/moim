@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEventCategories, useEventCategoryMap } from "~/hooks/useEventCategories";
-import { pickGradient } from "~/shared/gradients";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import {
@@ -233,8 +232,6 @@ function EventCard({ event }: { event: EventItem }) {
     minute: "2-digit",
     timeZone: eventTz,
   });
-  const [gradFrom, gradTo] = pickGradient(event.categoryId || event.id);
-
   const hostLabel = event.groupHandle
     ? (event.groupName ?? `@${event.groupHandle}`)
     : event.organizerHandle
@@ -258,7 +255,7 @@ function EventCard({ event }: { event: EventItem }) {
           style={{
             background: event.headerImageUrl
               ? `linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.2)), url(${event.headerImageUrl}) center/cover no-repeat`
-              : `linear-gradient(135deg, ${gradFrom}, ${gradTo})`,
+              : "#fafafa",
           }}
         >
           {event.categoryId && (

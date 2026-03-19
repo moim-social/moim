@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { pickGradient } from "~/shared/gradients";
 import { cn } from "~/lib/utils";
 import {
   getCalendarGrid,
@@ -162,7 +161,6 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
               {dayEvents.length > 0 && (
                 <div className="w-full mt-1 space-y-0.5 px-0.5">
                   {dayEvents.slice(0, 2).map((evt) => {
-                    const [color] = pickGradient(evt.categoryId || evt.id);
                     const start = new Date(evt.startsAt);
                     const timeStr = start.toLocaleTimeString(undefined, {
                       hour: "2-digit",
@@ -173,8 +171,7 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
                     return (
                       <div
                         key={evt.id}
-                        className="text-left rounded px-1 py-0.5 truncate"
-                        style={{ backgroundColor: `${color}20`, borderLeft: `2px solid ${color}` }}
+                        className="text-left rounded px-1 py-0.5 truncate bg-muted border-l-2 border-l-foreground/40"
                       >
                         <span className="text-[10px] text-muted-foreground">{timeStr}</span>
                         <p className="text-[10px] font-medium leading-tight truncate">{evt.title}</p>
@@ -230,7 +227,6 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
                   minute: "2-digit",
                   timeZone: evtTz,
                 });
-                const [color] = pickGradient(evt.categoryId || evt.id);
 
                 return (
                   <Link
@@ -240,8 +236,7 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
                     className="flex items-start gap-3 rounded-md p-2 hover:bg-accent/50 transition-colors"
                   >
                     <Calendar
-                      className="size-4 mt-0.5 shrink-0"
-                      style={{ color }}
+                      className="size-4 mt-0.5 shrink-0 text-muted-foreground"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium leading-snug">
