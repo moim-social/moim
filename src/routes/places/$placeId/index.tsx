@@ -195,25 +195,25 @@ function PlaceDetailPage() {
       <div className="flex items-start justify-between">
         <div>
           {categoryPath.length > 0 && (
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
               {categoryPath.map((category) => category.label).join(" / ")}
             </p>
           )}
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">
-            {`${place.category?.emoji ?? ""} ${place.name}`.trim()}
+          <h2 className="mt-1 text-2xl font-extrabold tracking-tight">
+            {place.name}
           </h2>
           {place.address && (
             <p className="text-muted-foreground mt-1">{place.address}</p>
           )}
           {mapLinks.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-1 text-sm">
+            <div className="flex flex-wrap gap-2 mt-2">
               {mapLinks.map(({ label, url }) => (
                 <a
                   key={label}
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary underline"
+                  className="border rounded px-2 py-0.5 text-xs hover:bg-[#fafafa] transition-colors"
                 >
                   {label}
                 </a>
@@ -322,19 +322,19 @@ function PlaceDetailPage() {
             <CardContent className="pt-6 space-y-3 text-sm">
               {place.address && (
                 <div>
-                  <span className="text-muted-foreground">Address</span>
-                  <p>{place.address}</p>
+                  <span className="text-xs uppercase tracking-widest text-muted-foreground">Address</span>
+                  <p className="mt-0.5">{place.address}</p>
                 </div>
               )}
               {place.website && (
                 <div>
-                  <span className="text-muted-foreground">Website</span>
-                  <p>
+                  <span className="text-xs uppercase tracking-widest text-muted-foreground">Website</span>
+                  <p className="mt-0.5">
                     <a
                       href={place.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:underline"
+                      className="hover:underline break-all"
                     >
                       {place.website}
                     </a>

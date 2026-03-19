@@ -44,7 +44,7 @@ export const Route = createFileRoute("/places/")({
 
 function formatCategory(category: PlaceCategorySummary | null | undefined): string | null {
   if (!category || !category.label) return null;
-  return `${category.emoji ?? ""} ${category.label}`.trim();
+  return category.label;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -484,7 +484,7 @@ function CheckinsPage() {
               <Link
                 to="/places/$placeId"
                 params={{ placeId: selectedPlace.id }}
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline shrink-0"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:underline hover:text-foreground shrink-0"
               >
                 View details
                 <ExternalLink className="size-3" />
@@ -609,16 +609,13 @@ function NearbyPlaceCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`flex-none snap-start w-[160px] rounded-lg border p-3 text-left transition-all ${
+      className={`flex-none snap-start w-[160px] border p-3 text-left transition-all ${
         selected
-          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-          : "border-border hover:border-primary/40 hover:bg-accent"
+          ? "border-2 border-foreground bg-[#f5f5f5]"
+          : "border-border hover:border-foreground/30 hover:bg-[#fafafa]"
       }`}
     >
       <div className="flex items-center gap-1.5">
-        {place.category?.emoji && (
-          <span className="text-lg">{place.category.emoji}</span>
-        )}
         <span className="font-medium text-sm truncate">{place.name}</span>
       </div>
       <div className="mt-1 text-xs text-muted-foreground">
@@ -676,12 +673,11 @@ function ConfirmationCard({
       </button>
       <CardContent className="pt-6 space-y-3">
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+          <Badge variant="outline" className="uppercase tracking-wide text-xs">
             Checked in
           </Badge>
         </div>
         <h3 className="font-semibold">
-          {confirmation.placeEmoji && <span className="mr-1">{confirmation.placeEmoji}</span>}
           {confirmation.placeName}
         </h3>
         {confirmation.note && (
