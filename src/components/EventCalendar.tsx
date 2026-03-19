@@ -127,9 +127,8 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
         ))}
       </div>
 
-      {/* Calendar grid — editorial ledger */}
+      {/* Calendar grid */}
       {(() => {
-        // Group days into weeks of 7
         const weeks: Date[][] = [];
         for (let i = 0; i < days.length; i += 7) {
           weeks.push(days.slice(i, i + 7));
@@ -150,35 +149,42 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
                   type="button"
                   onClick={() => handleDayClick(day)}
                   className={cn(
-                    "flex flex-col items-start p-2 text-left min-h-[88px] transition-colors",
+                    "flex flex-col items-start p-1.5 text-left min-h-[96px] transition-colors",
                     di < 6 && "border-r border-[#f0f0f0]",
-                    !inMonth && "opacity-30",
+                    !inMonth && "opacity-25",
                     isSelected && "bg-[#f5f5f5]",
                   )}
                 >
                   <span className={cn(
-                    "text-[13px] tabular-nums mb-1.5",
+                    "text-[12px] tabular-nums mb-1",
                     todayDay
-                      ? "font-extrabold text-foreground"
+                      ? "font-extrabold text-foreground underline underline-offset-2"
                       : hasEvents
                         ? "font-semibold text-[#333]"
-                        : "text-[#bbb]",
+                        : "text-[#ccc]",
                   )}>
                     {day.getDate()}
-                    {todayDay && <span className="ml-1 text-[9px] font-bold uppercase tracking-wide align-middle">today</span>}
                   </span>
-                  {dayEvents.slice(0, 2).map((evt) => (
-                    <span
-                      key={evt.id}
-                      className="block text-[10px] leading-snug truncate w-full py-[1px]"
-                      title={evt.title}
-                    >
-                      <span className="inline-block w-1.5 h-1.5 bg-foreground mr-1 align-middle" />
-                      <span className="font-medium">{evt.title}</span>
-                    </span>
-                  ))}
+                  {dayEvents.slice(0, 2).map((evt) => {
+                    const start = new Date(evt.startsAt);
+                    const timeStr = start.toLocaleTimeString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      timeZone: evt.timezone ?? undefined,
+                    });
+                    return (
+                      <div
+                        key={evt.id}
+                        className="w-full border-l-2 border-l-foreground/40 pl-1 mb-0.5 truncate"
+                        title={evt.title}
+                      >
+                        <span className="text-[9px] text-[#999]">{timeStr}</span>
+                        <p className="text-[10px] font-medium leading-tight truncate">{evt.title}</p>
+                      </div>
+                    );
+                  })}
                   {dayEvents.length > 2 && (
-                    <span className="text-[10px] text-[#999]">+{dayEvents.length - 2}</span>
+                    <span className="text-[9px] text-[#999] pl-1">+{dayEvents.length - 2} more</span>
                   )}
                 </button>
               );
