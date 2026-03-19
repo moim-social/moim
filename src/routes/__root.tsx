@@ -207,7 +207,6 @@ function RootLayout() {
                 <div className="md:hidden border-t border-foreground/20 bg-background">
                   <nav className="mx-auto max-w-5xl flex flex-col px-6 py-4 gap-3">
                     <Link to="/events" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Events</Link>
-                    <Link to="/groups/my" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Groups</Link>
                     <Link to="/places" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Places</Link>
                     {loaded && user && (
                       <>
