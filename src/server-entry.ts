@@ -101,6 +101,10 @@ import { POST as mastodonOAuthStart } from "./routes/auth/mastodon/-oauth-start"
 import { GET as mastodonOAuthCallback } from "./routes/auth/mastodon/-oauth-callback"
 import { POST as mastodonOAuthCallbackApi } from "./routes/auth/mastodon/-oauth-callback-api"
 import { startOAuthCleanupInterval } from "./server/mastodon-oauth-sessions"
+import { POST as hackerspubGraphqlStart } from "./routes/auth/hackerspub/-graphql-start"
+import { GET as hackerspubGraphqlCallback } from "./routes/auth/hackerspub/-graphql-callback"
+import { POST as hackerspubGraphqlCallbackApi } from "./routes/auth/hackerspub/-graphql-callback-api"
+import { startHackersPubCleanupInterval } from "./server/hackerspub-sessions"
 import { startGdprCleanupInterval } from "./server/events/gdpr-cleanup"
 
 const startFetch = createStartHandler(defaultStreamHandler);
@@ -111,6 +115,7 @@ app.use(integrateFederation(federation, () => undefined));
 // Start the MiAuth session cleanup interval
 startCleanupInterval();
 startOAuthCleanupInterval();
+startHackersPubCleanupInterval();
 startGdprCleanupInterval();
 
 const apiRouter = createRouter();
@@ -212,6 +217,14 @@ apiRouter.post("/auth/mastodon/oauth-start", defineEventHandler(async (event) =>
 
 apiRouter.post("/auth/mastodon/oauth-callback", defineEventHandler(async (event) => {
   return mastodonOAuthCallbackApi({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/auth/hackerspub/graphql-start", defineEventHandler(async (event) => {
+  return hackerspubGraphqlStart({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/auth/hackerspub/graphql-callback", defineEventHandler(async (event) => {
+  return hackerspubGraphqlCallbackApi({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/session", defineEventHandler(async (event) => {
@@ -905,6 +918,11 @@ app.use("/auth/misskey/miauth-callback", defineEventHandler(async (event) => {
 // Mastodon OAuth callback (outside /api)
 app.use("/auth/mastodon/oauth-callback", defineEventHandler(async (event) => {
   return mastodonOAuthCallback({ request: toWebRequest(event) });
+}));
+
+// HackersPub GraphQL callback (outside /api)
+app.use("/auth/hackerspub/callback", defineEventHandler(async (event) => {
+  return hackerspubGraphqlCallback({ request: toWebRequest(event) });
 }));
 
 // Map image routes
