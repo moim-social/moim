@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { resolveCategoryLabel } from "~/lib/place";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -80,7 +81,7 @@ export function BasicInfoCard({
             <SelectContent>
               {categories.map((cat) => (
                 <SelectItem key={cat.slug} value={cat.slug}>
-                  {cat.label}
+                  {resolveCategoryLabel(cat)}
                 </SelectItem>
               ))}
             </SelectContent>

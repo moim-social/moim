@@ -13,7 +13,7 @@ import {
 } from "~/components/ui/dialog";
 import { Textarea } from "~/components/ui/textarea";
 import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
-import type { PlaceCategoryOption, PlaceCategorySummary } from "~/lib/place";
+import { type PlaceCategoryOption, type PlaceCategorySummary, resolveCategoryLabel } from "~/lib/place";
 
 export const Route = createFileRoute("/admin/places/")({
   component: AdminPlacesPage,
@@ -212,7 +212,7 @@ function AdminPlacesPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {place.category ? `${place.category.emoji} ${place.category.label}` : "Uncategorized"}
+                    {place.category?.label ? `${place.category.emoji} ${resolveCategoryLabel(place.category as { label: string; labels?: Record<string, string> })}` : "Uncategorized"}
                   </td>
                   <td className="px-4 py-3 text-right">{place.checkinCount}</td>
                   <td className="px-4 py-3 text-muted-foreground">

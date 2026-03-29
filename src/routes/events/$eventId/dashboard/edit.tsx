@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useEventCategories } from "~/hooks/useEventCategories";
+import { resolveCategoryLabel } from "~/lib/place";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { DateTimePicker } from "~/components/DateTimePicker";
@@ -458,7 +459,7 @@ function EditTab() {
                   <SelectContent>
                     {categories.map((cat) => (
                       <SelectItem key={cat.slug} value={cat.slug}>
-                        {cat.label}
+                        {resolveCategoryLabel(cat)}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -181,6 +181,7 @@ export const eventTiers = pgTable("event_tiers", {
 export const eventCategories = pgTable("event_categories", {
   slug: varchar("slug", { length: 64 }).primaryKey(),
   label: varchar("label", { length: 128 }).notNull(),
+  labels: jsonb("labels").$type<Record<string, string>>().default({}).notNull(),
   emoji: varchar("emoji", { length: 16 }),
   description: text("description"),
   sortOrder: integer("sort_order").default(0).notNull(),

@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { resolveCategoryLabel } from "~/lib/place";
 
 export type EventCategoryOption = {
   slug: string;
   label: string;
+  labels: Record<string, string>;
   emoji: string | null;
   description: string | null;
   sortOrder: number;
@@ -50,7 +52,7 @@ export function useEventCategories() {
 
 export function useEventCategoryMap() {
   const { categories, loading } = useEventCategories();
-  const categoryMap = new Map(categories.map((c) => [c.slug, c.label]));
+  const categoryMap = new Map(categories.map((c) => [c.slug, resolveCategoryLabel(c)]));
   const categoryDetailMap = new Map(categories.map((c) => [c.slug, c]));
   return { categoryMap, categoryDetailMap, loading };
 }

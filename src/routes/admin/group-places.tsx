@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { resolveCategoryLabel } from "~/lib/place";
 import { createFileRoute } from "@tanstack/react-router";
 import { Search, Plus, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
@@ -207,7 +208,7 @@ function AdminGroupPlacesPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {place.category
-                      ? `${place.category.emoji ?? ""} ${place.category.label}`.trim()
+                      ? `${place.category.emoji ?? ""} ${place.category.label ? resolveCategoryLabel(place.category as { label: string; labels?: Record<string, string> }) : ""}`.trim()
                       : "Uncategorized"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">

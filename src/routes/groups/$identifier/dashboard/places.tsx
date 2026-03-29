@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
-import type { PlaceCategoryOption } from "~/lib/place";
+import { type PlaceCategoryOption, resolveCategoryLabel } from "~/lib/place";
 import { EmptyState, PageHeader } from "~/components/dashboard";
 import { useGroupDashboard, type GroupData } from "./route";
 
@@ -135,7 +135,7 @@ function PlacesTab() {
               </div>
               {place.category && (
                 <Badge variant="secondary" className="text-xs shrink-0">
-                  {`${place.category.emoji ?? ""} ${place.category.label}`.trim()}
+                  {`${place.category.emoji ?? ""} ${place.category.label ? resolveCategoryLabel(place.category as { label: string; labels?: Record<string, string> }) : ""}`.trim()}
                 </Badge>
               )}
               <Button

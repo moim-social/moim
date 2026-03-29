@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useEventCategories } from "~/hooks/useEventCategories";
+import { resolveCategoryLabel } from "~/lib/place";
 import { LANGUAGES } from "~/shared/languages";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
@@ -274,7 +275,7 @@ function EditGroupPage() {
                       checked={selectedCategories.includes(cat.slug)}
                       onCheckedChange={() => toggleCategory(cat.slug)}
                     />
-                    <span className="text-sm">{cat.label}</span>
+                    <span className="text-sm">{resolveCategoryLabel(cat)}</span>
                   </label>
                 ))}
               </div>

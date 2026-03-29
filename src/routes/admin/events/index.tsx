@@ -5,6 +5,7 @@ import { Input } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEventCategories } from "~/hooks/useEventCategories";
+import { resolveCategoryLabel } from "~/lib/place";
 
 export const Route = createFileRoute("/admin/events/")({
   component: AdminEventsPage,
@@ -257,7 +258,7 @@ function AdminEventsPage() {
                         <option value="" disabled>—</option>
                         {categories.map((cat) => (
                           <option key={cat.slug} value={cat.slug}>
-                            {cat.label}
+                            {resolveCategoryLabel(cat)}
                           </option>
                         ))}
                       </select>
