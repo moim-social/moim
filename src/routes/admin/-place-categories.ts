@@ -20,6 +20,7 @@ function normalizeOptionalString(value: unknown): string | null {
 type ImportCategoryRecord = {
   slug: string;
   label: string;
+  labels: Record<string, string>;
   emoji: string;
   parentSlug: string | null;
   sortOrder: number;
@@ -39,6 +40,9 @@ function validateImportCategories(input: unknown): ImportCategoryRecord[] {
     const parentSlug = normalizeOptionalString(record?.parentSlug);
     const sortOrder = Number(record?.sortOrder ?? 0);
     const enabled = record?.enabled !== false;
+    const labels = record?.labels != null && typeof record.labels === "object" && !Array.isArray(record.labels)
+      ? (record.labels as Record<string, string>)
+      : {};
 
     if (!slug || !label || !emoji || Number.isNaN(sortOrder)) {
       throw new Error(`category at index ${index} is missing required fields`);
@@ -47,6 +51,7 @@ function validateImportCategories(input: unknown): ImportCategoryRecord[] {
     return {
       slug,
       label,
+      labels,
       emoji,
       parentSlug,
       sortOrder,
@@ -112,6 +117,7 @@ function buildExportPayload(rows: Awaited<ReturnType<typeof getPlaceCategories>>
     categories: rows.map((row) => ({
       slug: row.slug,
       label: row.label,
+      labels: row.labels,
       emoji: row.emoji,
       parentSlug: row.parentSlug,
       sortOrder: row.sortOrder,
@@ -147,6 +153,9 @@ export const POST = async ({ request }: { request: Request }) => {
   const parentSlug = normalizeOptionalString(body?.parentSlug);
   const sortOrder = Number(body?.sortOrder ?? 0);
   const enabled = body?.enabled !== false;
+  const labels = body?.labels != null && typeof body.labels === "object" && !Array.isArray(body.labels)
+    ? (body.labels as Record<string, string>)
+    : {};
 
   if (!slug || !label || !emoji || Number.isNaN(sortOrder)) {
     return Response.json(
@@ -170,6 +179,7 @@ export const POST = async ({ request }: { request: Request }) => {
       .update(placeCategories)
       .set({
         label,
+        labels,
         emoji,
         parentSlug,
         sortOrder,
@@ -187,6 +197,7 @@ export const POST = async ({ request }: { request: Request }) => {
     .values({
       slug,
       label,
+      labels,
       emoji,
       parentSlug,
       sortOrder,
@@ -246,6 +257,11 @@ export const PATCH = async ({ request }: { request: Request }) => {
     updates.sortOrder = sortOrder;
   }
   if (body && "enabled" in body) updates.enabled = body.enabled === true;
+  if (body && "labels" in body) {
+    updates.labels = body.labels != null && typeof body.labels === "object" && !Array.isArray(body.labels)
+      ? (body.labels as Record<string, string>)
+      : {};
+  }
 
   const [category] = await db
     .update(placeCategories)
@@ -302,6 +318,7 @@ export const PUT = async ({ request }: { request: Request }) => {
             .update(placeCategories)
             .set({
               label: row.label,
+              ...(row.labels != null ? { labels: row.labels } : {}),
               emoji: row.emoji,
               parentSlug: row.parentSlug,
               sortOrder: row.sortOrder,
@@ -315,6 +332,7 @@ export const PUT = async ({ request }: { request: Request }) => {
             .values({
               slug: row.slug,
               label: row.label,
+              labels: row.labels,
               emoji: row.emoji,
               parentSlug: row.parentSlug,
               sortOrder: row.sortOrder,

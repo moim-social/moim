@@ -1,13 +1,29 @@
 export type PlaceCategorySummary = {
   slug: string;
   label: string | null;
+  labels?: Record<string, string>;
   emoji: string | null;
   enabled?: boolean;
 };
 
+export function resolveCategoryLabel(
+  category: { label: string; labels?: Record<string, string> },
+): string {
+  if (category.labels) {
+    const browserLocale = typeof navigator !== "undefined"
+      ? navigator.language.split("-")[0]
+      : undefined;
+    if (browserLocale && category.labels[browserLocale]) {
+      return category.labels[browserLocale];
+    }
+  }
+  return category.label;
+}
+
 export type PlaceCategoryOption = {
   slug: string;
   label: string;
+  labels?: Record<string, string>;
   emoji: string;
   depth: number;
   enabled: boolean;

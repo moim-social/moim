@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, Pencil, Plus, Upload } from "lucide-react";
+import { Download, Pencil, Plus, Upload, X } from "lucide-react";
 import { EmojiPickerInput } from "~/components/EmojiPickerInput";
 import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
 import { Button } from "~/components/ui/button";
@@ -16,6 +16,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import type { PlaceCategoryOption } from "~/lib/place";
+import { SUPPORTED_LOCALES } from "~/shared/place-categories";
 
 export const Route = createFileRoute("/admin/place-categories/")({
   component: AdminPlaceCategoriesPage,
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/admin/place-categories/")({
 type AdminPlaceCategory = {
   slug: string;
   label: string;
+  labels: Record<string, string>;
   emoji: string;
   parentSlug: string | null;
   sortOrder: number;
@@ -34,6 +36,7 @@ type AdminPlaceCategory = {
 type CategoryFormState = {
   slug: string;
   label: string;
+  translatedLabels: Record<string, string>;
   emoji: string;
   parentSlug: string;
   sortOrder: string;
@@ -43,6 +46,7 @@ type CategoryFormState = {
 const emptyForm: CategoryFormState = {
   slug: "",
   label: "",
+  translatedLabels: {},
   emoji: "",
   parentSlug: "",
   sortOrder: "0",
@@ -69,6 +73,7 @@ function AdminPlaceCategoriesPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importText, setImportText] = useState("");
   const [form, setForm] = useState<CategoryFormState>(emptyForm);
+  const [selectedLocale, setSelectedLocale] = useState<string>("");
 
   const rows = useMemo(() => flattenCategories(categories), [categories]);
 
@@ -101,6 +106,7 @@ function AdminPlaceCategoriesPage() {
     setForm({
       slug: category.slug,
       label: category.label,
+      translatedLabels: { ...category.labels },
       emoji: category.emoji,
       parentSlug: category.parentSlug ?? "",
       sortOrder: String(category.sortOrder),
@@ -161,9 +167,16 @@ function AdminPlaceCategoriesPage() {
     setSaving(true);
     setError(null);
 
+    const labels: Record<string, string> = {};
+    for (const [loc, val] of Object.entries(form.translatedLabels)) {
+      const trimmed = val.trim();
+      if (trimmed) labels[loc] = trimmed;
+    }
+
     const payload = {
       slug: form.slug.trim(),
       label: form.label.trim(),
+      labels,
       emoji: form.emoji.trim(),
       parentSlug: form.parentSlug || null,
       sortOrder: Number(form.sortOrder),
@@ -203,6 +216,16 @@ function AdminPlaceCategoriesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <select
+            className="h-9 rounded-md border bg-background px-3 text-sm"
+            value={selectedLocale}
+            onChange={(e) => setSelectedLocale(e.target.value)}
+          >
+            <option value="">Default</option>
+            {SUPPORTED_LOCALES.map((loc) => (
+              <option key={loc} value={loc}>{loc}</option>
+            ))}
+          </select>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="mr-1 size-4" />
             Export JSON
@@ -251,7 +274,13 @@ function AdminPlaceCategoriesPage() {
                   <tr key={category.slug} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3">
                       <div className="font-medium" style={{ paddingLeft: `${category.depth * 20}px` }}>
-                        {category.emoji} {category.label}
+                        {category.emoji}{" "}
+                        {selectedLocale && category.labels?.[selectedLocale]
+                          ? category.labels[selectedLocale]
+                          : category.label}
+                        {selectedLocale && !category.labels?.[selectedLocale] && (
+                          <span className="ml-1 text-xs text-muted-foreground">(fallback)</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{category.slug}</td>
@@ -295,12 +324,72 @@ function AdminPlaceCategoriesPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="category-label">Label</Label>
+                <Label htmlFor="category-label">Label (fallback)</Label>
                 <Input
                   id="category-label"
                   value={form.label}
                   onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
                 />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Translations</Label>
+                <div className="space-y-2">
+                  {Object.entries(form.translatedLabels).map(([loc, val]) => (
+                    <div key={loc} className="flex items-center gap-2">
+                      <span className="w-10 shrink-0 text-center text-xs font-medium text-muted-foreground uppercase">{loc}</span>
+                      <Input
+                        value={val}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            translatedLabels: {
+                              ...current.translatedLabels,
+                              [loc]: event.target.value,
+                            },
+                          }))
+                        }
+                        placeholder={form.label || "Translated label"}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setForm((current) => {
+                            const { [loc]: _, ...rest } = current.translatedLabels;
+                            return { ...current, translatedLabels: rest };
+                          })
+                        }
+                      >
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {SUPPORTED_LOCALES.filter((loc) => !(loc in form.translatedLabels)).length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="h-9 w-20 shrink-0 rounded-md border bg-background px-2 text-sm"
+                        value=""
+                        onChange={(e) => {
+                          const loc = e.target.value;
+                          if (!loc) return;
+                          setForm((current) => ({
+                            ...current,
+                            translatedLabels: {
+                              ...current.translatedLabels,
+                              [loc]: "",
+                            },
+                          }));
+                        }}
+                      >
+                        <option value="">Add...</option>
+                        {SUPPORTED_LOCALES.filter((loc) => !(loc in form.translatedLabels)).map((loc) => (
+                          <option key={loc} value={loc}>{loc}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category-emoji">Emoji</Label>

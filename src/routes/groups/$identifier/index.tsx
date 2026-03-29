@@ -8,6 +8,7 @@ import { db } from "~/server/db/client";
 import { actors } from "~/server/db/schema";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { languageLabel } from "~/shared/languages";
+import { resolveCategoryLabel } from "~/lib/place";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
@@ -240,7 +241,7 @@ function ProfilePage() {
                 </div>
                 {place.category && (
                   <span className="text-[11px] text-[#888] border border-[#e5e5e5] rounded px-1.5 py-0.5 shrink-0 ml-3">
-                    {place.category.label}
+                    {place.category.label ? resolveCategoryLabel(place.category as { label: string; labels?: Record<string, string> }) : place.category.slug}
                   </span>
                 )}
               </Link>

@@ -1,4 +1,4 @@
-import type { PlaceCategoryOption } from "~/lib/place";
+import { type PlaceCategoryOption, resolveCategoryLabel } from "~/lib/place";
 
 type PlaceCategorySelectProps = {
   value: string;
@@ -15,7 +15,7 @@ type PlaceCategorySelectProps = {
 
 function formatOptionLabel(option: PlaceCategoryOption): string {
   const prefix = option.depth > 0 ? `${"  ".repeat(option.depth)}↳ ` : "";
-  return `${prefix}${option.label}`;
+  return `${prefix}${resolveCategoryLabel(option)}`;
 }
 
 export function PlaceCategorySelect({

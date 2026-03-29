@@ -22,7 +22,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { usePostHog } from "posthog-js/react";
 import { LeafletMap } from "~/components/LeafletMap";
 import { Calendar } from "lucide-react";
-import type { PlaceCategorySummary } from "~/lib/place";
+import { type PlaceCategorySummary, resolveCategoryLabel } from "~/lib/place";
 
 const getPlaceMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ placeId: z.string() })))
@@ -189,7 +189,7 @@ function PlaceDetailPage() {
         <div>
           {categoryPath.length > 0 && (
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              {categoryPath.map((category) => category.label).join(" / ")}
+              {categoryPath.map((cat) => cat.label ? resolveCategoryLabel(cat as { label: string; labels?: Record<string, string> }) : cat.slug).join(" / ")}
             </p>
           )}
           <h2 className="mt-1 text-2xl font-extrabold tracking-tight">

@@ -8,6 +8,7 @@ import {
   type NearbyPlace,
   type PlaceCategoryOption,
   type PlaceCategorySummary,
+  resolveCategoryLabel,
 } from "~/lib/place";
 import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/places/")({
 
 function formatCategory(category: PlaceCategorySummary | null | undefined): string | null {
   if (!category || !category.label) return null;
-  return category.label;
+  return resolveCategoryLabel(category as { label: string; labels?: Record<string, string> });
 }
 
 function formatRelativeTime(dateStr: string): string {
