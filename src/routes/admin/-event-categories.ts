@@ -25,6 +25,7 @@ function toSnakeCase(input: string): string {
 type ImportCategoryRecord = {
   slug: string;
   label: string;
+  labels: Record<string, string>;
   emoji: string | null;
   description: string | null;
   sortOrder: number;
@@ -44,6 +45,9 @@ function validateImportCategories(input: unknown): ImportCategoryRecord[] {
     const description = normalizeOptionalString(record?.description);
     const sortOrder = Number(record?.sortOrder ?? 0);
     const enabled = record?.enabled !== false;
+    const labels = record?.labels != null && typeof record.labels === "object" && !Array.isArray(record.labels)
+      ? (record.labels as Record<string, string>)
+      : {};
 
     if (!rawSlug || !label || Number.isNaN(sortOrder)) {
       throw new Error(`category at index ${index} is missing required fields (slug, label)`);
@@ -54,7 +58,7 @@ function validateImportCategories(input: unknown): ImportCategoryRecord[] {
       throw new Error(`category at index ${index} has invalid slug "${rawSlug}" (must be snake_case: lowercase letters, digits, underscores)`);
     }
 
-    return { slug, label, emoji, description, sortOrder, enabled };
+    return { slug, label, labels, emoji, description, sortOrder, enabled };
   });
 
   const slugSet = new Set<string>();
@@ -74,6 +78,7 @@ function buildExportPayload(rows: Awaited<ReturnType<typeof getEventCategories>>
     categories: rows.map((row) => ({
       slug: row.slug,
       label: row.label,
+      labels: row.labels,
       emoji: row.emoji,
       description: row.description,
       sortOrder: row.sortOrder,
@@ -105,6 +110,9 @@ export const POST = async ({ request }: { request: Request }) => {
   const description = normalizeOptionalString(body?.description);
   const sortOrder = Number(body?.sortOrder ?? 0);
   const enabled = body?.enabled !== false;
+  const labels = body?.labels != null && typeof body.labels === "object" && !Array.isArray(body.labels)
+    ? (body.labels as Record<string, string>)
+    : {};
 
   if (!rawSlug || !label || Number.isNaN(sortOrder)) {
     return Response.json(
@@ -129,6 +137,7 @@ export const POST = async ({ request }: { request: Request }) => {
       .update(eventCategories)
       .set({
         label,
+        labels,
         emoji,
         description,
         sortOrder,
@@ -146,6 +155,7 @@ export const POST = async ({ request }: { request: Request }) => {
     .values({
       slug,
       label,
+      labels,
       emoji,
       description,
       sortOrder,
@@ -195,6 +205,11 @@ export const PATCH = async ({ request }: { request: Request }) => {
     updates.sortOrder = sortOrder;
   }
   if (body && "enabled" in body) updates.enabled = body.enabled === true;
+  if (body && "labels" in body) {
+    updates.labels = body.labels != null && typeof body.labels === "object" && !Array.isArray(body.labels)
+      ? (body.labels as Record<string, string>)
+      : {};
+  }
 
   const [category] = await db
     .update(eventCategories)
@@ -251,6 +266,7 @@ export const PUT = async ({ request }: { request: Request }) => {
             .update(eventCategories)
             .set({
               label: row.label,
+              ...(Object.keys(row.labels).length > 0 ? { labels: row.labels } : {}),
               emoji: row.emoji,
               description: row.description,
               sortOrder: row.sortOrder,
@@ -264,6 +280,7 @@ export const PUT = async ({ request }: { request: Request }) => {
             .values({
               slug: row.slug,
               label: row.label,
+              labels: row.labels,
               emoji: row.emoji,
               description: row.description,
               sortOrder: row.sortOrder,
