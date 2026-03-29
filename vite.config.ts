@@ -11,6 +11,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [
+    lingui(),
     tanstackStart({
       server: {
         entry: "./server-entry.ts",
@@ -23,7 +24,6 @@ export default defineConfig({
     }),
     tsconfigPaths(),
     tailwindcss(),
-    lingui(),
   ],
   esbuild: {
     jsx: "automatic",
