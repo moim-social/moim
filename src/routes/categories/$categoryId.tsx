@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
+import { resolveCategoryLabel } from "~/lib/place";
 import { Button } from "~/components/ui/button";
 import { RemoteFollowDialog } from "~/components/RemoteFollowDialog";
 import { EventCalendar, type CalendarEvent } from "~/components/EventCalendar";
@@ -80,7 +81,7 @@ function CategoryDetailPage() {
   const navigate = useNavigate({ from: "/categories/$categoryId" });
   const { categoryDetailMap } = useEventCategoryMap();
   const categoryDetail = categoryDetailMap.get(categoryId);
-  const category = categoryDetail ? { slug: categoryId, label: categoryDetail.label, description: categoryDetail.description } : null;
+  const category = categoryDetail ? { slug: categoryId, label: resolveCategoryLabel(categoryDetail), description: categoryDetail.description } : null;
   const isMobile = useIsMobile();
 
   const now = new Date();

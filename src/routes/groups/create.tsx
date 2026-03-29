@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { usePostHog } from "posthog-js/react";
 import { useEventCategories } from "~/hooks/useEventCategories";
+import { resolveCategoryLabel } from "~/lib/place";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -369,7 +370,7 @@ function CreateGroupPage() {
                       checked={selectedCategories.includes(cat.slug)}
                       onCheckedChange={() => toggleCategory(cat.slug)}
                     />
-                    <span className="text-sm">{cat.label}</span>
+                    <span className="text-sm">{resolveCategoryLabel(cat)}</span>
                   </label>
                 ))}
               </div>

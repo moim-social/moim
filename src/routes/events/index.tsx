@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEventCategories, useEventCategoryMap } from "~/hooks/useEventCategories";
+import { resolveCategoryLabel } from "~/lib/place";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import {
@@ -52,7 +53,7 @@ function EventsPage() {
   const { category, country } = Route.useSearch();
   const navigate = useNavigate({ from: "/events/" });
   const { categories } = useEventCategories();
-  const categoryMap = new Map(categories.map(c => [c.slug, c.label]));
+  const categoryMap = new Map(categories.map(c => [c.slug, resolveCategoryLabel(c)]));
   const [user, setUser] = useState<{ handle: string } | null>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -169,7 +170,7 @@ function EventsPage() {
                   className="h-7 text-xs shrink-0"
                   onClick={() => updateSearch({ category: isActive ? undefined : cat.slug })}
                 >
-                  {cat.label}
+                  {resolveCategoryLabel(cat)}
                 </Button>
               );
             })}
