@@ -93,6 +93,7 @@ export const GET = async ({ request }: { request: Request }) => {
     ? getCategoryPath(place.categoryId, await getPlaceCategories(true)).map((row) => ({
         slug: row.slug,
         label: row.label,
+        labels: row.labels,
         emoji: row.emoji,
         enabled: row.enabled,
       }))

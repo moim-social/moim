@@ -13,6 +13,7 @@ export type PlaceCategoryTreeNode = PlaceCategoryRow & {
 export type PlaceCategoryOption = {
   slug: string;
   label: string;
+  labels: Record<string, string>;
   emoji: string;
   depth: number;
   enabled: boolean;
@@ -83,6 +84,7 @@ export function flattenPlaceCategoryTree(
     {
       slug: node.slug,
       label: resolveCategoryLabel(node, locale),
+      labels: node.labels,
       emoji: node.emoji,
       depth: node.depth,
       enabled: node.enabled,
@@ -149,6 +151,7 @@ export async function getPlaceCategorySummary(
   return {
     slug: row.slug,
     label: resolveCategoryLabel(row, locale),
+    labels: row.labels,
     emoji: row.emoji,
     enabled: row.enabled,
   };
@@ -172,6 +175,7 @@ export async function getPlaceCategorySummaries(
   return rows.map((row) => ({
     slug: row.slug,
     label: resolveCategoryLabel(row, locale),
+    labels: row.labels,
     emoji: row.emoji,
     enabled: row.enabled,
   }));

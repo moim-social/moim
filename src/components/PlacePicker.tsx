@@ -7,6 +7,7 @@ import {
   type NearbyPlace,
   type PlaceCategoryOption,
   type PlaceCategorySummary,
+  resolveCategoryLabel,
 } from "~/lib/place";
 import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
@@ -302,7 +303,7 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
             )}
             {value.category?.label && (
               <Badge variant="secondary" className="mt-1 text-[10px]">
-                {value.category.label}
+                {resolveCategoryLabel(value.category as { label: string; labels?: Record<string, string> })}
               </Badge>
             )}
             {value.latitude && value.longitude && (
@@ -467,7 +468,7 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
                   </div>
                   {place.category?.label && (
                     <div className="mt-1 text-[11px] text-muted-foreground">
-                      {place.category.label}
+                      {resolveCategoryLabel(place.category as { label: string; labels?: Record<string, string> })}
                     </div>
                   )}
                 </div>
