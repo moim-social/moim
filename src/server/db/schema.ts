@@ -192,6 +192,7 @@ export const eventCategories = pgTable("event_categories", {
 export const placeCategories = pgTable("place_categories", {
   slug: varchar("slug", { length: 64 }).primaryKey(),
   label: varchar("label", { length: 128 }).notNull(),
+  labels: jsonb("labels").$type<Record<string, string>>().default({}).notNull(),
   emoji: varchar("emoji", { length: 16 }).notNull(),
   parentSlug: varchar("parent_slug", { length: 64 }).references((): AnyPgColumn => placeCategories.slug),
   sortOrder: integer("sort_order").default(0).notNull(),
