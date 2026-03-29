@@ -8,6 +8,33 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { Trans } from "@lingui/react";
+import { i18n } from "@lingui/core";
+
+// Ensure i18n has an active locale before any component renders (SSR safety)
+if (!i18n.locale) {
+  i18n.load("en", {});
+  i18n.activate("en");
+}
+
+const SUPPORTED_LOCALES = ["en", "ko", "ja"];
+
+function resolveLocaleFromHeader(acceptLanguage: string | null): string | null {
+  if (!acceptLanguage) return null;
+  const parts = acceptLanguage.split(",").map((part) => {
+    const [lang, q] = part.trim().split(";q=");
+    return { lang: lang.trim().toLowerCase(), q: q ? parseFloat(q) : 1 };
+  });
+  parts.sort((a, b) => b.q - a.q);
+  for (const { lang } of parts) {
+    const exact = SUPPORTED_LOCALES.find((l) => l === lang);
+    if (exact) return exact;
+    const prefix = SUPPORTED_LOCALES.find((l) => lang.startsWith(l + "-"));
+    if (prefix) return prefix;
+  }
+  return null;
+}
 import { env } from "~/server/env";
 import { PostHogProvider } from "posthog-js/react";
 import { Button } from "~/components/ui/button";
@@ -20,6 +47,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Menu, X } from "lucide-react";
+import { I18nProvider } from "~/i18n/provider";
 import appCss from "~/styles/globals.css?url";
 
 type SessionUser = { handle: string; displayName: string; avatarUrl?: string | null; isAdmin?: boolean } | null;
@@ -46,10 +74,16 @@ export function useBottomBarSlot(node: ReactNode) {
   }, [node, setBottomBar]);
 }
 
-const getPublicConfig = createServerFn({ method: "GET" }).handler(async () => ({
-  posthogKey: env.posthogKey ?? null,
-  posthogHost: env.posthogHost ?? null,
-}));
+const getPublicConfig = createServerFn({ method: "GET" }).handler(async () => {
+  const request = getRequest();
+  const acceptLang = request.headers.get("accept-language");
+  const locale = resolveLocaleFromHeader(acceptLang) ?? env.defaultLocale;
+  return {
+    posthogKey: env.posthogKey ?? null,
+    posthogHost: env.posthogHost ?? null,
+    locale,
+  };
+});
 
 export type PublicConfig = Awaited<ReturnType<typeof getPublicConfig>>;
 
@@ -120,11 +154,12 @@ function RootLayout() {
   }
 
   return (
-    <html lang="en">
+    <html lang={config.locale}>
       <head>
         <HeadContent />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
+        <I18nProvider locale={config.locale}>
         <PostHogWrapper config={config}>
         <AuthContext.Provider value={{ user, setUser, loaded }}>
         <BottomBarSlotContext.Provider value={{ setBottomBar }}>
@@ -137,15 +172,15 @@ function RootLayout() {
                   <span className="text-xl font-extrabold tracking-tight">moim</span>
                 </Link>
                 <nav className="hidden md:flex items-center gap-6">
-                  <NavLink to="/events">Events</NavLink>
-                  <NavLink to="/places">Places</NavLink>
+                  <NavLink to="/events"><Trans id="Events" message="Events" /></NavLink>
+                  <NavLink to="/places"><Trans id="Check-ins" message="Check-ins" /></NavLink>
                 </nav>
                 {/* Hamburger button (mobile) */}
                 <button
                   type="button"
                   className="ml-auto md:hidden p-2 text-foreground"
                   onClick={() => setMenuOpen((v) => !v)}
-                  aria-label="Toggle menu"
+                  aria-label={i18n._("Toggle menu")}
                 >
                   {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
                 </button>
@@ -166,38 +201,38 @@ function RootLayout() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem onClick={() => navigate({ to: "/groups/my" })}>
-                            My Groups
+                            <Trans id="My Groups" message="My Groups" />
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate({ to: "/calendar" })}>
-                            My Calendar
+                            <Trans id="My Calendar" message="My Calendar" />
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
-                            Settings
+                            <Trans id="Settings" message="Settings" />
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => navigate({ to: "/groups/create" })}>
-                            Create Group
+                            <Trans id="Create Group" message="Create Group" />
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate({ to: "/events/create" })}>
-                            Create Event
+                            <Trans id="Create Event" message="Create Event" />
                           </DropdownMenuItem>
                           {user.isAdmin && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
-                                Admin Panel
+                                <Trans id="Admin Panel" message="Admin Panel" />
                               </DropdownMenuItem>
                             </>
                           )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={handleSignOut}>
-                            Sign out
+                            <Trans id="Sign out" message="Sign out" />
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     ) : (
                       <Button variant="outline" size="sm" asChild>
-                        <Link to="/auth/signin">Sign in</Link>
+                        <Link to="/auth/signin"><Trans id="Sign in" message="Sign in" /></Link>
                       </Button>
                     )
                   )}
@@ -207,32 +242,32 @@ function RootLayout() {
               {menuOpen && (
                 <div className="md:hidden border-t border-foreground/20 bg-background">
                   <nav className="mx-auto max-w-5xl flex flex-col px-6 py-4 gap-3">
-                    <Link to="/events" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Events</Link>
-                    <Link to="/places" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Places</Link>
+                    <Link to="/events" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}><Trans id="Events" message="Events" /></Link>
+                    <Link to="/places" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}><Trans id="Check-ins" message="Check-ins" /></Link>
                     {loaded && user && (
                       <>
                         <hr className="border-foreground/10" />
                         <span className="text-[13px] text-muted-foreground">@{user.handle}</span>
-                        <Link to="/groups/my" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>My Groups</Link>
-                        <Link to="/calendar" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>My Calendar</Link>
-                        <Link to="/settings" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Settings</Link>
+                        <Link to="/groups/my" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}><Trans id="My Groups" message="My Groups" /></Link>
+                        <Link to="/calendar" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}><Trans id="My Calendar" message="My Calendar" /></Link>
+                        <Link to="/settings" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}><Trans id="Settings" message="Settings" /></Link>
                         <hr className="border-foreground/10" />
-                        <Link to="/groups/create" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Create Group</Link>
-                        <Link to="/events/create" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Create Event</Link>
+                        <Link to="/groups/create" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}><Trans id="Create Group" message="Create Group" /></Link>
+                        <Link to="/events/create" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}><Trans id="Create Event" message="Create Event" /></Link>
                         {user.isAdmin && (
                           <>
                             <hr className="border-foreground/10" />
-                            <Link to="/admin" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
+                            <Link to="/admin" className="text-[13px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}><Trans id="Admin Panel" message="Admin Panel" /></Link>
                           </>
                         )}
                         <hr className="border-foreground/10" />
-                        <button type="button" className="text-[13px] text-[#555] hover:text-foreground text-left" onClick={() => { handleSignOut(); setMenuOpen(false); }}>Sign out</button>
+                        <button type="button" className="text-[13px] text-[#555] hover:text-foreground text-left" onClick={() => { handleSignOut(); setMenuOpen(false); }}><Trans id="Sign out" message="Sign out" /></button>
                       </>
                     )}
                     {loaded && !user && (
                       <>
                         <hr className="border-foreground/10" />
-                        <Link to="/auth/signin" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}>Sign in</Link>
+                        <Link to="/auth/signin" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground" onClick={() => setMenuOpen(false)}><Trans id="Sign in" message="Sign in" /></Link>
                       </>
                     )}
                   </nav>
@@ -253,11 +288,11 @@ function RootLayout() {
                 <div className="flex items-center gap-3">
                   <img src="/logo.png" alt="" className="h-5 w-5 grayscale" />
                   <span className="text-base font-extrabold tracking-tight">moim</span>
-                  <span className="text-[12px] text-[#888]">&mdash; Federated events & check-ins</span>
+                  <span className="text-[12px] text-[#888]">&mdash; <Trans id="Federated events & check-ins" message="Federated events & check-ins" /></span>
                 </div>
                 <nav className="flex gap-6">
-                  <Link to="/events" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground transition-colors">Events</Link>
-                  <Link to="/places" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground transition-colors">Places</Link>
+                  <Link to="/events" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground transition-colors"><Trans id="Events" message="Events" /></Link>
+                  <Link to="/places" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground transition-colors"><Trans id="Check-ins" message="Check-ins" /></Link>
                 </nav>
               </div>
             </footer>
@@ -275,6 +310,7 @@ function RootLayout() {
         </BottomBarSlotContext.Provider>
         </AuthContext.Provider>
         </PostHogWrapper>
+        </I18nProvider>
 
       </body>
     </html>

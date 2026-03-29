@@ -30,6 +30,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { ExternalLink, Users, Bookmark, BookmarkCheck } from "lucide-react";
 import { RemoteDiscussionDialog } from "~/components/RemoteDiscussionDialog";
+import { Trans, useLingui } from "@lingui/react";
 
 const getEventMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ eventId: z.string() })))
@@ -191,6 +192,7 @@ type RsvpData = {
 };
 
 function EventDetailPage() {
+  const { i18n } = useLingui();
   const { categoryMap } = useEventCategoryMap();
 
   const { eventId } = Route.useParams();
@@ -314,8 +316,8 @@ function EventDetailPage() {
   const attendeeCount = rsvpData?.rsvpCounts?.accepted ?? data?.rsvpCounts?.accepted ?? 0;
   const anonymousCount = rsvpData?.anonymousCount ?? 0;
   const attendeeLabel = anonymousCount > 0
-    ? `${attendeeCount} attending (${anonymousCount} anonymous)`
-    : `${attendeeCount} attending`;
+    ? i18n._("{attendeeCount} attending ({anonymousCount} anonymous)", { attendeeCount, anonymousCount })
+    : i18n._("{attendeeCount} attending", { attendeeCount });
 
   const bottomBarContent = useMemo(() => {
     if (!data) return null;
@@ -324,7 +326,7 @@ function EventDetailPage() {
         <div className="mx-auto flex max-w-5xl items-center justify-center gap-4 px-6 py-3">
           <Button size="sm" asChild>
             <a href={data.event.externalUrl} target="_blank" rel="noopener noreferrer">
-              Register externally
+              <Trans id="Register externally" message="Register externally" />
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 ml-1">
                 <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Zm7.5-2.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0V5.56l-5.22 5.22a.75.75 0 1 1-1.06-1.06l5.22-5.22H12.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
               </svg>
@@ -345,10 +347,10 @@ function EventDetailPage() {
                   className="text-xs"
                 >
                   {rsvpData.userRsvp.status === "accepted"
-                    ? "Going"
+                    ? <Trans id="Going" message="Going" />
                     : rsvpData.userRsvp.status === "waitlisted"
-                      ? `Waitlisted (#${rsvpData.userRsvp.waitlistPosition ?? "?"})`
-                      : "Not going"}
+                      ? i18n._("Waitlisted (#{position})", { position: rsvpData.userRsvp.waitlistPosition ?? "?" })
+                      : <Trans id="Not going" message="Not going" />}
                 </Badge>
               )}
             </div>
@@ -361,24 +363,24 @@ function EventDetailPage() {
           {!rsvpData.isAuthenticated ? (
             rsvpData.userRsvp ? (
               <Button size="sm" variant="outline" asChild>
-                <Link to="/events/$eventId/register" params={{ eventId }}>View Registration</Link>
+                <Link to="/events/$eventId/register" params={{ eventId }}><Trans id="View Registration" message="View Registration" /></Link>
               </Button>
             ) : rsvpData.allowAnonymousRsvp ? (
               <Button size="sm" asChild>
-                <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
+                <Link to="/events/$eventId/register" params={{ eventId }}><Trans id="Register" message="Register" /></Link>
               </Button>
             ) : (
               <Button size="sm" asChild>
-                <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
+                <Link to="/auth/signin" search={{ reason: "rsvp" }}><Trans id="Sign in to RSVP" message="Sign in to RSVP" /></Link>
               </Button>
             )
           ) : rsvpData.userRsvp ? (
             <Button size="sm" variant="outline" asChild>
-              <Link to="/events/$eventId/register" params={{ eventId }}>Change RSVP</Link>
+              <Link to="/events/$eventId/register" params={{ eventId }}><Trans id="Change RSVP" message="Change RSVP" /></Link>
             </Button>
           ) : (
             <Button size="sm" asChild>
-              <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
+              <Link to="/events/$eventId/register" params={{ eventId }}><Trans id="Register" message="Register" /></Link>
             </Button>
           )}
         </div>
@@ -390,11 +392,11 @@ function EventDetailPage() {
   useBottomBarSlot(bottomBarContent);
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading...</p>;
+    return <p className="text-muted-foreground"><Trans id="Loading..." message="Loading..." /></p>;
   }
 
   if (error || !data) {
-    return <p className="text-destructive">{error || "Event not found"}</p>;
+    return <p className="text-destructive">{error || <Trans id="Event not found" message="Event not found" />}</p>;
   }
 
   const { event, organizers } = data;
@@ -455,7 +457,7 @@ function EventDetailPage() {
       <Separator />
       <Button asChild className="w-full">
         <a href={event.externalUrl} target="_blank" rel="noopener noreferrer">
-          Register externally
+          <Trans id="Register externally" message="Register externally" />
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4 ml-1">
             <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Zm7.5-2.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0V5.56l-5.22 5.22a.75.75 0 1 1-1.06-1.06l5.22-5.22H12.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
           </svg>
@@ -475,10 +477,10 @@ function EventDetailPage() {
               variant={rsvpData.userRsvp.status === "accepted" ? "default" : rsvpData.userRsvp.status === "waitlisted" ? "outline" : "secondary"}
             >
               {rsvpData.userRsvp.status === "accepted"
-                ? "Attending"
+                ? <Trans id="Attending" message="Attending" />
                 : rsvpData.userRsvp.status === "waitlisted"
-                  ? `Waitlisted (#${rsvpData.userRsvp.waitlistPosition ?? "?"})`
-                  : "Not attending"}
+                  ? i18n._("Waitlisted (#{position})", { position: rsvpData.userRsvp.waitlistPosition ?? "?" })
+                  : <Trans id="Not attending" message="Not attending" />}
             </Badge>
           )}
         </div>
@@ -491,24 +493,24 @@ function EventDetailPage() {
       {!rsvpData.isAuthenticated ? (
         rsvpData.userRsvp ? (
           <Button variant="outline" className="w-full" asChild>
-            <Link to="/events/$eventId/register" params={{ eventId }}>View Registration</Link>
+            <Link to="/events/$eventId/register" params={{ eventId }}><Trans id="View Registration" message="View Registration" /></Link>
           </Button>
         ) : rsvpData.allowAnonymousRsvp ? (
           <Button className="w-full" asChild>
-            <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
+            <Link to="/events/$eventId/register" params={{ eventId }}><Trans id="Register" message="Register" /></Link>
           </Button>
         ) : (
           <Button asChild className="w-full">
-            <Link to="/auth/signin" search={{ reason: "rsvp" }}>Sign in to RSVP</Link>
+            <Link to="/auth/signin" search={{ reason: "rsvp" }}><Trans id="Sign in to RSVP" message="Sign in to RSVP" /></Link>
           </Button>
         )
       ) : rsvpData.userRsvp ? (
         <Button variant="outline" className="w-full" asChild>
-          <Link to="/events/$eventId/register" params={{ eventId }}>Change RSVP</Link>
+          <Link to="/events/$eventId/register" params={{ eventId }}><Trans id="Change RSVP" message="Change RSVP" /></Link>
         </Button>
       ) : (
         <Button className="w-full" asChild>
-          <Link to="/events/$eventId/register" params={{ eventId }}>Register</Link>
+          <Link to="/events/$eventId/register" params={{ eventId }}><Trans id="Register" message="Register" /></Link>
         </Button>
       )}
     </>
@@ -540,7 +542,7 @@ function EventDetailPage() {
               <>
                 <p className="text-sm font-medium">{startDateStr} {startTimeStr}</p>
                 <p className="text-sm text-muted-foreground">
-                  to {endDateStr} {endTimeStr}
+                  <Trans id="to {endDateStr} {endTimeStr}" values={{ endDateStr, endTimeStr }} message="to {endDateStr} {endTimeStr}" />
                 </p>
               </>
             )}
@@ -642,7 +644,7 @@ function EventDetailPage() {
               <p className="text-xs text-muted-foreground mt-1">
                 {attendeeCount <= 3
                   ? data.attendeePreview.map((a) => a.displayName).join(", ")
-                  : `${data.attendeePreview.slice(0, 3).map((a) => a.displayName).join(", ")} and ${attendeeCount - 3} others`}
+                  : i18n._("{names} and {count} others", { names: data.attendeePreview.slice(0, 3).map((a) => a.displayName).join(", "), count: attendeeCount - 3 })}
               </p>
             </div>
           </div>
@@ -672,29 +674,14 @@ function EventDetailPage() {
             </h1>
             {event.groupHandle ? (
               <p className="mt-3 text-white/80">
-                Hosted by{" "}
-                <Link
-                  to="/groups/$identifier"
-                  params={{ identifier: `@${event.groupHandle}` }}
-                  className="text-white underline underline-offset-2 hover:text-white/90"
-                >
-                  {event.groupName ?? `@${event.groupHandle}`}
-                </Link>
+                <Trans id="Hosted by <0>{0}</0>" values={{ 0: event.groupName ?? `@${event.groupHandle}` }} components={{ 0: <Link to="/groups/$identifier" params={{ identifier: `@${event.groupHandle}` }} className="text-white underline underline-offset-2 hover:text-white/90" /> }} message="Hosted by <0>{0}</0>" />
               </p>
             ) : event.organizerHandle ? (
               <p className="mt-3 text-white/80">
-                Hosted by{" "}
                 {event.organizerActorUrl ? (
-                  <a
-                    href={event.organizerActorUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-white underline underline-offset-2 hover:text-white/90"
-                  >
-                    @{event.organizerHandle}
-                  </a>
+                  <Trans id="Hosted by <0>@{0}</0>" values={{ 0: event.organizerHandle }} components={{ 0: <a href={event.organizerActorUrl} target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-2 hover:text-white/90" /> }} message="Hosted by <0>@{0}</0>" />
                 ) : (
-                  <span className="text-white">@{event.organizerHandle}</span>
+                  <Trans id="Hosted by <0>@{0}</0>" values={{ 0: event.organizerHandle }} components={{ 0: <span className="text-white" /> }} message="Hosted by <0>@{0}</0>" />
                 )}
               </p>
             ) : null}
@@ -707,7 +694,7 @@ function EventDetailPage() {
                   asChild
                 >
                   <Link to="/events/$eventId/edit" params={{ eventId }}>
-                    Edit Event
+                    <Trans id="Edit Event" message="Edit Event" />
                   </Link>
                 </Button>
                 <Button
@@ -717,7 +704,7 @@ function EventDetailPage() {
                   asChild
                 >
                   <Link to="/events/$eventId/dashboard" params={{ eventId }}>
-                    Dashboard
+                    <Trans id="Dashboard" message="Dashboard" />
                   </Link>
                 </Button>
               </div>
@@ -748,29 +735,14 @@ function EventDetailPage() {
             </h1>
             {event.groupHandle ? (
               <p className="mt-3 text-[#666]">
-                Hosted by{" "}
-                <Link
-                  to="/groups/$identifier"
-                  params={{ identifier: `@${event.groupHandle}` }}
-                  className="font-semibold text-[#333] underline underline-offset-2 hover:text-foreground"
-                >
-                  {event.groupName ?? `@${event.groupHandle}`}
-                </Link>
+                <Trans id="Hosted by <0>{0}</0>" values={{ 0: event.groupName ?? `@${event.groupHandle}` }} components={{ 0: <Link to="/groups/$identifier" params={{ identifier: `@${event.groupHandle}` }} className="font-semibold text-[#333] underline underline-offset-2 hover:text-foreground" /> }} message="Hosted by <0>{0}</0>" />
               </p>
             ) : event.organizerHandle ? (
               <p className="mt-3 text-[#666]">
-                Hosted by{" "}
                 {event.organizerActorUrl ? (
-                  <a
-                    href={event.organizerActorUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-[#333] underline underline-offset-2 hover:text-foreground"
-                  >
-                    @{event.organizerHandle}
-                  </a>
+                  <Trans id="Hosted by <0>@{0}</0>" values={{ 0: event.organizerHandle }} components={{ 0: <a href={event.organizerActorUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#333] underline underline-offset-2 hover:text-foreground" /> }} message="Hosted by <0>@{0}</0>" />
                 ) : (
-                  <span className="font-semibold text-[#333]">@{event.organizerHandle}</span>
+                  <Trans id="Hosted by <0>@{0}</0>" values={{ 0: event.organizerHandle }} components={{ 0: <span className="font-semibold text-[#333]" /> }} message="Hosted by <0>@{0}</0>" />
                 )}
               </p>
             ) : null}
@@ -783,7 +755,7 @@ function EventDetailPage() {
                   asChild
                 >
                   <Link to="/events/$eventId/edit" params={{ eventId }}>
-                    Edit Event
+                    <Trans id="Edit Event" message="Edit Event" />
                   </Link>
                 </Button>
                 <Button
@@ -793,7 +765,7 @@ function EventDetailPage() {
                   asChild
                 >
                   <Link to="/events/$eventId/dashboard" params={{ eventId }}>
-                    Dashboard
+                    <Trans id="Dashboard" message="Dashboard" />
                   </Link>
                 </Button>
               </div>
@@ -837,7 +809,7 @@ function EventDetailPage() {
                 ) : (
                   <Bookmark className="size-4 mr-1.5" />
                 )}
-                {isFavourite ? "Bookmarked" : "Bookmark"}
+                {isFavourite ? <Trans id="Bookmarked" message="Bookmarked" /> : <Trans id="Bookmark" message="Bookmark" />}
               </Button>
             </CardContent>
           </Card>
@@ -846,7 +818,7 @@ function EventDetailPage() {
           {event.description && (
             <Card className="rounded-lg">
               <CardHeader>
-                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">About</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]"><Trans id="About" message="About" /></CardTitle>
               </CardHeader>
               <CardContent>
                 <div
@@ -861,7 +833,7 @@ function EventDetailPage() {
           {organizers.length > 0 && (
             <Card className="rounded-lg">
               <CardHeader>
-                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">Organizers</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]"><Trans id="Organizers" message="Organizers" /></CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-3 overflow-x-auto pb-2">
@@ -943,7 +915,7 @@ function EventDetailPage() {
             <Card className="rounded-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">Discussion</CardTitle>
+                  <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]"><Trans id="Discussion" message="Discussion" /></CardTitle>
                   {eventNoteApUrl && publicInquiries.length > 0 && (
                     <RemoteDiscussionDialog apUrl={eventNoteApUrl} />
                   )}
@@ -953,7 +925,7 @@ function EventDetailPage() {
                 {publicInquiries.length === 0 ? (
                   <div className="flex flex-col items-center gap-3 py-4 text-center">
                     <p className="text-sm text-muted-foreground">
-                      No discussions yet.
+                      <Trans id="No discussions yet." message="No discussions yet." />
                     </p>
                     {eventNoteApUrl && (
                       <RemoteDiscussionDialog apUrl={eventNoteApUrl} />
@@ -1025,7 +997,7 @@ function EventDetailPage() {
                           {isExpanded && (
                             <div className="mt-3 ml-11 divide-y">
                               {isLoading ? (
-                                <p className="text-xs text-muted-foreground py-2">Loading...</p>
+                                <p className="text-xs text-muted-foreground py-2"><Trans id="Loading..." message="Loading..." /></p>
                               ) : replies ? (
                                 buildThreadTree(replies, inq.id).map(({ msg: m, depth }) => (
                                   <div
@@ -1118,7 +1090,7 @@ function EventDetailPage() {
                             </div>
                           </div>
                           <Badge variant={a.status === "accepted" ? "default" : "secondary"}>
-                            {a.status === "accepted" ? "Attending" : "Not attending"}
+                            {a.status === "accepted" ? <Trans id="Attending" message="Attending" /> : <Trans id="Not attending" message="Not attending" />}
                           </Badge>
                         </div>
                         {a.answers.length > 0 && attendeesData.questions.length > 0 && (
@@ -1178,7 +1150,7 @@ function EventDetailPage() {
                   ) : (
                     <Bookmark className="size-4 mr-1.5" />
                   )}
-                  {isFavourite ? "Bookmarked" : "Bookmark"}
+                  {isFavourite ? <Trans id="Bookmarked" message="Bookmarked" /> : <Trans id="Bookmark" message="Bookmark" />}
                 </Button>
               </CardContent>
             </Card>

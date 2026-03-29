@@ -1,0 +1,404 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-03-30 08:04+0900\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: ko\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:90
+msgid "just now"
+msgstr "방금"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:91
+msgid "{mins}m ago"
+msgstr "{mins}분 전"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:93
+msgid "{hours}h ago"
+msgstr "{hours}시간 전"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:95
+msgid "{days}d ago"
+msgstr "{days}일 전"
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:183
+msgid "Toggle menu"
+msgstr "메뉴 열기/닫기"
+
+#. js-lingui-explicit-id
+#: src/routes/events/index.tsx:144
+msgid "All countries"
+msgstr "모든 국가"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:319
+msgid "{attendeeCount} attending ({anonymousCount} anonymous)"
+msgstr "{attendeeCount}명 참석 (익명 {anonymousCount}명)"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:320
+msgid "{attendeeCount} attending"
+msgstr "{attendeeCount}명 참석"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:352
+#: src/routes/events/$eventId/index.tsx:482
+msgid "Waitlisted (#{position})"
+msgstr "대기 중 (#{position})"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:647
+msgid "{names} and {count} others"
+msgstr "{names} 외 {count}명"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:821
+msgid "About"
+msgstr "소개"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:547
+msgid "AD"
+msgstr "광고"
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:223
+#: src/routes/__root.tsx:260
+msgid "Admin Panel"
+msgstr "관리자 패널"
+
+#. js-lingui-explicit-id
+#: src/routes/events/index.tsx:163
+msgid "All"
+msgstr "전체"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:205
+msgid "at"
+msgstr "에서"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:480
+#: src/routes/events/$eventId/index.tsx:1093
+msgid "Attending"
+msgstr "참석"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:812
+#: src/routes/events/$eventId/index.tsx:1153
+msgid "Bookmark"
+msgstr "북마크"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:812
+#: src/routes/events/$eventId/index.tsx:1153
+msgid "Bookmarked"
+msgstr "북마크됨"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:664
+msgid "Browse All Events"
+msgstr "모든 이벤트 보기"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:685
+msgid "Browse Events"
+msgstr "이벤트 둘러보기"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:379
+#: src/routes/events/$eventId/index.tsx:509
+msgid "Change RSVP"
+msgstr "참석 변경"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:177
+msgid "Check In"
+msgstr "체크인"
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:176
+#: src/routes/__root.tsx:246
+#: src/routes/__root.tsx:295
+msgid "Check-ins"
+msgstr "체크인"
+
+#. js-lingui-explicit-id
+#: src/routes/events/index.tsx:207
+msgid "Create a group to start hosting events."
+msgstr "그룹을 만들어 이벤트를 주최해 보세요."
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:217
+#: src/routes/__root.tsx:256
+#: src/routes/events/index.tsx:113
+msgid "Create Event"
+msgstr "이벤트 만들기"
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:214
+#: src/routes/__root.tsx:255
+msgid "Create Group"
+msgstr "그룹 만들기"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:225
+msgid "Create, discover, and RSVP to events hosted by groups across the fediverse."
+msgstr "페디버스의 그룹이 주최하는 이벤트를 만들고, 발견하고, 참석하세요."
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:707
+#: src/routes/events/$eventId/index.tsx:768
+msgid "Dashboard"
+msgstr "대시보드"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:678
+msgid "Discover events,<0/>together across the fediverse"
+msgstr "페디버스에서<0/>함께 이벤트를 발견하세요"
+
+#. js-lingui-explicit-id
+#: src/routes/events/index.tsx:108
+msgid "Discover upcoming events from groups across the fediverse."
+msgstr "페디버스의 그룹이 주최하는 다가오는 이벤트를 발견하세요."
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:918
+msgid "Discussion"
+msgstr "토론"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:697
+#: src/routes/events/$eventId/index.tsx:758
+msgid "Edit Event"
+msgstr "이벤트 수정"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:399
+msgid "Event not found"
+msgstr "이벤트를 찾을 수 없습니다"
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:175
+#: src/routes/__root.tsx:245
+#: src/routes/__root.tsx:294
+#: src/routes/events/index.tsx:106
+#: src/routes/index.tsx:223
+msgid "Events"
+msgstr "이벤트"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:239
+msgid "Federated"
+msgstr "연합"
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:291
+msgid "Federated events & check-ins"
+msgstr "연합 이벤트 & 체크인"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:233
+msgid "Find and share venues, spaces, and locations where communities gather."
+msgstr "커뮤니티가 모이는 장소와 공간을 찾고 공유하세요."
+
+#. js-lingui-explicit-id
+#. placeholder {0}: categoryMap.get(category)
+#: src/routes/events/index.tsx:191
+msgid "Go to {0} feed page"
+msgstr "{0} 피드 페이지로 이동"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:350
+msgid "Going"
+msgstr "참석 예정"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: event.groupName ?? `@${event.groupHandle}`
+#: src/routes/events/$eventId/index.tsx:677
+#: src/routes/events/$eventId/index.tsx:738
+msgid "Hosted by <0>{0}</0>"
+msgstr "<0>{0}</0> 주최"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:640
+#: src/routes/index.tsx:753
+msgid "Hosted by <0>{hostLabel}</0>"
+msgstr "<0>{hostLabel}</0> 주최"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: event.organizerHandle
+#: src/routes/events/$eventId/index.tsx:682
+#: src/routes/events/$eventId/index.tsx:684
+#: src/routes/events/$eventId/index.tsx:743
+#: src/routes/events/$eventId/index.tsx:745
+msgid "Hosted by <0>@{0}</0>"
+msgstr "<0>@{0}</0> 주최"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:395
+#: src/routes/events/$eventId/index.tsx:1000
+#: src/routes/events/index.tsx:197
+msgid "Loading..."
+msgstr "불러오는 중..."
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:681
+msgid "Moim is a federated events and places service — like connpass meets foursquare, powered by ActivityPub."
+msgstr "모임은 연합형 이벤트 및 장소 서비스입니다 — connpass와 foursquare의 만남, ActivityPub 기반."
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:207
+#: src/routes/__root.tsx:252
+msgid "My Calendar"
+msgstr "내 캘린더"
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:204
+#: src/routes/__root.tsx:251
+msgid "My Groups"
+msgstr "내 그룹"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:928
+msgid "No discussions yet."
+msgstr "아직 토론이 없습니다."
+
+#. js-lingui-explicit-id
+#: src/routes/events/index.tsx:202
+msgid "No past events"
+msgstr "지난 이벤트가 없습니다"
+
+#. js-lingui-explicit-id
+#: src/routes/events/index.tsx:202
+msgid "No upcoming events"
+msgstr "예정된 이벤트가 없습니다"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:483
+#: src/routes/events/$eventId/index.tsx:1093
+msgid "Not attending"
+msgstr "불참"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:353
+msgid "Not going"
+msgstr "불참"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:836
+msgid "Organizers"
+msgstr "주최자"
+
+#. js-lingui-explicit-id
+#: src/routes/events/index.tsx:134
+msgid "Past"
+msgstr "지난 이벤트"
+
+#. js-lingui-explicit-id
+#: src/routes/events/index.tsx:206
+msgid "Past events will appear here."
+msgstr "지난 이벤트가 여기에 표시됩니다."
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:231
+msgid "Places"
+msgstr "장소"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:173
+msgid "Recent Check-ins"
+msgstr "최근 체크인"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:370
+#: src/routes/events/$eventId/index.tsx:383
+#: src/routes/events/$eventId/index.tsx:500
+#: src/routes/events/$eventId/index.tsx:513
+msgid "Register"
+msgstr "참석 신청"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:329
+#: src/routes/events/$eventId/index.tsx:460
+msgid "Register externally"
+msgstr "외부에서 신청"
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:210
+#: src/routes/__root.tsx:253
+msgid "Settings"
+msgstr "설정"
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:235
+#: src/routes/__root.tsx:270
+#: src/routes/index.tsx:689
+msgid "Sign in"
+msgstr "로그인"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:374
+#: src/routes/events/$eventId/index.tsx:504
+msgid "Sign in to RSVP"
+msgstr "로그인하여 참석 신청"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:241
+msgid "Sign in with your fediverse account. Follow groups from Mastodon, Misskey, and more."
+msgstr "페디버스 계정으로 로그인하세요. Mastodon, Misskey 등에서 그룹을 팔로우하세요."
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:229
+#: src/routes/__root.tsx:264
+msgid "Sign out"
+msgstr "로그아웃"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:545
+msgid "to {endDateStr} {endTimeStr}"
+msgstr "{endDateStr} {endTimeStr}까지"
+
+#. js-lingui-explicit-id
+#: src/routes/events/index.tsx:127
+msgid "Upcoming"
+msgstr "예정"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:156
+msgid "Upcoming Events"
+msgstr "다가오는 이벤트"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:181
+msgid "View all"
+msgstr "전체 보기"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:158
+msgid "View all →"
+msgstr "전체 보기 →"
+
+#. js-lingui-explicit-id
+#: src/routes/index.tsx:651
+msgid "View Event"
+msgstr "이벤트 보기"
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:366
+#: src/routes/events/$eventId/index.tsx:496
+msgid "View Registration"
+msgstr "참석 신청 보기"
