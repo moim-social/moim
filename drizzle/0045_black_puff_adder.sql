@@ -1,3 +1,73 @@
 ALTER TABLE "place_categories" ALTER COLUMN "labels" SET DEFAULT '{}'::jsonb;--> statement-breakpoint
 ALTER TABLE "place_categories" ALTER COLUMN "labels" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "event_categories" ADD COLUMN "labels" jsonb DEFAULT '{}'::jsonb NOT NULL;
+
+-- Seed Korean translations for place categories
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"음식 & 음료"') WHERE slug = 'food-drink';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"카페"') WHERE slug = 'cafe';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"스페셜티 커피"') WHERE slug = 'specialty-coffee';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"레스토랑"') WHERE slug = 'restaurant';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"바"') WHERE slug = 'bar';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"베이커리"') WHERE slug = 'bakery';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"예술 & 문화"') WHERE slug = 'arts-culture';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"갤러리"') WHERE slug = 'gallery';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"박물관"') WHERE slug = 'museum';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"극장"') WHERE slug = 'theater';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"도서관"') WHERE slug = 'library';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"커뮤니티 & 업무"') WHERE slug = 'community-work';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"커뮤니티 센터"') WHERE slug = 'community-center';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"코워킹 스페이스"') WHERE slug = 'coworking';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"모임 공간"') WHERE slug = 'meetup-space';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"야외"') WHERE slug = 'outdoors';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"공원"') WHERE slug = 'park';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"등산로"') WHERE slug = 'trail';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"해변"') WHERE slug = 'beach';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"쇼핑"') WHERE slug = 'shopping';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"마켓"') WHERE slug = 'market';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"서점"') WHERE slug = 'bookstore';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"쇼핑몰"') WHERE slug = 'mall';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"교육 & 메이킹"') WHERE slug = 'education-making';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"학교"') WHERE slug = 'school';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"워크숍 공간"') WHERE slug = 'workshop-space';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"스튜디오"') WHERE slug = 'studio';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"스포츠 & 웰니스"') WHERE slug = 'sports-wellness';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"헬스장"') WHERE slug = 'gym';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"요가 스튜디오"') WHERE slug = 'yoga-studio';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"클라이밍짐"') WHERE slug = 'climbing-gym';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"나이트라이프 & 놀거리"') WHERE slug = 'nightlife-fun';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"클럽"') WHERE slug = 'club';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"노래방"') WHERE slug = 'karaoke';
+UPDATE place_categories SET labels = jsonb_set(labels, '{ko}', '"오락실"') WHERE slug = 'arcade';
+
+-- Seed Korean translations for event categories
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"예술"') WHERE slug = 'arts';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"독서 모임"') WHERE slug = 'book_clubs';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"비즈니스"') WHERE slug = 'business';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"사회공헌"') WHERE slug = 'causes';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"코미디"') WHERE slug = 'comedy';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"공예"') WHERE slug = 'crafts';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"음식 & 음료"') WHERE slug = 'food_drink';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"건강"') WHERE slug = 'health';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"음악"') WHERE slug = 'music';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"자동차, 보트 & 항공"') WHERE slug = 'auto_boat_air';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"커뮤니티"') WHERE slug = 'community';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"가족 & 교육"') WHERE slug = 'family_education';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"패션 & 뷰티"') WHERE slug = 'fashion_beauty';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"영화 & 미디어"') WHERE slug = 'film_media';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"게임"') WHERE slug = 'games';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"언어 & 문화"') WHERE slug = 'language_culture';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"학습"') WHERE slug = 'learning';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"LGBTQ"') WHERE slug = 'lgbtq';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"사회운동 & 정치"') WHERE slug = 'movements_politics';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"네트워킹"') WHERE slug = 'networking';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"파티"') WHERE slug = 'party';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"공연 & 시각예술"') WHERE slug = 'performing_visual_arts';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"반려동물"') WHERE slug = 'pets';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"사진"') WHERE slug = 'photography';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"아웃도어 & 모험"') WHERE slug = 'outdoors_adventure';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"영성, 종교 & 신앙"') WHERE slug = 'spirituality_religion_beliefs';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"과학 & 기술"') WHERE slug = 'science_tech';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"스포츠"') WHERE slug = 'sports';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"연극"') WHERE slug = 'theatre';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"미팅"') WHERE slug = 'meeting';
+UPDATE event_categories SET labels = jsonb_set(labels, '{ko}', '"프로그래밍"') WHERE slug = 'programming';
