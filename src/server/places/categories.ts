@@ -1,6 +1,7 @@
 import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { placeCategories } from "~/server/db/schema";
+import { env } from "~/server/env";
 
 export type PlaceCategoryRow = typeof placeCategories.$inferSelect;
 
@@ -16,6 +17,18 @@ export type PlaceCategoryOption = {
   depth: number;
   enabled: boolean;
 };
+
+export function resolveCategoryLabel(
+  category: { label: string; labels: Record<string, string> },
+  locale?: string | null,
+): string {
+  const requestedLocale = locale ?? env.defaultLocale;
+  const exact = category.labels[requestedLocale];
+  if (exact) return exact;
+  const fallback = category.labels[env.defaultLocale];
+  if (fallback) return fallback;
+  return category.label;
+}
 
 export async function getPlaceCategories(includeDisabled = false): Promise<PlaceCategoryRow[]> {
   const rows = await db
@@ -62,16 +75,19 @@ export function buildPlaceCategoryTree(rows: PlaceCategoryRow[]): PlaceCategoryT
   return roots;
 }
 
-export function flattenPlaceCategoryTree(nodes: PlaceCategoryTreeNode[]): PlaceCategoryOption[] {
+export function flattenPlaceCategoryTree(
+  nodes: PlaceCategoryTreeNode[],
+  locale?: string | null,
+): PlaceCategoryOption[] {
   return nodes.flatMap((node) => [
     {
       slug: node.slug,
-      label: node.label,
+      label: resolveCategoryLabel(node, locale),
       emoji: node.emoji,
       depth: node.depth,
       enabled: node.enabled,
     },
-    ...flattenPlaceCategoryTree(node.children),
+    ...flattenPlaceCategoryTree(node.children, locale),
   ]);
 }
 
@@ -113,32 +129,52 @@ export function getCategoryPath(categorySlug: string, rows: PlaceCategoryRow[]):
   return path;
 }
 
-export async function getPlaceCategorySummary(categorySlug: string | null | undefined) {
+export async function getPlaceCategorySummary(
+  categorySlug: string | null | undefined,
+  locale?: string | null,
+) {
   if (!categorySlug) return null;
   const [row] = await db
     .select({
       slug: placeCategories.slug,
       label: placeCategories.label,
+      labels: placeCategories.labels,
       emoji: placeCategories.emoji,
       enabled: placeCategories.enabled,
     })
     .from(placeCategories)
     .where(eq(placeCategories.slug, categorySlug))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  return {
+    slug: row.slug,
+    label: resolveCategoryLabel(row, locale),
+    emoji: row.emoji,
+    enabled: row.enabled,
+  };
 }
 
-export async function getPlaceCategorySummaries(categorySlugs: string[]) {
+export async function getPlaceCategorySummaries(
+  categorySlugs: string[],
+  locale?: string | null,
+) {
   if (categorySlugs.length === 0) return [];
-  return db
+  const rows = await db
     .select({
       slug: placeCategories.slug,
       label: placeCategories.label,
+      labels: placeCategories.labels,
       emoji: placeCategories.emoji,
       enabled: placeCategories.enabled,
     })
     .from(placeCategories)
     .where(inArray(placeCategories.slug, categorySlugs));
+  return rows.map((row) => ({
+    slug: row.slug,
+    label: resolveCategoryLabel(row, locale),
+    emoji: row.emoji,
+    enabled: row.enabled,
+  }));
 }
 
 export async function assertEnabledPlaceCategory(categorySlug: string): Promise<PlaceCategoryRow> {

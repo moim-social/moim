@@ -16,6 +16,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import type { PlaceCategoryOption } from "~/lib/place";
+import { SUPPORTED_LOCALES } from "~/shared/place-categories";
 
 export const Route = createFileRoute("/admin/place-categories/")({
   component: AdminPlaceCategoriesPage,
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/admin/place-categories/")({
 type AdminPlaceCategory = {
   slug: string;
   label: string;
+  labels: Record<string, string>;
   emoji: string;
   parentSlug: string | null;
   sortOrder: number;
@@ -34,6 +36,7 @@ type AdminPlaceCategory = {
 type CategoryFormState = {
   slug: string;
   label: string;
+  translatedLabel: string;
   emoji: string;
   parentSlug: string;
   sortOrder: string;
@@ -43,6 +46,7 @@ type CategoryFormState = {
 const emptyForm: CategoryFormState = {
   slug: "",
   label: "",
+  translatedLabel: "",
   emoji: "",
   parentSlug: "",
   sortOrder: "0",
@@ -69,6 +73,7 @@ function AdminPlaceCategoriesPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importText, setImportText] = useState("");
   const [form, setForm] = useState<CategoryFormState>(emptyForm);
+  const [selectedLocale, setSelectedLocale] = useState<string>("");
 
   const rows = useMemo(() => flattenCategories(categories), [categories]);
 
@@ -101,6 +106,7 @@ function AdminPlaceCategoriesPage() {
     setForm({
       slug: category.slug,
       label: category.label,
+      translatedLabel: (selectedLocale && category.labels?.[selectedLocale]) ?? "",
       emoji: category.emoji,
       parentSlug: category.parentSlug ?? "",
       sortOrder: String(category.sortOrder),
@@ -161,9 +167,19 @@ function AdminPlaceCategoriesPage() {
     setSaving(true);
     setError(null);
 
+    const existingCategory = rows.find((r) => r.slug === editingSlug);
+    const existingLabels = existingCategory?.labels ?? {};
+    const updatedLabels = { ...existingLabels };
+    if (selectedLocale && form.translatedLabel.trim()) {
+      updatedLabels[selectedLocale] = form.translatedLabel.trim();
+    } else if (selectedLocale && !form.translatedLabel.trim()) {
+      delete updatedLabels[selectedLocale];
+    }
+
     const payload = {
       slug: form.slug.trim(),
       label: form.label.trim(),
+      labels: updatedLabels,
       emoji: form.emoji.trim(),
       parentSlug: form.parentSlug || null,
       sortOrder: Number(form.sortOrder),
@@ -203,6 +219,16 @@ function AdminPlaceCategoriesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <select
+            className="h-9 rounded-md border bg-background px-3 text-sm"
+            value={selectedLocale}
+            onChange={(e) => setSelectedLocale(e.target.value)}
+          >
+            <option value="">Default</option>
+            {SUPPORTED_LOCALES.map((loc) => (
+              <option key={loc} value={loc}>{loc}</option>
+            ))}
+          </select>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="mr-1 size-4" />
             Export JSON
@@ -251,7 +277,13 @@ function AdminPlaceCategoriesPage() {
                   <tr key={category.slug} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3">
                       <div className="font-medium" style={{ paddingLeft: `${category.depth * 20}px` }}>
-                        {category.emoji} {category.label}
+                        {category.emoji}{" "}
+                        {selectedLocale && category.labels?.[selectedLocale]
+                          ? category.labels[selectedLocale]
+                          : category.label}
+                        {selectedLocale && !category.labels?.[selectedLocale] && (
+                          <span className="ml-1 text-xs text-muted-foreground">(fallback)</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{category.slug}</td>
@@ -295,13 +327,31 @@ function AdminPlaceCategoriesPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="category-label">Label</Label>
+                <Label htmlFor="category-label">Label (fallback)</Label>
                 <Input
                   id="category-label"
                   value={form.label}
                   onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
                 />
               </div>
+              {selectedLocale && (
+                <div className="space-y-2">
+                  <Label htmlFor="category-translated-label">
+                    Label ({selectedLocale})
+                  </Label>
+                  <Input
+                    id="category-translated-label"
+                    value={form.translatedLabel}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        translatedLabel: event.target.value,
+                      }))
+                    }
+                    placeholder={form.label || "Translated label"}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="category-emoji">Emoji</Label>
                 <EmojiPickerInput
