@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Trans } from "@lingui/react";
+import { i18n } from "@lingui/core";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -85,12 +87,12 @@ type CheckinItem = {
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return i18n._("just now");
+  if (mins < 60) return i18n._("{mins}m ago", { mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return i18n._("{hours}h ago", { hours });
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return i18n._("{days}d ago", { days });
 }
 
 function HomePage() {
@@ -151,9 +153,9 @@ function HomePage() {
       {gridEvents.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold tracking-tight">Upcoming Events</h2>
+            <h2 className="text-xl font-semibold tracking-tight"><Trans id="Upcoming Events" message="Upcoming Events" /></h2>
             <Link to="/events" className="text-sm text-primary hover:underline">
-              View all →
+              <Trans id="View all →" message="View all →" />
             </Link>
           </div>
           <div className="flex flex-col">
@@ -168,15 +170,15 @@ function HomePage() {
       {checkins.length > 0 && (
         <section>
           <div className="flex items-center justify-between pb-3 border-b-2 border-foreground mb-4">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-[#333]">Recent Check-ins</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wide text-[#333]"><Trans id="Recent Check-ins" message="Recent Check-ins" /></h2>
             <div className="flex items-center gap-3">
               {user && (
                 <Button size="sm" asChild>
-                  <Link to="/places">Check In</Link>
+                  <Link to="/places"><Trans id="Check In" message="Check In" /></Link>
                 </Button>
               )}
               <Link to="/places" className="text-[12px] text-[#888] hover:text-foreground underline underline-offset-2">
-                View all
+                <Trans id="View all" message="View all" />
               </Link>
             </div>
           </div>
@@ -200,7 +202,7 @@ function HomePage() {
                     params={{ placeId: checkin.placeId }}
                     className="inline-flex items-center gap-1 text-[13px] font-semibold text-foreground hover:underline underline-offset-2 mt-0.5"
                   >
-                    <span className="text-[11px] font-normal text-[#999]">at</span>
+                    <span className="text-[11px] font-normal text-[#999]"><Trans id="at" message="at" /></span>
                     {checkin.placeName}
                   </Link>
                   {checkin.note && (
@@ -218,25 +220,25 @@ function HomePage() {
         <section className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Events</CardTitle>
+              <CardTitle className="text-base"><Trans id="Events" message="Events" /></CardTitle>
               <CardDescription>
-                Create, discover, and RSVP to events hosted by groups across the fediverse.
+                <Trans id="Create, discover, and RSVP to events hosted by groups across the fediverse." message="Create, discover, and RSVP to events hosted by groups across the fediverse." />
               </CardDescription>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Places</CardTitle>
+              <CardTitle className="text-base"><Trans id="Places" message="Places" /></CardTitle>
               <CardDescription>
-                Find and share venues, spaces, and locations where communities gather.
+                <Trans id="Find and share venues, spaces, and locations where communities gather." message="Find and share venues, spaces, and locations where communities gather." />
               </CardDescription>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Federated</CardTitle>
+              <CardTitle className="text-base"><Trans id="Federated" message="Federated" /></CardTitle>
               <CardDescription>
-                Sign in with your fediverse account. Follow groups from Mastodon, Misskey, and more.
+                <Trans id="Sign in with your fediverse account. Follow groups from Mastodon, Misskey, and more." message="Sign in with your fediverse account. Follow groups from Mastodon, Misskey, and more." />
               </CardDescription>
             </CardHeader>
           </Card>
@@ -542,7 +544,7 @@ function BannerSlideContent({
       )}
       <div className="absolute top-3 left-3 md:top-4 md:left-6">
         <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-black/50 text-white">
-          AD
+          <Trans id="AD" message="AD" />
         </span>
       </div>
     </a>
@@ -635,7 +637,7 @@ function EventSlideContent({
 
         {hostLabel && (
           <p className="text-xs md:text-sm mb-3 md:mb-6" style={{ color: hasImage ? "rgba(255,255,255,0.7)" : "#777" }}>
-            Hosted by <strong style={{ color: hasImage ? "white" : "#333" }}>{hostLabel}</strong>
+            <Trans id="Hosted by <0>{hostLabel}</0>" values={{ hostLabel }} components={{ 0: <strong style={{ color: hasImage ? "white" : "#333" }} /> }} message="Hosted by <0>{hostLabel}</0>" />
           </p>
         )}
 
@@ -646,7 +648,7 @@ function EventSlideContent({
             style={hasImage ? { background: "white", color: "#111827" } : { background: "#111", color: "white" }}
           >
             <Link to="/events/$eventId" params={{ eventId: slide.id }} tabIndex={isActive ? undefined : -1}>
-              View Event
+              <Trans id="View Event" message="View Event" />
             </Link>
           </Button>
           <Button
@@ -659,7 +661,7 @@ function EventSlideContent({
                 : { background: "transparent", color: "#333", borderColor: "rgba(0,0,0,0.2)" }
             }
           >
-            <Link to="/events" tabIndex={isActive ? undefined : -1}>Browse All Events</Link>
+            <Link to="/events" tabIndex={isActive ? undefined : -1}><Trans id="Browse All Events" message="Browse All Events" /></Link>
           </Button>
         </div>
       </div>
@@ -673,19 +675,18 @@ function FallbackHero({ user }: { user: { handle: string } | null }) {
   return (
     <section className="flex flex-col items-center text-center py-12 space-y-4">
       <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-        Discover events,<br />together across the fediverse
+        <Trans id="Discover events,<0/>together across the fediverse" components={{ 0: <br /> }} message="Discover events,<0/>together across the fediverse" />
       </h1>
       <p className="max-w-lg text-lg text-muted-foreground">
-        Moim is a federated events and places service — like connpass meets
-        foursquare, powered by ActivityPub.
+        <Trans id="Moim is a federated events and places service — like connpass meets foursquare, powered by ActivityPub." message="Moim is a federated events and places service — like connpass meets foursquare, powered by ActivityPub." />
       </p>
       <div className="flex gap-3 pt-2">
         <Button asChild>
-          <Link to="/events">Browse Events</Link>
+          <Link to="/events"><Trans id="Browse Events" message="Browse Events" /></Link>
         </Button>
         {!user && (
           <Button variant="outline" asChild>
-            <Link to="/auth/signin">Sign in</Link>
+            <Link to="/auth/signin"><Trans id="Sign in" message="Sign in" /></Link>
           </Button>
         )}
       </div>
@@ -749,7 +750,7 @@ function EventListRow({ event }: { event: EventItem }) {
         </h3>
         {hostLabel && (
           <p className="text-sm text-[#555] mb-1">
-            Hosted by <strong className="text-foreground">{hostLabel}</strong>
+            <Trans id="Hosted by <0>{hostLabel}</0>" values={{ hostLabel }} components={{ 0: <strong className="text-foreground" /> }} message="Hosted by <0>{hostLabel}</0>" />
           </p>
         )}
         {event.location && (

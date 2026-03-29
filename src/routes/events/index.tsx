@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Trans, useLingui } from "@lingui/react";
 import { useEventCategories, useEventCategoryMap } from "~/hooks/useEventCategories";
 import { resolveCategoryLabel } from "~/lib/place";
 import { Button } from "~/components/ui/button";
@@ -50,6 +51,7 @@ type EventItem = {
 type CountryOption = { code: string; name: string };
 
 function EventsPage() {
+  const { i18n } = useLingui();
   const { category, country } = Route.useSearch();
   const navigate = useNavigate({ from: "/events/" });
   const { categories } = useEventCategories();
@@ -101,14 +103,14 @@ function EventsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Events</h2>
+          <h2 className="text-2xl font-semibold tracking-tight"><Trans id="Events" message="Events" /></h2>
           <p className="text-muted-foreground mt-1">
-            Discover upcoming events from groups across the fediverse.
+            <Trans id="Discover upcoming events from groups across the fediverse." message="Discover upcoming events from groups across the fediverse." />
           </p>
         </div>
         {user && (
           <Button asChild>
-            <Link to="/events/create">Create Event</Link>
+            <Link to="/events/create"><Trans id="Create Event" message="Create Event" /></Link>
           </Button>
         )}
       </div>
@@ -122,14 +124,14 @@ function EventsPage() {
               size="sm"
               onClick={() => setTab("upcoming")}
             >
-              Upcoming
+              <Trans id="Upcoming" message="Upcoming" />
             </Button>
             <Button
               variant={tab === "past" ? "default" : "outline"}
               size="sm"
               onClick={() => setTab("past")}
             >
-              Past
+              <Trans id="Past" message="Past" />
             </Button>
           </div>
 
@@ -139,7 +141,7 @@ function EventsPage() {
               value={country ?? ""}
               onChange={(e) => updateSearch({ country: e.target.value || undefined })}
             >
-              <option value="">All countries</option>
+              <option value="">{i18n._("All countries")}</option>
               {countries.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.name} ({c.code})
@@ -158,7 +160,7 @@ function EventsPage() {
               className="h-7 text-xs shrink-0"
               onClick={() => updateSearch({ category: undefined })}
             >
-              All
+              <Trans id="All" message="All" />
             </Button>
             {categories.map((cat) => {
               const isActive = category === cat.slug;
@@ -186,23 +188,23 @@ function EventsPage() {
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-3.5">
               <path d="M8.543 2.232a.75.75 0 0 0-1.085 0l-5.25 5.5A.75.75 0 0 0 2.75 9H4v4a1 1 0 0 0 1 1h1.5a.5.5 0 0 0 .5-.5v-2a1 1 0 0 1 2 0v2a.5.5 0 0 0 .5.5H11a1 1 0 0 0 1-1V9h1.25a.75.75 0 0 0 .543-1.268l-5.25-5.5Z" />
             </svg>
-            Go to {categoryMap.get(category)} feed page
+            <Trans id="Go to {0} feed page" values={{ 0: categoryMap.get(category) }} message="Go to {0} feed page" />
           </Link>
         )}
       </div>
 
       {loading ? (
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground"><Trans id="Loading..." message="Loading..." /></p>
       ) : events.length === 0 ? (
         <Card className="flex items-center justify-center py-16">
           <CardHeader className="text-center">
             <CardTitle className="text-base text-muted-foreground">
-              {tab === "past" ? "No past events" : "No upcoming events"}
+              {tab === "past" ? <Trans id="No past events" message="No past events" /> : <Trans id="No upcoming events" message="No upcoming events" />}
             </CardTitle>
             <CardDescription>
               {tab === "past"
-                ? "Past events will appear here."
-                : "Create a group to start hosting events."}
+                ? <Trans id="Past events will appear here." message="Past events will appear here." />
+                : <Trans id="Create a group to start hosting events." message="Create a group to start hosting events." />}
             </CardDescription>
           </CardHeader>
         </Card>
