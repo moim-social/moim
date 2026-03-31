@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { createApp, createRouter, defineEventHandler, fromWebHandler, toWebHandler, toWebRequest, useBase } from "h3";
+import { createApp, createRouter, defineEventHandler, fromWebHandler, setResponseHeader, toWebHandler, toWebRequest, useBase } from "h3";
 import {
   createStartHandler,
   defaultStreamHandler,
@@ -111,6 +111,30 @@ const startFetch = createStartHandler(defaultStreamHandler);
 
 const app = createApp({ onError });
 app.use(integrateFederation(federation, () => undefined));
+
+// Security headers
+app.use(defineEventHandler((event) => {
+  setResponseHeader(event, "X-Frame-Options", "SAMEORIGIN");
+  setResponseHeader(event, "X-Content-Type-Options", "nosniff");
+  setResponseHeader(event, "Referrer-Policy", "strict-origin-when-cross-origin");
+  setResponseHeader(event, "Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
+  setResponseHeader(event, "Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  setResponseHeader(
+    event,
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://us-assets.i.posthog.com",
+      "style-src 'self' 'unsafe-inline' https://unpkg.com",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self'",
+      "connect-src 'self' https:",
+      "frame-ancestors 'self'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; "),
+  );
+}));
 
 // Start the MiAuth session cleanup interval
 startCleanupInterval();
