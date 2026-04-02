@@ -168,7 +168,7 @@ function RegisterPage() {
   if (existingRsvp && (existingRsvp.status === "accepted" || existingRsvp.status === "waitlisted")) {
     const existingTier = tiers.find((t) => t.id === existingRsvp.tierId);
     return (
-      <div className="mx-auto max-w-lg px-4 py-12">
+      <div className="mx-auto max-w-2xl px-4 py-12">
         <Card>
           <CardContent className="pt-6 text-center space-y-4">
             <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-muted">
@@ -661,7 +661,7 @@ function RegisterPage() {
           <h2 className="text-lg font-semibold">Registration questions</h2>
           {questions.map((q, i) => (
             <div key={q.id} className="space-y-3">
-              <Label>
+              <Label className="leading-relaxed">
                 {i + 1}. {q.question}
                 {q.required && <span className="text-destructive ml-1">*</span>}
               </Label>
