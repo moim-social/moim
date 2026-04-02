@@ -3,7 +3,7 @@ import { env } from "~/server/env";
 import { createMiAuthSession, validateInstanceHostname } from "~/server/miauth-sessions";
 
 export const POST = async ({ request }: { request: Request }) => {
-  const body = await request.json().catch(() => null) as { instance?: string } | null;
+  const body = await request.json().catch(() => null) as { instance?: string; returnTo?: string } | null;
 
   if (!body?.instance) {
     return Response.json({ error: "instance is required" }, { status: 400 });
@@ -21,7 +21,7 @@ export const POST = async ({ request }: { request: Request }) => {
   // Store session server-side for verification during callback
   const ttlSecondsEnv = parseInt(process.env.MIAUTH_SESSION_TTL_SECONDS ?? "300", 10);
   const ttlSeconds = isFinite(ttlSecondsEnv) && ttlSecondsEnv > 0 ? ttlSecondsEnv : 300; // 5 min default
-  createMiAuthSession(sessionId, instance, ttlSeconds);
+  createMiAuthSession(sessionId, instance, ttlSeconds, body.returnTo);
 
   const callbackUrl = `${env.baseUrl}/auth/misskey/miauth-callback?instance=${encodeURIComponent(instance)}&session=${encodeURIComponent(sessionId)}`;
 

@@ -21,6 +21,7 @@ interface MastodonOAuthSession {
   clientSecret: string;
   createdAt: number;
   expiresAt: number;
+  returnTo?: string;
 }
 
 const appCache = new Map<string, MastodonOAuthApp>();
@@ -113,6 +114,7 @@ export function createOAuthSession(
   clientId: string,
   clientSecret: string,
   ttlSeconds: number,
+  returnTo?: string,
 ): void {
   const now = Date.now();
   sessions.set(state, {
@@ -122,6 +124,7 @@ export function createOAuthSession(
     clientSecret,
     createdAt: now,
     expiresAt: now + ttlSeconds * 1000,
+    returnTo,
   });
 }
 

@@ -61,12 +61,12 @@ function CreateGroupPage() {
       .then((r) => r.json())
       .then((data) => {
         if (!data.user) {
-          navigate({ to: "/auth/signin" });
+          navigate({ to: "/auth/signin", search: { returnTo: "/groups/create" } });
         } else {
           setAuthed(true);
         }
       })
-      .catch(() => navigate({ to: "/auth/signin" }));
+      .catch(() => navigate({ to: "/auth/signin", search: { returnTo: "/groups/create" } }));
   }, [navigate]);
 
   // Basic info

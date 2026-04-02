@@ -10,6 +10,7 @@ interface MiAuthSession {
   instance: string;
   createdAt: number;
   expiresAt: number;
+  returnTo?: string;
 }
 
 const sessions = new Map<string, MiAuthSession>();
@@ -149,13 +150,14 @@ export function validateInstanceHostname(instance: string): boolean {
  * Create and store a MiAuth session.
  * Sessions expire after ttlSeconds.
  */
-export function createMiAuthSession(sessionId: string, instance: string, ttlSeconds: number): void {
+export function createMiAuthSession(sessionId: string, instance: string, ttlSeconds: number, returnTo?: string): void {
   const now = Date.now();
   sessions.set(sessionId, {
     sessionId,
     instance,
     createdAt: now,
     expiresAt: now + ttlSeconds * 1000,
+    returnTo,
   });
 }
 
@@ -166,7 +168,7 @@ export function createMiAuthSession(sessionId: string, instance: string, ttlSeco
 export function verifyAndConsumeMiAuthSession(
   sessionId: string,
   instance: string,
-): { valid: boolean; reason?: string } {
+): { valid: boolean; reason?: string; returnTo?: string } {
   const session = sessions.get(sessionId);
 
   if (!session) {
@@ -186,7 +188,7 @@ export function verifyAndConsumeMiAuthSession(
 
   // Consume the session to prevent replay
   sessions.delete(sessionId);
-  return { valid: true };
+  return { valid: true, returnTo: session.returnTo };
 }
 
 /**

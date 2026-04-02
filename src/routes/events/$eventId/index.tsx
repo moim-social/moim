@@ -371,7 +371,7 @@ function EventDetailPage() {
               </Button>
             ) : (
               <Button size="sm" asChild>
-                <Link to="/auth/signin" search={{ reason: "rsvp" }}><Trans id="Sign in to RSVP" message="Sign in to RSVP" /></Link>
+                <Link to="/auth/signin" search={{ reason: "rsvp", returnTo: `/events/${eventId}/register` }}><Trans id="Sign in to RSVP" message="Sign in to RSVP" /></Link>
               </Button>
             )
           ) : rsvpData.userRsvp ? (
@@ -501,7 +501,7 @@ function EventDetailPage() {
           </Button>
         ) : (
           <Button asChild className="w-full">
-            <Link to="/auth/signin" search={{ reason: "rsvp" }}><Trans id="Sign in to RSVP" message="Sign in to RSVP" /></Link>
+            <Link to="/auth/signin" search={{ reason: "rsvp", returnTo: `/events/${eventId}/register` }}><Trans id="Sign in to RSVP" message="Sign in to RSVP" /></Link>
           </Button>
         )
       ) : rsvpData.userRsvp ? (

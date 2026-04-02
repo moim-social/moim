@@ -1,4 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { getSessionUser } from "~/server/auth";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -21,16 +24,34 @@ import {
 } from "~/components/ui/dialog";
 import { useAuth } from "~/routes/__root";
 import { usePostHog } from "posthog-js/react";
+import { sanitizeReturnTo } from "~/lib/return-to";
+
+const checkAlreadySignedIn = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const request = getRequest();
+    const user = await getSessionUser(request);
+    return { isSignedIn: !!user };
+  },
+);
 
 export const Route = createFileRoute("/auth/signin")({
   component: SignInPage,
   validateSearch: (
     search: Record<string, unknown>,
-  ): { from?: string; reason?: string; event?: string } => ({
+  ): { from?: string; reason?: string; event?: string; returnTo?: string } => ({
     from: typeof search.from === "string" ? search.from : undefined,
     reason: typeof search.reason === "string" ? search.reason : undefined,
     event: typeof search.event === "string" ? search.event : undefined,
+    returnTo: typeof search.returnTo === "string" ? search.returnTo : undefined,
   }),
+  beforeLoad: async ({ search }) => {
+    const { isSignedIn } = await checkAlreadySignedIn();
+    if (isSignedIn) {
+      const returnTo = typeof search.returnTo === "string" ? search.returnTo : undefined;
+      const dest = sanitizeReturnTo(returnTo);
+      throw redirect({ href: dest });
+    }
+  },
 });
 
 // ─── Auth Provider Registry ─────────────────────────────────────────────────
@@ -46,7 +67,7 @@ type AuthProviderDef = {
   id: string;
   name: string;
   icon: string;
-  DialogForm: React.ComponentType<{ onClose: () => void }>;
+  DialogForm: React.ComponentType<{ onClose: () => void; returnTo?: string }>;
 };
 
 const AUTH_PROVIDERS: AuthProviderDef[] = [
@@ -122,7 +143,7 @@ function StepIndicator({ phase }: { phase: Phase }) {
 
 // ─── Provider Dialog Forms ──────────────────────────────────────────────────
 
-function MastodonDialogForm({ onClose: _onClose }: { onClose: () => void }) {
+function MastodonDialogForm({ onClose: _onClose, returnTo }: { onClose: () => void; returnTo?: string }) {
   const [instance, setInstance] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -140,7 +161,7 @@ function MastodonDialogForm({ onClose: _onClose }: { onClose: () => void }) {
       const res = await fetch("/api/auth/mastodon/oauth-start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instance: trimmed }),
+        body: JSON.stringify({ instance: trimmed, returnTo }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -213,7 +234,7 @@ function MastodonDialogForm({ onClose: _onClose }: { onClose: () => void }) {
   );
 }
 
-function MiAuthDialogForm({ onClose: _onClose }: { onClose: () => void }) {
+function MiAuthDialogForm({ onClose: _onClose, returnTo }: { onClose: () => void; returnTo?: string }) {
   const [instance, setInstance] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -231,7 +252,7 @@ function MiAuthDialogForm({ onClose: _onClose }: { onClose: () => void }) {
       const res = await fetch("/api/auth/misskey/miauth-start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instance: trimmed }),
+        body: JSON.stringify({ instance: trimmed, returnTo }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -306,7 +327,7 @@ function MiAuthDialogForm({ onClose: _onClose }: { onClose: () => void }) {
 
 // ─── HackersPub GraphQL Auth ────────────────────────────────────────────────
 
-function HackersPubDialogForm({ onClose: _onClose }: { onClose: () => void }) {
+function HackersPubDialogForm({ onClose: _onClose, returnTo }: { onClose: () => void; returnTo?: string }) {
   const [instance, setInstance] = useState("hackers.pub");
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
@@ -331,7 +352,7 @@ function HackersPubDialogForm({ onClose: _onClose }: { onClose: () => void }) {
       const res = await fetch("/api/auth/hackerspub/graphql-start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instance: trimmedInstance, username: trimmedUsername }),
+        body: JSON.stringify({ instance: trimmedInstance, username: trimmedUsername, returnTo }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -436,8 +457,8 @@ function HackersPubDialogForm({ onClose: _onClose }: { onClose: () => void }) {
 
 function SignInPage() {
   const navigate = useNavigate();
-  const { from, reason } = Route.useSearch();
-  const { user, setUser, loaded } = useAuth();
+  const { from, reason, returnTo } = Route.useSearch();
+  const { setUser } = useAuth();
   const posthog = usePostHog();
 
   // OTP state
@@ -453,13 +474,6 @@ function SignInPage() {
   // Which provider dialog is open (by id), or null
   const [openProviderId, setOpenProviderId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (loaded && user) {
-      navigate({ to: "/" });
-    }
-  }, [loaded, user, navigate]);
-
-  if (loaded && user) return null;
 
   function normalizeHandle(h: string): string {
     return h.startsWith("@") ? h.slice(1) : h;
@@ -514,7 +528,14 @@ function SignInPage() {
           });
           setPhase("success");
           posthog?.capture("sign_in", { handle: normalized });
-          setTimeout(() => navigate({ to: "/" }), 2000);
+          const dest = sanitizeReturnTo(returnTo);
+          setTimeout(() => {
+            if (dest !== "/") {
+              window.location.href = dest;
+            } else {
+              navigate({ to: "/" });
+            }
+          }, 2000);
         } else if (data.error === "challenge expired") {
           setError("Challenge expired. Please try again.");
           setPhase("error");
@@ -765,6 +786,7 @@ function SignInPage() {
             </DialogHeader>
             <provider.DialogForm
               onClose={() => setOpenProviderId(null)}
+              returnTo={returnTo}
             />
           </DialogContent>
         </Dialog>

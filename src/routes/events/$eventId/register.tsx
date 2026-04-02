@@ -133,7 +133,7 @@ function RegisterPage() {
           if (rsvp.allowAnonymousRsvp) {
             setIsAnonymousMode(true);
           } else {
-            navigate({ to: "/auth/signin", search: { reason: "rsvp" } });
+            navigate({ to: "/auth/signin", search: { reason: "rsvp", returnTo: `/events/${eventId}/register` } });
           }
         } else if (!rsvp.isAuthenticated && rsvp.userRsvp) {
           setIsAnonymousMode(true);

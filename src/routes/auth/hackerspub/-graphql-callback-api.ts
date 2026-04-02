@@ -187,6 +187,7 @@ export const POST = async ({ request }: { request: Request }) => {
       JSON.stringify({
         ok: true,
         user: { id: user.id, handle: user.fediverseHandle ?? user.handle },
+        returnTo: session.returnTo,
       }),
       { status: 200, headers },
     );

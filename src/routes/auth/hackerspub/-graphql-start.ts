@@ -9,6 +9,7 @@ export const POST = async ({ request }: { request: Request }) => {
   const body = (await request.json().catch(() => null)) as {
     instance?: string;
     username?: string;
+    returnTo?: string;
   } | null;
 
   if (!body?.instance) {
@@ -36,7 +37,7 @@ export const POST = async ({ request }: { request: Request }) => {
   );
   const ttlSeconds =
     isFinite(ttlSecondsEnv) && ttlSecondsEnv > 0 ? ttlSecondsEnv : 600; // 10 min default (email delivery can be slow)
-  createHackersPubSession(state, instance, username, ttlSeconds);
+  createHackersPubSession(state, instance, username, ttlSeconds, body.returnTo);
 
   // Build verifyUrl template — HackersPub will substitute {token} and {code}
   const callbackBase = `${env.baseUrl}/auth/hackerspub/callback`;
