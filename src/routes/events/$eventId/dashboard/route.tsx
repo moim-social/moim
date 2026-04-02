@@ -57,6 +57,7 @@ export type TierItem = {
   name: string;
   description: string | null;
   price: string | null;
+  priceAmount: number | null;
   sortOrder: number;
   opensAt: string;
   closesAt: string;

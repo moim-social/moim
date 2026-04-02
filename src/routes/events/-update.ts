@@ -40,6 +40,7 @@ export const POST = async ({ request }: { request: Request }) => {
       name: string;
       description?: string | null;
       price?: string | null;
+      priceAmount?: number | null;
       sortOrder: number;
       opensAt?: string | null;
       closesAt?: string | null;
@@ -261,6 +262,7 @@ export const POST = async ({ request }: { request: Request }) => {
               name: t.name,
               description: t.description !== undefined ? (t.description?.trim() || null) : undefined,
               price: t.price !== undefined ? (t.price?.trim() || null) : undefined,
+              priceAmount: t.priceAmount !== undefined ? (t.priceAmount ?? null) : undefined,
               sortOrder: t.sortOrder,
               opensAt: t.opensAt ? new Date(t.opensAt) : null,
               closesAt: t.closesAt ? new Date(t.closesAt) : null,
@@ -286,6 +288,7 @@ export const POST = async ({ request }: { request: Request }) => {
             name: t.name,
             description: t.description?.trim() || null,
             price: t.price?.trim() || null,
+            priceAmount: t.priceAmount ?? null,
             sortOrder: t.sortOrder,
             opensAt: t.opensAt ? new Date(t.opensAt) : null,
             closesAt: t.closesAt ? new Date(t.closesAt) : null,

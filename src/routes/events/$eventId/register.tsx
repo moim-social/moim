@@ -15,6 +15,7 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { Checkbox } from "~/components/ui/checkbox";
 import { ArrowLeft, ArrowRight, Check, Ticket, Copy } from "lucide-react";
+import { formatPrice } from "~/lib/format-price";
 
 export const Route = createFileRoute("/events/$eventId/register")({
   component: RegisterPage,
@@ -30,6 +31,7 @@ type TierInfo = {
   name: string;
   description: string | null;
   price: string | null;
+  priceAmount: number | null;
   opensAt: string | null;
   closesAt: string | null;
   capacity: number | null;
@@ -190,7 +192,7 @@ function RegisterPage() {
               <div className="rounded-lg border p-4 text-left space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{existingTier.name}</span>
-                  <span className="text-sm text-muted-foreground">{existingTier.price || "Free"}</span>
+                  <span className="text-sm text-muted-foreground">{formatPrice(existingTier.priceAmount, existingTier.price)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {new Date(event.startsAt).toLocaleDateString(undefined, {
@@ -425,7 +427,7 @@ function RegisterPage() {
               <div className="rounded-lg border p-4 text-left space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{selectedTier.name}</span>
-                  <span className="text-sm text-muted-foreground">{selectedTier.price || "Free"}</span>
+                  <span className="text-sm text-muted-foreground">{formatPrice(selectedTier.priceAmount, selectedTier.price)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {new Date(event.startsAt).toLocaleDateString(undefined, {
@@ -588,7 +590,7 @@ function RegisterPage() {
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="text-lg font-bold">{t.price || "Free"}</span>
+                    <span className="text-lg font-bold">{formatPrice(t.priceAmount, t.price)}</span>
                   </div>
                 </div>
               </button>
@@ -704,7 +706,7 @@ function RegisterPage() {
                       <p className="text-xs text-muted-foreground mt-0.5">{selectedTier.description}</p>
                     )}
                   </div>
-                  <span className="font-semibold">{selectedTier.price || "Free"}</span>
+                  <span className="font-semibold">{formatPrice(selectedTier.priceAmount, selectedTier.price)}</span>
                 </div>
               )}
               <Separator />
