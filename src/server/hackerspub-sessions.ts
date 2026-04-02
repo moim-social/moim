@@ -13,6 +13,7 @@ interface HackersPubSession {
   username: string;
   createdAt: number;
   expiresAt: number;
+  returnTo?: string;
 }
 
 const sessions = new Map<string, HackersPubSession>();
@@ -24,6 +25,7 @@ export function createHackersPubSession(
   instance: string,
   username: string,
   ttlSeconds: number,
+  returnTo?: string,
 ): void {
   const now = Date.now();
   sessions.set(state, {
@@ -32,12 +34,13 @@ export function createHackersPubSession(
     username,
     createdAt: now,
     expiresAt: now + ttlSeconds * 1000,
+    returnTo,
   });
 }
 
 export function verifyAndConsumeHackersPubSession(
   state: string,
-): { instance: string; username: string } | null {
+): { instance: string; username: string; returnTo?: string } | null {
   const session = sessions.get(state);
   if (!session) return null;
 
@@ -47,7 +50,7 @@ export function verifyAndConsumeHackersPubSession(
   // Check expiration
   if (Date.now() > session.expiresAt) return null;
 
-  return { instance: session.instance, username: session.username };
+  return { instance: session.instance, username: session.username, returnTo: session.returnTo };
 }
 
 function cleanupExpiredSessions(): void {

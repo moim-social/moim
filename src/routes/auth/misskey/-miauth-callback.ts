@@ -42,7 +42,8 @@ export const GET = async ({ request }: { request: Request }) => {
             const data = await response.json();
 
             if (response.ok) {
-              window.location.href = '/';
+              var dest = data.returnTo;
+              window.location.href = (typeof dest === 'string' && dest.charAt(0) === '/' && dest.charAt(1) !== '/') ? dest : '/';
             } else {
               window.location.href = '/?error=' + (data.error || 'auth_failed');
             }

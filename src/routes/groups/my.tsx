@@ -33,7 +33,7 @@ function MyGroupsPage() {
       .then((r) => r.json())
       .then((data) => {
         if (!data.user) {
-          navigate({ to: "/auth/signin" });
+          navigate({ to: "/auth/signin", search: { returnTo: "/groups/my" } });
           return;
         }
         return fetch("/api/me/groups");

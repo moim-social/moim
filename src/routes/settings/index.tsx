@@ -38,7 +38,7 @@ function SettingsPage() {
     fetch("/api/users/settings")
       .then((r) => {
         if (r.status === 401) {
-          navigate({ to: "/auth/signin" });
+          navigate({ to: "/auth/signin", search: { returnTo: "/settings" } });
           return null;
         }
         if (!r.ok) throw new Error("Failed to load settings");

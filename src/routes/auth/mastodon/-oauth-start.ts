@@ -4,7 +4,7 @@ import { validateInstanceHostname } from "~/server/miauth-sessions";
 import { getOrRegisterOAuthApp, createOAuthSession } from "~/server/mastodon-oauth-sessions";
 
 export const POST = async ({ request }: { request: Request }) => {
-  const body = await request.json().catch(() => null) as { instance?: string } | null;
+  const body = await request.json().catch(() => null) as { instance?: string; returnTo?: string } | null;
 
   if (!body?.instance) {
     return Response.json({ error: "instance is required" }, { status: 400 });
@@ -27,7 +27,7 @@ export const POST = async ({ request }: { request: Request }) => {
   const state = randomUUID();
   const ttlSecondsEnv = parseInt(process.env.MASTODON_OAUTH_SESSION_TTL_SECONDS ?? "300", 10);
   const ttlSeconds = isFinite(ttlSecondsEnv) && ttlSecondsEnv > 0 ? ttlSecondsEnv : 300;
-  createOAuthSession(state, instance, app.clientId, app.clientSecret, ttlSeconds);
+  createOAuthSession(state, instance, app.clientId, app.clientSecret, ttlSeconds, body.returnTo);
 
   const redirectUri = `${env.baseUrl}/auth/mastodon/oauth-callback`;
 

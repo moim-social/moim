@@ -21,15 +21,17 @@ import {
 } from "~/components/ui/dialog";
 import { useAuth } from "~/routes/__root";
 import { usePostHog } from "posthog-js/react";
+import { sanitizeReturnTo } from "~/lib/return-to";
 
 export const Route = createFileRoute("/auth/signin")({
   component: SignInPage,
   validateSearch: (
     search: Record<string, unknown>,
-  ): { from?: string; reason?: string; event?: string } => ({
+  ): { from?: string; reason?: string; event?: string; returnTo?: string } => ({
     from: typeof search.from === "string" ? search.from : undefined,
     reason: typeof search.reason === "string" ? search.reason : undefined,
     event: typeof search.event === "string" ? search.event : undefined,
+    returnTo: typeof search.returnTo === "string" ? search.returnTo : undefined,
   }),
 });
 
@@ -46,7 +48,7 @@ type AuthProviderDef = {
   id: string;
   name: string;
   icon: string;
-  DialogForm: React.ComponentType<{ onClose: () => void }>;
+  DialogForm: React.ComponentType<{ onClose: () => void; returnTo?: string }>;
 };
 
 const AUTH_PROVIDERS: AuthProviderDef[] = [
@@ -122,7 +124,7 @@ function StepIndicator({ phase }: { phase: Phase }) {
 
 // ─── Provider Dialog Forms ──────────────────────────────────────────────────
 
-function MastodonDialogForm({ onClose: _onClose }: { onClose: () => void }) {
+function MastodonDialogForm({ onClose: _onClose, returnTo }: { onClose: () => void; returnTo?: string }) {
   const [instance, setInstance] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -140,7 +142,7 @@ function MastodonDialogForm({ onClose: _onClose }: { onClose: () => void }) {
       const res = await fetch("/api/auth/mastodon/oauth-start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instance: trimmed }),
+        body: JSON.stringify({ instance: trimmed, returnTo }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -213,7 +215,7 @@ function MastodonDialogForm({ onClose: _onClose }: { onClose: () => void }) {
   );
 }
 
-function MiAuthDialogForm({ onClose: _onClose }: { onClose: () => void }) {
+function MiAuthDialogForm({ onClose: _onClose, returnTo }: { onClose: () => void; returnTo?: string }) {
   const [instance, setInstance] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -231,7 +233,7 @@ function MiAuthDialogForm({ onClose: _onClose }: { onClose: () => void }) {
       const res = await fetch("/api/auth/misskey/miauth-start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instance: trimmed }),
+        body: JSON.stringify({ instance: trimmed, returnTo }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -306,7 +308,7 @@ function MiAuthDialogForm({ onClose: _onClose }: { onClose: () => void }) {
 
 // ─── HackersPub GraphQL Auth ────────────────────────────────────────────────
 
-function HackersPubDialogForm({ onClose: _onClose }: { onClose: () => void }) {
+function HackersPubDialogForm({ onClose: _onClose, returnTo }: { onClose: () => void; returnTo?: string }) {
   const [instance, setInstance] = useState("hackers.pub");
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
@@ -331,7 +333,7 @@ function HackersPubDialogForm({ onClose: _onClose }: { onClose: () => void }) {
       const res = await fetch("/api/auth/hackerspub/graphql-start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instance: trimmedInstance, username: trimmedUsername }),
+        body: JSON.stringify({ instance: trimmedInstance, username: trimmedUsername, returnTo }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -436,7 +438,7 @@ function HackersPubDialogForm({ onClose: _onClose }: { onClose: () => void }) {
 
 function SignInPage() {
   const navigate = useNavigate();
-  const { from, reason } = Route.useSearch();
+  const { from, reason, returnTo } = Route.useSearch();
   const { user, setUser, loaded } = useAuth();
   const posthog = usePostHog();
 
@@ -455,9 +457,9 @@ function SignInPage() {
 
   useEffect(() => {
     if (loaded && user) {
-      navigate({ to: "/" });
+      navigate({ to: sanitizeReturnTo(returnTo) });
     }
-  }, [loaded, user, navigate]);
+  }, [loaded, user, navigate, returnTo]);
 
   if (loaded && user) return null;
 
@@ -514,7 +516,7 @@ function SignInPage() {
           });
           setPhase("success");
           posthog?.capture("sign_in", { handle: normalized });
-          setTimeout(() => navigate({ to: "/" }), 2000);
+          setTimeout(() => navigate({ to: sanitizeReturnTo(returnTo) }), 2000);
         } else if (data.error === "challenge expired") {
           setError("Challenge expired. Please try again.");
           setPhase("error");
@@ -765,6 +767,7 @@ function SignInPage() {
             </DialogHeader>
             <provider.DialogForm
               onClose={() => setOpenProviderId(null)}
+              returnTo={returnTo}
             />
           </DialogContent>
         </Dialog>

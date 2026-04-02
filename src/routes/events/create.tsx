@@ -51,12 +51,12 @@ function CreateEventPage() {
       .then((r) => r.json())
       .then((data) => {
         if (!data.user) {
-          navigate({ to: "/auth/signin" });
+          navigate({ to: "/auth/signin", search: { returnTo: "/events/create" } });
         } else {
           setAuthed(true);
         }
       })
-      .catch(() => navigate({ to: "/auth/signin" }));
+      .catch(() => navigate({ to: "/auth/signin", search: { returnTo: "/events/create" } }));
   }, [navigate]);
 
   // Groups the user can create events for
