@@ -1,0 +1,1 @@
+ALTER TABLE "event_tiers" ADD COLUMN "price_amount" integer;

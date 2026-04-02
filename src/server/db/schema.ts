@@ -171,6 +171,7 @@ export const eventTiers = pgTable("event_tiers", {
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
   price: varchar("price", { length: 64 }), // display label e.g. "Free", "¥1000", "$25"
+  priceAmount: integer("price_amount"), // numeric price in whole KRW (e.g. 15000)
   opensAt: timestamp("opens_at", { withTimezone: true }),
   closesAt: timestamp("closes_at", { withTimezone: true }),
   capacity: integer("capacity"), // null = unlimited
