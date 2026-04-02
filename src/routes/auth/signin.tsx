@@ -1,4 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { getSessionUser } from "~/server/auth";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -23,6 +26,14 @@ import { useAuth } from "~/routes/__root";
 import { usePostHog } from "posthog-js/react";
 import { sanitizeReturnTo } from "~/lib/return-to";
 
+const checkAlreadySignedIn = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const request = getRequest();
+    const user = await getSessionUser(request);
+    return { isSignedIn: !!user };
+  },
+);
+
 export const Route = createFileRoute("/auth/signin")({
   component: SignInPage,
   validateSearch: (
@@ -33,6 +44,14 @@ export const Route = createFileRoute("/auth/signin")({
     event: typeof search.event === "string" ? search.event : undefined,
     returnTo: typeof search.returnTo === "string" ? search.returnTo : undefined,
   }),
+  beforeLoad: async ({ search }) => {
+    const { isSignedIn } = await checkAlreadySignedIn();
+    if (isSignedIn) {
+      const returnTo = typeof search.returnTo === "string" ? search.returnTo : undefined;
+      const dest = sanitizeReturnTo(returnTo);
+      throw redirect({ href: dest });
+    }
+  },
 });
 
 // ─── Auth Provider Registry ─────────────────────────────────────────────────
@@ -439,7 +458,7 @@ function HackersPubDialogForm({ onClose: _onClose, returnTo }: { onClose: () => 
 function SignInPage() {
   const navigate = useNavigate();
   const { from, reason, returnTo } = Route.useSearch();
-  const { user, setUser, loaded } = useAuth();
+  const { setUser } = useAuth();
   const posthog = usePostHog();
 
   // OTP state
@@ -455,13 +474,6 @@ function SignInPage() {
   // Which provider dialog is open (by id), or null
   const [openProviderId, setOpenProviderId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (loaded && user) {
-      navigate({ to: sanitizeReturnTo(returnTo) });
-    }
-  }, [loaded, user, navigate, returnTo]);
-
-  if (loaded && user) return null;
 
   function normalizeHandle(h: string): string {
     return h.startsWith("@") ? h.slice(1) : h;
@@ -516,7 +528,14 @@ function SignInPage() {
           });
           setPhase("success");
           posthog?.capture("sign_in", { handle: normalized });
-          setTimeout(() => navigate({ to: sanitizeReturnTo(returnTo) }), 2000);
+          const dest = sanitizeReturnTo(returnTo);
+          setTimeout(() => {
+            if (dest !== "/") {
+              window.location.href = dest;
+            } else {
+              navigate({ to: "/" });
+            }
+          }, 2000);
         } else if (data.error === "challenge expired") {
           setError("Challenge expired. Please try again.");
           setPhase("error");
