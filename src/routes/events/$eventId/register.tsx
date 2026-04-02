@@ -244,7 +244,7 @@ function RegisterPage() {
 
   // Determine steps
   const steps: Array<"tier" | "contact" | "questions" | "confirm"> = [];
-  if (hasMultipleTiers) steps.push("tier");
+  if (tiers.length > 0) steps.push("tier");
   if (isAnonymousMode) steps.push("contact");
   if (hasQuestions) steps.push("questions");
   steps.push("confirm");
