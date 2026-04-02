@@ -323,6 +323,13 @@
       "when": 1774823013195,
       "tag": "0045_black_puff_adder",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1775123144336,
+      "tag": "0046_small_blindfold",
+      "breakpoints": true
     }
   ]
 }

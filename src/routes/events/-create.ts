@@ -36,6 +36,7 @@ export const POST = async ({ request }: { request: Request }) => {
       name: string;
       description?: string;
       price?: string;
+      priceAmount?: number;
       sortOrder?: number;
       opensAt?: string;
       closesAt?: string;
@@ -167,6 +168,7 @@ export const POST = async ({ request }: { request: Request }) => {
           name: t.name,
           description: t.description ?? null,
           price: t.price ?? null,
+          priceAmount: t.priceAmount ?? null,
           sortOrder: t.sortOrder ?? idx,
           opensAt: t.opensAt ? new Date(t.opensAt) : null,
           closesAt: t.closesAt ? new Date(t.closesAt) : null,

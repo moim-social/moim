@@ -7,6 +7,7 @@ import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { utcToDatetimeLocal, datetimeLocalToUTC } from "~/lib/timezone";
+import { formatPrice } from "~/lib/format-price";
 import { useDashboard, type TierItem } from "./route";
 
 export const Route = createFileRoute("/events/$eventId/dashboard/tiers")({
@@ -41,7 +42,7 @@ function TiersTab() {
   if (!isGroupEvent) return null;
 
   function addTier() {
-    setTiers([...tiers, { name: "", description: null, price: null, sortOrder: tiers.length, opensAt: "", closesAt: "", capacity: null, acceptedCount: 0, waitlistedCount: 0 }]);
+    setTiers([...tiers, { name: "", description: null, price: null, priceAmount: null, sortOrder: tiers.length, opensAt: "", closesAt: "", capacity: null, acceptedCount: 0, waitlistedCount: 0 }]);
     setSuccess(false);
   }
 
@@ -73,7 +74,8 @@ function TiersTab() {
             id: t.id,
             name: t.name.trim(),
             description: t.description?.trim() || null,
-            price: t.price?.trim() || null,
+            price: t.priceAmount ? formatPrice(t.priceAmount) : (t.price?.trim() || null),
+            priceAmount: t.priceAmount,
             sortOrder: idx,
             opensAt: t.opensAt ? datetimeLocalToUTC(t.opensAt, timezone) : null,
             closesAt: t.closesAt ? datetimeLocalToUTC(t.closesAt, timezone) : null,
@@ -153,11 +155,16 @@ function TiersTab() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="space-y-1">
-                  <Label className="text-xs">Price</Label>
+                  <Label className="text-xs">Price (KRW)</Label>
                   <Input
-                    placeholder="Free"
-                    value={t.price ?? ""}
-                    onChange={(e) => updateTier(idx, { price: e.target.value || null })}
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={t.priceAmount ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value === "" ? null : parseInt(e.target.value, 10);
+                      updateTier(idx, { priceAmount: val });
+                    }}
                   />
                 </div>
                 <div className="space-y-1">
