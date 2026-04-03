@@ -297,17 +297,42 @@ function RootLayout() {
             </main>
 
             {/* Footer */}
-            <footer className="border-t-2 border-foreground mt-12">
-              <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
-                <div className="flex items-center gap-3">
-                  <img src="/logo.png" alt="" className="h-5 w-5 grayscale" />
-                  <span className="text-base font-extrabold tracking-tight">moim</span>
-                  <span className="text-[12px] text-[#888]">&mdash; <Trans id="Federated events & check-ins" message="Federated events & check-ins" /></span>
+            <footer className="border-t-2 border-foreground mt-12 bg-muted/30">
+              <div className="mx-auto w-full max-w-5xl px-6 py-10">
+                <div className="grid grid-cols-2 gap-8 md:grid-cols-3">
+                  {/* Branding */}
+                  <div className="col-span-2 md:col-span-1">
+                    <div className="flex items-center gap-2">
+                      <img src="/logo.png" alt="" className="h-5 w-5 grayscale" />
+                      <span className="text-base font-extrabold tracking-tight">moim</span>
+                    </div>
+                    <p className="mt-2 text-[12px] text-muted-foreground">
+                      <Trans id="Federated events & check-ins" message="Federated events & check-ins" />
+                    </p>
+                    <p className="mt-3 text-[11px] text-muted-foreground/70">
+                      <Trans id="footer.contact" message="Contact: support@moim.live" />
+                    </p>
+                  </div>
+
+                  {/* Service */}
+                  <div>
+                    <h4 className="text-[13px] font-bold mb-3"><Trans id="footer.service" message="Service" /></h4>
+                    <nav className="flex flex-col gap-2">
+                      <Link to="/events" className="text-[13px] text-muted-foreground hover:text-foreground transition-colors"><Trans id="Events" message="Events" /></Link>
+                      <Link to="/places" className="text-[13px] text-muted-foreground hover:text-foreground transition-colors"><Trans id="Check-ins" message="Check-ins" /></Link>
+                    </nav>
+                  </div>
+
+                  {/* Legal */}
+                  <div>
+                    <h4 className="text-[13px] font-bold mb-3"><Trans id="footer.legal" message="Legal" /></h4>
+                    <nav className="flex flex-col gap-2">
+                      <Link to="/legal/terms" className="text-[13px] text-muted-foreground hover:text-foreground transition-colors"><Trans id="Terms of Service" message="Terms of Service" /></Link>
+                      <Link to="/legal/privacy" className="text-[13px] text-muted-foreground hover:text-foreground transition-colors"><Trans id="Privacy Policy" message="Privacy Policy" /></Link>
+                      <Link to="/legal/refund" className="text-[13px] text-muted-foreground hover:text-foreground transition-colors"><Trans id="Refund Policy" message="Refund Policy" /></Link>
+                    </nav>
+                  </div>
                 </div>
-                <nav className="flex gap-6">
-                  <Link to="/events" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground transition-colors"><Trans id="Events" message="Events" /></Link>
-                  <Link to="/places" className="text-[13px] font-medium uppercase tracking-[0.5px] text-[#555] hover:text-foreground transition-colors"><Trans id="Check-ins" message="Check-ins" /></Link>
-                </nav>
               </div>
             </footer>
 
