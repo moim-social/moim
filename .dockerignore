@@ -4,5 +4,8 @@ node_modules
 .env
 .env.*
 *.md
+!PRIVACY_POLICY.ko.md
+!TERMS_OF_SERVICE.ko.md
+!REFUND_POLICY.ko.md
 docker-compose.yml
 Dockerfile.dev
