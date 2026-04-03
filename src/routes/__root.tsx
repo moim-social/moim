@@ -36,7 +36,7 @@ function resolveLocaleFromHeader(acceptLanguage: string | null): string | null {
   return null;
 }
 import { env } from "~/server/env";
-import { PostHogProvider } from "posthog-js/react";
+import { PostHogProvider, usePostHog } from "posthog-js/react";
 import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
@@ -50,7 +50,7 @@ import { Menu, X } from "lucide-react";
 import { I18nProvider } from "~/i18n/provider";
 import appCss from "~/styles/globals.css?url";
 
-type SessionUser = { handle: string; displayName: string; avatarUrl?: string | null; isAdmin?: boolean } | null;
+type SessionUser = { handle: string; displayName: string; avatarUrl?: string | null; isAdmin?: boolean; posthogId?: string } | null;
 
 const AuthContext = createContext<{
   user: SessionUser;
@@ -118,6 +118,19 @@ function PostHogWrapper({ config, children }: { config: PublicConfig; children: 
   return <>{children}</>;
 }
 
+function PostHogIdentify({ user }: { user: SessionUser }) {
+  const posthog = usePostHog();
+  useEffect(() => {
+    if (!posthog) return;
+    if (user?.posthogId) {
+      posthog.identify(user.posthogId);
+    } else {
+      posthog.reset();
+    }
+  }, [posthog, user?.posthogId]);
+  return null;
+}
+
 function NavLink(props: { to: string; children: React.ReactNode }) {
   return (
     <Link
@@ -161,6 +174,7 @@ function RootLayout() {
       <body className="min-h-screen bg-background font-sans antialiased">
         <I18nProvider locale={config.locale}>
         <PostHogWrapper config={config}>
+        {config.posthogKey && <PostHogIdentify user={user} />}
         <AuthContext.Provider value={{ user, setUser, loaded }}>
         <BottomBarSlotContext.Provider value={{ setBottomBar }}>
           <div className="relative flex min-h-screen flex-col">
