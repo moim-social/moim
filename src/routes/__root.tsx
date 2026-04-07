@@ -336,6 +336,9 @@ function RootLayout() {
                     </nav>
                   </div>
                 </div>
+                <div className="mt-8 border-t border-foreground/10 pt-4">
+                  <p className="text-[11px] text-muted-foreground/50">&copy; 2026 모임라이브. All rights reserved.</p>
+                </div>
               </div>
             </footer>
 
