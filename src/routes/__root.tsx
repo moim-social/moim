@@ -312,7 +312,7 @@ function RootLayout() {
                     <div className="mt-4 space-y-1 text-[11px] text-muted-foreground/70">
                       <p>상호명: 모임라이브 / 대표자: 이재열</p>
                       <p>사업자등록번호: 612-33-03754</p>
-                      <p>주소: 서울특별시 송파구 중대로 207, 2층 201호</p>
+                      <p>주소: 서울특별시 송파구 중대로 207, 2층 201-J561호</p>
                       <p>이메일: support@moim.live</p>
                     </div>
                   </div>
