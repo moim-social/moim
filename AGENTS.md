@@ -45,14 +45,157 @@ pnpm generate-key     # generate RSA key pair for INSTANCE_ACTOR_KEY
 - `src/scripts/` — CLI scripts (`keygen.ts`)
 - `src/server/` — server-side code
   - `src/server/db/` — Drizzle client + schema
+  - `src/server/repositories/` — typed query functions, one file per database table
+  - `src/server/services/` — business logic, one file per domain (orchestrates repositories)
   - `src/server/fediverse/` — Fedify federation setup, actor cache, OTP, polls, handles, groups
   - `src/server/storage/` — S3/R2 client
   - `src/server/avatars/` — avatar image processing (sharp)
-  - `src/server/events/` — event category helpers
-  - `src/server/places/` — place find-or-create, categories, audit log, map snapshots
+  - `src/server/events/` — event category helpers (migrating → repositories + services)
+  - `src/server/places/` — place find-or-create, categories, audit log, map snapshots (migrating → repositories + services)
   - `src/server/geo/` — H3 hexagonal indexing, reverse geocoding
   - `src/server/i18n/` — Lingui i18n setup + locale catalogs
 - `src/server-entry.ts` — h3 app bootstrap: federation middleware, API router, content negotiation
+
+## Layered Architecture
+
+The server codebase follows a layered architecture with strict separation of concerns.
+This is an ongoing gradual migration — old patterns coexist with new ones, but all new
+code must follow this structure.
+
+### Layers
+
+```
+src/server/
+  db/
+    schema.ts            # Model — Drizzle table definitions
+    client.ts            # DB connection
+  repositories/          # Repository — typed query functions, one file per entity
+  services/              # Service — business logic, orchestrates repositories
+src/routes/              # Controller — thin HTTP handlers
+```
+
+### Repository Layer (`src/server/repositories/`)
+
+- **One file per database table** (e.g., `events.ts`, `event-tiers.ts`, `actors.ts`)
+- Pure data access — no business logic, no HTTP concepts, no `Response` objects
+- Every function has explicit TypeScript input params and return types
+- Use Drizzle's `InferSelectModel` / `InferInsertModel` for type definitions
+- Import only `db` client and schema — nothing else
+
+```typescript
+// src/server/repositories/events.ts
+import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import { db } from "../db/client";
+import { events } from "../db/schema";
+
+export type Event = InferSelectModel<typeof events>;
+export type NewEvent = InferInsertModel<typeof events>;
+
+export async function findById(id: string): Promise<Event | undefined> {
+  const [row] = await db.select().from(events).where(eq(events.id, id)).limit(1);
+  return row;
+}
+
+export async function insert(values: NewEvent): Promise<Event> {
+  const [row] = await db.insert(events).values(values).returning();
+  return row;
+}
+```
+
+### Service Layer (`src/server/services/`)
+
+- **One file per domain** (can span multiple repositories)
+- Contains business logic: validation, authorization, orchestration, federation side effects
+- Calls repositories for data access — never uses `db` directly
+- Defines typed input DTOs and result types for complex operations
+- Returns typed results, throws `ServiceError` — never returns `Response`
+
+```typescript
+// src/server/services/events.ts
+import * as EventRepo from "../repositories/events";
+import * as ActorRepo from "../repositories/actors";
+import { ServiceError } from "./errors";
+
+export interface CreateEventParams {
+  title: string;
+  startsAt: string;
+  groupActorId?: string;
+  categoryId?: string;
+  // ...
+}
+
+export async function createEvent(
+  userId: string,
+  params: CreateEventParams,
+): Promise<EventRepo.Event> {
+  const actor = await ActorRepo.findLocalPerson(userId);
+  if (!actor) throw new ServiceError("NO_ACTOR", 403);
+  // ... business logic, validation, orchestration
+}
+```
+
+### Service Errors (`src/server/services/errors.ts`)
+
+Services communicate failures via `ServiceError`, decoupled from HTTP:
+
+```typescript
+export class ServiceError extends Error {
+  constructor(
+    public readonly code: string,
+    public readonly status: number,
+    message?: string,
+  ) {
+    super(message ?? code);
+  }
+}
+```
+
+### Route Handlers (Controllers)
+
+- **Thin** — parse request, call service, return response
+- Handle only HTTP concerns: auth check, body parsing, status codes, response serialization
+- Catch `ServiceError` and map to HTTP responses
+
+```typescript
+// src/routes/events/-create.ts
+import * as EventService from "~/server/services/events";
+import { ServiceError } from "~/server/services/errors";
+
+export const POST = async ({ request }) => {
+  const user = await getSessionUser(request);
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await request.json();
+  try {
+    const result = await EventService.createEvent(user.id, body);
+    return Response.json(result);
+  } catch (e) {
+    if (e instanceof ServiceError) {
+      return Response.json({ error: e.message }, { status: e.status });
+    }
+    throw e;
+  }
+};
+```
+
+### Migration Strategy
+
+This is a **gradual migration**. Old and new patterns coexist.
+
+- Migration order: Places → Groups → Polls → Events (increasing complexity)
+- Each migration: create repository file(s) → create service file → slim route handler → dissolve old `src/server/{domain}/` module
+- When touching existing code, migrate it to the new layers if feasible
+- Do not refactor unrelated code just to match the new pattern
+
+### What Gets Dissolved
+
+| Current location | Target |
+|---|---|
+| `src/server/places/*.ts` | `repositories/places.ts` + `services/places.ts` |
+| `src/server/events/*.ts` | `repositories/event-*.ts` + `services/events.ts` |
+| `src/server/fediverse/group.ts` (createGroupActor) | `services/groups.ts` |
+| Inline queries in route handlers | `repositories/*.ts` |
+| Inline business logic in route handlers | `services/*.ts` |
 
 ## API Routing Rules
 
