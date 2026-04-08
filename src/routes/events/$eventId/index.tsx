@@ -1093,17 +1093,17 @@ function EventDetailPage() {
                 ) : (
                   <ul className="space-y-3">
                     {attendeesData.attendees.map((a) => (
-                      <li key={a.userId} className="border rounded-md p-3 space-y-2">
+                      <li key={a.userId} className="border rounded-md p-3 space-y-2 overflow-hidden">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <Avatar className="size-8 shrink-0">
                               {a.avatarUrl && <AvatarImage src={a.avatarUrl} alt={a.displayName} />}
                               <AvatarFallback className="text-xs">
                                 {a.displayName.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <div>
+                            <div className="min-w-0">
+                              <div className="truncate">
                                 <span className="text-sm font-medium">{a.displayName}</span>
                                 <span className="text-sm text-muted-foreground ml-1.5">@{a.handle}</span>
                               </div>
@@ -1112,7 +1112,7 @@ function EventDetailPage() {
                               )}
                             </div>
                           </div>
-                          <Badge variant={a.status === "accepted" ? "default" : "secondary"}>
+                          <Badge variant={a.status === "accepted" ? "default" : "secondary"} className="shrink-0">
                             {a.status === "accepted" ? <Trans id="Attending" message="Attending" /> : <Trans id="Not attending" message="Not attending" />}
                           </Badge>
                         </div>
@@ -1123,8 +1123,8 @@ function EventDetailPage() {
                               if (!ans) return null;
                               return (
                                 <div key={q.id}>
-                                  <p className="text-xs text-muted-foreground">{q.question}</p>
-                                  <p className="text-sm">{ans.answer}</p>
+                                  <p className="text-xs text-muted-foreground break-all">{q.question}</p>
+                                  <p className="text-sm break-all">{ans.answer}</p>
                                 </div>
                               );
                             })}
