@@ -659,11 +659,11 @@ function RegisterPage() {
 
       {/* Step: Questions */}
       {currentStepType === "questions" && (
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-hidden">
           <h2 className="text-lg font-semibold">Registration questions</h2>
           {questions.map((q, i) => (
             <div key={q.id} className="space-y-3">
-              <Label className="leading-relaxed">
+              <Label className="leading-relaxed block break-all select-text">
                 {i + 1}. {q.question}
                 {q.required && <span className="text-destructive ml-1">*</span>}
               </Label>
