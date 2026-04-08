@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import {
   events,
@@ -64,15 +64,23 @@ export const GET = async ({ request }: { request: Request }) => {
   }
 
   // Co-organizer listed in eventOrganizers
+  // Match via actors.userId OR via userFediverseAccounts (for remote actors without userId)
   if (!hasAccess) {
     const [coOrg] = await db
       .select({ id: eventOrganizers.id })
       .from(eventOrganizers)
       .innerJoin(actors, eq(eventOrganizers.actorId, actors.id))
+      .leftJoin(
+        userFediverseAccounts,
+        eq(actors.handle, userFediverseAccounts.fediverseHandle),
+      )
       .where(
         and(
           eq(eventOrganizers.eventId, eventId),
-          eq(actors.userId, user.id),
+          or(
+            eq(actors.userId, user.id),
+            eq(userFediverseAccounts.userId, user.id),
+          ),
         ),
       )
       .limit(1);
