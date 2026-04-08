@@ -1,0 +1,218 @@
+import { Create, Mention, Note, PUBLIC_COLLECTION } from "@fedify/fedify";
+import { Temporal } from "@js-temporal/polyfill";
+import { and, eq, isNotNull } from "drizzle-orm";
+import { db } from "~/server/db/client";
+import {
+  events,
+  rsvps,
+  actors,
+  posts,
+  eventNotices,
+  userFediverseAccounts,
+  groupMembers,
+} from "~/server/db/schema";
+import { getFederationContext } from "~/server/fediverse/federation";
+import { createNoticeRecord } from "~/server/repositories/event-notices";
+import { renderMarkdown } from "~/lib/markdown";
+
+export type NoticeVisibility = "unlisted" | "direct";
+
+export interface SendNoticeParams {
+  eventId: string;
+  content: string;
+  userId: string;
+  visibility: NoticeVisibility;
+}
+
+export interface SendNoticeResult {
+  notice: typeof eventNotices.$inferSelect;
+  post: typeof posts.$inferSelect;
+}
+
+export async function sendEventNotice(
+  params: SendNoticeParams,
+): Promise<SendNoticeResult> {
+  const { eventId, content, userId, visibility } = params;
+
+  // 1. Fetch event
+  const [event] = await db
+    .select({
+      id: events.id,
+      organizerId: events.organizerId,
+      groupActorId: events.groupActorId,
+    })
+    .from(events)
+    .where(eq(events.id, eventId))
+    .limit(1);
+
+  if (!event) throw new Error("Event not found");
+
+  // 2. Authorization
+  if (event.groupActorId) {
+    const [membership] = await db
+      .select({ role: groupMembers.role })
+      .from(groupMembers)
+      .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
+      .where(
+        and(
+          eq(groupMembers.groupActorId, event.groupActorId),
+          eq(actors.userId, userId),
+          eq(actors.type, "Person"),
+        ),
+      )
+      .limit(1);
+    if (!membership) throw new Error("Forbidden");
+  } else {
+    if (event.organizerId !== userId) throw new Error("Forbidden");
+  }
+
+  // 3. Resolve sending actor (Group for group events, local Person for personal)
+  let sendingActor;
+  if (event.groupActorId) {
+    [sendingActor] = await db
+      .select()
+      .from(actors)
+      .where(and(eq(actors.id, event.groupActorId), eq(actors.isLocal, true)))
+      .limit(1);
+  } else {
+    [sendingActor] = await db
+      .select()
+      .from(actors)
+      .where(
+        and(
+          eq(actors.userId, userId),
+          eq(actors.type, "Person"),
+          eq(actors.isLocal, true),
+        ),
+      )
+      .limit(1);
+  }
+
+  if (!sendingActor) throw new Error("No local actor found for sending");
+
+  // 4. Render markdown to HTML and create post record
+  const htmlContent = renderMarkdown(content);
+  const now = new Date();
+  const [post] = await db
+    .insert(posts)
+    .values({
+      actorId: sendingActor.id,
+      eventId,
+      content: htmlContent,
+      visibility,
+      published: now,
+    })
+    .returning();
+
+  // 5. Resolve attendee recipients (remote fediverse actors with inboxUrl)
+  // Join: rsvps → userFediverseAccounts (primary) → actors (remote, has inbox)
+  const attendeeActors = await db
+    .select({
+      actorUrl: actors.actorUrl,
+      inboxUrl: actors.inboxUrl,
+      handle: actors.handle,
+    })
+    .from(rsvps)
+    .innerJoin(
+      userFediverseAccounts,
+      and(
+        eq(rsvps.userId, userFediverseAccounts.userId),
+        eq(userFediverseAccounts.isPrimary, true),
+      ),
+    )
+    .innerJoin(
+      actors,
+      and(
+        eq(actors.handle, userFediverseAccounts.fediverseHandle),
+        eq(actors.isLocal, false),
+        isNotNull(actors.inboxUrl),
+      ),
+    )
+    .where(
+      and(
+        eq(rsvps.eventId, eventId),
+        eq(rsvps.status, "accepted"),
+        isNotNull(rsvps.userId),
+      ),
+    );
+
+  // 6. Create notice metadata record
+  const notice = await createNoticeRecord({
+    eventId,
+    postId: post.id,
+    sentByUserId: userId,
+  });
+
+  // 7. Compose AP Note + Create activity
+  const ctx = getFederationContext();
+  const senderHandle = sendingActor.handle;
+  const noteUri = ctx.getObjectUri(Note, { noteId: post.id });
+  const published = Temporal.Instant.from(now.toISOString());
+
+  const validAttendees = attendeeActors.filter((a) => a.inboxUrl);
+  const attendeeUris = validAttendees.map((a) => new URL(a.actorUrl));
+
+  // Build to/cc based on visibility
+  let tos: URL[];
+  let ccs: URL[];
+
+  if (visibility === "direct") {
+    tos = attendeeUris;
+    ccs = [];
+  } else {
+    tos = [ctx.getFollowersUri(senderHandle), ...attendeeUris];
+    ccs = [PUBLIC_COLLECTION];
+  }
+
+  // Include Mention tags for small attendee lists (≤50)
+  const mentions = validAttendees.length <= 50
+    ? validAttendees.map((a) => new Mention({
+        href: new URL(a.actorUrl),
+        name: `@${a.handle}`,
+      }))
+    : [];
+
+  const note = new Note({
+    id: noteUri,
+    attribution: ctx.getActorUri(senderHandle),
+    content: htmlContent,
+    published,
+    tos,
+    ccs,
+    tags: mentions.length > 0 ? mentions : [],
+  });
+
+  const createActivity = new Create({
+    id: new URL(`${noteUri.href}#activity`),
+    actor: ctx.getActorUri(senderHandle),
+    object: note,
+    published,
+    tos,
+    ccs,
+  });
+
+  // 8. Send to followers (only for unlisted)
+  if (visibility === "unlisted") {
+    await ctx.sendActivity(
+      { identifier: senderHandle },
+      "followers",
+      createActivity,
+    );
+  }
+
+  // 9. Direct delivery to each attendee's inbox
+  for (const attendee of attendeeActors) {
+    if (!attendee.inboxUrl) continue;
+    await ctx.sendActivity(
+      { identifier: senderHandle },
+      {
+        id: new URL(attendee.actorUrl),
+        inboxId: new URL(attendee.inboxUrl),
+      },
+      createActivity,
+      { immediate: true },
+    );
+  }
+
+  return { notice, post };
+}
