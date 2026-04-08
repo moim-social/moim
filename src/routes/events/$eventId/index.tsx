@@ -28,7 +28,7 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
-import { ExternalLink, Users, Bookmark, BookmarkCheck } from "lucide-react";
+import { ExternalLink, Users, Bookmark, BookmarkCheck, Megaphone } from "lucide-react";
 import { RemoteDiscussionDialog } from "~/components/RemoteDiscussionDialog";
 import { Trans, useLingui } from "@lingui/react";
 
@@ -282,6 +282,24 @@ function EventDetailPage() {
       .then((d) => setPublicInquiries(d.inquiries ?? []))
       .catch(() => {});
   }, [eventId, isGroupEvent]);
+
+  // Public notices
+  type PublicNotice = {
+    id: string;
+    postId: string;
+    content: string;
+    senderHandle: string;
+    senderName: string | null;
+    createdAt: string;
+  };
+  const [publicNotices, setPublicNotices] = useState<PublicNotice[]>([]);
+
+  useEffect(() => {
+    fetch(`/api/events/${eventId}/notices/public`)
+      .then((r) => r.json())
+      .then((d) => setPublicNotices(d.notices ?? []))
+      .catch(() => {});
+  }, [eventId]);
 
   const toggleThread = (inquiryId: string) => {
     if (expandedId === inquiryId) {
@@ -814,6 +832,11 @@ function EventDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Notices — only shown when at least one exists */}
+          {publicNotices.length > 0 && (
+            <NoticesCard notices={publicNotices} />
+          )}
+
           {/* Description */}
           {event.description && (
             <Card className="rounded-lg">
@@ -1236,6 +1259,74 @@ function stripMentionHtml(html: string): string {
     .replace(/<p>\s+/g, "<p>")
     .trim();
   return result;
+}
+
+type PublicNoticeProps = {
+  id: string;
+  content: string;
+  createdAt: string;
+};
+
+function NoticesCard({ notices }: { notices: PublicNoticeProps[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const latest = notices[0];
+  const hasMore = notices.length > 1;
+
+  return (
+    <Card className="rounded-lg">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Megaphone className="size-4 text-muted-foreground" />
+            <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">
+              <Trans id="Notices" message="Notices" />
+            </CardTitle>
+          </div>
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {expanded ? (
+                <Trans id="Show less" message="Show less" />
+              ) : (
+                <Trans id="notices.showAll" message="Show all ({count})" values={{ count: notices.length }} />
+              )}
+            </button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {expanded ? (
+          <div className="space-y-2">
+            {notices.map((notice) => (
+              <NoticeItem key={notice.id} notice={notice} />
+            ))}
+          </div>
+        ) : (
+          <NoticeItem notice={latest} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function NoticeItem({ notice }: { notice: PublicNoticeProps }) {
+  return (
+    <div className="flex items-baseline gap-2 text-sm">
+      <span className="shrink-0 text-xs text-muted-foreground/60">
+        {new Date(notice.createdAt).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        })}
+      </span>
+      <div
+        className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground [&>p]:m-0 [&>p]:inline"
+        dangerouslySetInnerHTML={{ __html: notice.content }}
+      />
+    </div>
+  );
 }
 
 function formatRelativeTime(dateStr: string): string {
