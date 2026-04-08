@@ -9,7 +9,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, users, userFediverseAccounts } from "~/server/db/schema";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
-import { renderMarkdown } from "~/lib/markdown";
+import { renderMarkdown, renderMarkdownOrHtml } from "~/lib/markdown";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -28,7 +28,7 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
-import { ExternalLink, Users, Bookmark, BookmarkCheck } from "lucide-react";
+import { ExternalLink, Users, Bookmark, BookmarkCheck, Megaphone } from "lucide-react";
 import { RemoteDiscussionDialog } from "~/components/RemoteDiscussionDialog";
 import { Trans, useLingui } from "@lingui/react";
 
@@ -282,6 +282,24 @@ function EventDetailPage() {
       .then((d) => setPublicInquiries(d.inquiries ?? []))
       .catch(() => {});
   }, [eventId, isGroupEvent]);
+
+  // Public notices
+  type PublicNotice = {
+    id: string;
+    postId: string;
+    content: string;
+    senderHandle: string;
+    senderName: string | null;
+    createdAt: string;
+  };
+  const [publicNotices, setPublicNotices] = useState<PublicNotice[]>([]);
+
+  useEffect(() => {
+    fetch(`/api/events/${eventId}/notices/public`)
+      .then((r) => r.json())
+      .then((d) => setPublicNotices(d.notices ?? []))
+      .catch(() => {});
+  }, [eventId]);
 
   const toggleThread = (inquiryId: string) => {
     if (expandedId === inquiryId) {
@@ -814,6 +832,11 @@ function EventDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Notices — only shown when at least one exists */}
+          {publicNotices.length > 0 && (
+            <NoticesCard notices={publicNotices} />
+          )}
+
           {/* Description */}
           {event.description && (
             <Card className="rounded-lg">
@@ -1236,6 +1259,73 @@ function stripMentionHtml(html: string): string {
     .replace(/<p>\s+/g, "<p>")
     .trim();
   return result;
+}
+
+type PublicNoticeProps = {
+  id: string;
+  content: string;
+  createdAt: string;
+};
+
+function NoticesCard({ notices }: { notices: PublicNoticeProps[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const recent = notices.slice(0, 3);
+  const hasMore = notices.length > 3;
+
+  return (
+    <Card className="rounded-lg gap-2">
+      <CardHeader className="pb-0 pt-3 px-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Megaphone className="size-4 text-muted-foreground" />
+            <CardTitle className="text-xs font-bold uppercase tracking-wide text-[#333]">
+              <Trans id="Notices" message="Notices" />
+            </CardTitle>
+          </div>
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {expanded ? (
+                <Trans id="Show less" message="Show less" />
+              ) : (
+                <Trans id="notices.showAll" message="Show all ({count})" values={{ count: notices.length }} />
+              )}
+            </button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0 pb-2 px-4">
+        <div className="divide-y">
+          {recent.map((notice) => (
+            <NoticeItem key={notice.id} notice={notice} />
+          ))}
+          {expanded && notices.slice(3).map((notice) => (
+            <NoticeItem key={notice.id} notice={notice} />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NoticeItem({ notice }: { notice: PublicNoticeProps }) {
+  return (
+    <div className="flex items-start gap-2 text-sm py-3">
+      <span className="shrink-0 text-xs text-muted-foreground/60 leading-5">
+        {new Date(notice.createdAt).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        })}
+      </span>
+      <div
+        className="min-w-0 prose prose-sm max-w-none dark:prose-invert text-muted-foreground [&>p]:m-0 [&>p+p]:mt-0.5 [&>small]:text-xs"
+        dangerouslySetInnerHTML={{ __html: renderMarkdownOrHtml(notice.content) }}
+      />
+    </div>
+  );
 }
 
 function formatRelativeTime(dateStr: string): string {

@@ -82,6 +82,8 @@ import { POST as discussionReply } from "./routes/events/-discussion-reply";
 import { PATCH as discussionUpdate } from "./routes/events/-discussion-update";
 import { GET as listDiscussionsPublic } from "./routes/events/-discussions-public";
 import { GET as discussionDetailPublic } from "./routes/events/-discussion-detail-public";
+import { POST as createEventNotice } from "./server/controllers/events/notices/create";
+import { GET as listEventNotices } from "./server/controllers/events/notices/list";
 import { POST as uploadEventHeaderImage } from "./routes/events/-upload-header-image";
 import { POST as publishEvent } from "./routes/events/-publish";
 import { DELETE as deleteEvent } from "./routes/events/-delete";
@@ -592,6 +594,36 @@ apiRouter.patch("/events/:eventId/discussions/:inquiryId", defineEventHandler(as
       eventId,
       inquiryId,
     })),
+  });
+}));
+
+// --- Event Notice endpoints ---
+apiRouter.post("/events/:eventId/notices", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  if (!eventId) return Response.json({ error: "eventId is required" }, { status: 400 });
+
+  return createEventNotice({
+    request: await forwardJson(request, `/api/events/${eventId}/notices`, "POST", (body) => ({
+      ...(body ?? {}),
+      eventId,
+    })),
+  });
+}));
+
+apiRouter.get("/events/:eventId/notices", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  return listEventNotices({
+    request: forwardGet(request, `/api/events/${eventId}/notices`, { eventId }),
+  });
+}));
+
+apiRouter.get("/events/:eventId/notices/public", defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const eventId = event.context.params?.eventId;
+  return listEventNotices({
+    request: forwardGet(request, `/api/events/${eventId}/notices/public`, { eventId, public: "1" }),
   });
 }));
 

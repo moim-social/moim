@@ -1,45 +1,106 @@
 msgid ""
 msgstr ""
 "Language: ja\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Content-Type: \n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/checkin.ts:64
 msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
-msgstr "<a href=\"{placeUrl}\">{placeName}</a>にチェックイン"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/checkin.ts:128
 msgid "Map of {placeName}"
-msgstr "{placeName}の地図"
+msgstr ""
 
-msgid "{categoryLabel} Events"
-msgstr "{categoryLabel} イベント"
-
-msgid "Event feed for the {categoryLabel} category on Moim."
-msgstr "Moimの{categoryLabel}カテゴリのイベントフィードです。"
-
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:214
 msgid "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
-msgstr "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> さんがイベントを開催します！"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:221
+#: src/server/fediverse/category.ts:250
 msgid "Register here"
-msgstr "参加登録"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:221
+#: src/server/fediverse/category.ts:250
 msgid "Details"
-msgstr "詳細"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:222
 msgid "RSVP here"
-msgstr "参加する"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:247
 msgid "Organized by: {organizers}"
-msgstr "主催: {organizers}"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:251
 msgid "View event details"
-msgstr "イベント詳細を見る"
+msgstr ""
 
-msgid "An instance actor for Moim."
-msgstr "Moimのインスタンスアクターです。"
+#. js-lingui-explicit-id
+#: src/server/services/event-notices.ts
+msgid "📢 Notice: {eventTitle}"
+msgstr "📢 お知らせ: {eventTitle}"
 
-msgid "page"
-msgstr "ページ"
+#. js-lingui-explicit-id
+#: src/server/services/event-notices.ts
+msgid "This is a no-reply notice. For details, visit the <a href=\"{eventUrl}\">event page</a>."
+msgstr "この通知には返信できません。詳細は<a href=\"{eventUrl}\">イベントページ</a>をご覧ください。"
 
-msgid "website"
-msgstr "ウェブサイト"
+#~ msgid "{categoryLabel} Events"
+#~ msgstr "{categoryLabel} イベント"
 
-msgid "moderators"
-msgstr "モデレーター"
+#~ msgid "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
+#~ msgstr "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> さんがイベントを開催します！"
+
+#~ msgid "An instance actor for Moim."
+#~ msgstr "Moimのインスタンスアクターです。"
+
+#~ msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
+#~ msgstr "<a href=\"{placeUrl}\">{placeName}</a>にチェックイン"
+
+#~ msgid "Details"
+#~ msgstr "詳細"
+
+#~ msgid "Event feed for the {categoryLabel} category on Moim."
+#~ msgstr "Moimの{categoryLabel}カテゴリのイベントフィードです。"
+
+#~ msgid "Map of {placeName}"
+#~ msgstr "{placeName}の地図"
+
+#~ msgid "moderators"
+#~ msgstr "モデレーター"
+
+#~ msgid "Organized by: {organizers}"
+#~ msgstr "主催: {organizers}"
+
+#~ msgid "page"
+#~ msgstr "ページ"
+
+#~ msgid "Register here"
+#~ msgstr "参加登録"
+
+#~ msgid "RSVP here"
+#~ msgstr "参加する"
+
+#~ msgid "View event details"
+#~ msgstr "イベント詳細を見る"
+
+#~ msgid "website"
+#~ msgstr "ウェブサイト"

@@ -1,45 +1,106 @@
 msgid ""
 msgstr ""
 "Language: ko\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Content-Type: \n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/checkin.ts:64
 msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
-msgstr "<a href=\"{placeUrl}\">{placeName}</a>에 체크인"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/checkin.ts:128
 msgid "Map of {placeName}"
-msgstr "{placeName} 지도"
+msgstr ""
 
-msgid "{categoryLabel} Events"
-msgstr "{categoryLabel} 이벤트"
-
-msgid "Event feed for the {categoryLabel} category on Moim."
-msgstr "Moim의 {categoryLabel} 카테고리 이벤트 피드입니다."
-
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:214
 msgid "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
-msgstr "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> 님이 이벤트를 개최합니다!"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:221
+#: src/server/fediverse/category.ts:250
 msgid "Register here"
-msgstr "참가 신청"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:221
+#: src/server/fediverse/category.ts:250
 msgid "Details"
-msgstr "자세히 보기"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:222
 msgid "RSVP here"
-msgstr "참가 신청하기"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:247
 msgid "Organized by: {organizers}"
-msgstr "주최: {organizers}"
+msgstr ""
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:251
 msgid "View event details"
-msgstr "이벤트 상세 보기"
+msgstr ""
 
-msgid "An instance actor for Moim."
-msgstr "Moim의 인스턴스 액터입니다."
+#. js-lingui-explicit-id
+#: src/server/services/event-notices.ts
+msgid "📢 Notice: {eventTitle}"
+msgstr "📢 공지: {eventTitle}"
 
-msgid "page"
-msgstr "페이지"
+#. js-lingui-explicit-id
+#: src/server/services/event-notices.ts
+msgid "This is a no-reply notice. For details, visit the <a href=\"{eventUrl}\">event page</a>."
+msgstr "이 공지는 답장이 불가합니다. 자세한 내용은 <a href=\"{eventUrl}\">이벤트 페이지</a>를 방문해 주세요."
 
-msgid "website"
-msgstr "웹사이트"
+#~ msgid "{categoryLabel} Events"
+#~ msgstr "{categoryLabel} 이벤트"
 
-msgid "moderators"
-msgstr "운영진"
+#~ msgid "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
+#~ msgstr "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> 님이 이벤트를 개최합니다!"
+
+#~ msgid "An instance actor for Moim."
+#~ msgstr "Moim의 인스턴스 액터입니다."
+
+#~ msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
+#~ msgstr "<a href=\"{placeUrl}\">{placeName}</a>에 체크인"
+
+#~ msgid "Details"
+#~ msgstr "자세히 보기"
+
+#~ msgid "Event feed for the {categoryLabel} category on Moim."
+#~ msgstr "Moim의 {categoryLabel} 카테고리 이벤트 피드입니다."
+
+#~ msgid "Map of {placeName}"
+#~ msgstr "{placeName} 지도"
+
+#~ msgid "moderators"
+#~ msgstr "운영진"
+
+#~ msgid "Organized by: {organizers}"
+#~ msgstr "주최: {organizers}"
+
+#~ msgid "page"
+#~ msgstr "페이지"
+
+#~ msgid "Register here"
+#~ msgstr "참가 신청"
+
+#~ msgid "RSVP here"
+#~ msgstr "참가 신청하기"
+
+#~ msgid "View event details"
+#~ msgstr "이벤트 상세 보기"
+
+#~ msgid "website"
+#~ msgstr "웹사이트"

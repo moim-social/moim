@@ -68,3 +68,15 @@ export function renderMarkdown(source: string | null | undefined): string {
   const rawHtml = md.render(source);
   return xssFilter.process(rawHtml);
 }
+
+/**
+ * Render content that may be either raw markdown or pre-rendered HTML.
+ * Detects HTML by checking for leading tags; renders markdown otherwise.
+ */
+export function renderMarkdownOrHtml(source: string | null | undefined): string {
+  if (!source || !source.trim()) return "";
+  if (source.trimStart().startsWith("<")) {
+    return xssFilter.process(source);
+  }
+  return renderMarkdown(source);
+}

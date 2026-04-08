@@ -265,6 +265,14 @@ export const eventFavourites = pgTable("event_favourites", {
   uniqueFavourite: unique().on(table.userId, table.eventId),
 }));
 
+export const eventNotices = pgTable("event_notices", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  eventId: uuid("event_id").references(() => events.id).notNull(),
+  postId: uuid("post_id").references(() => posts.id).notNull(),
+  sentByUserId: uuid("sent_by_user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const checkins = pgTable("checkins", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").references(() => users.id).notNull(),
