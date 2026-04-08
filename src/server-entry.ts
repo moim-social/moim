@@ -10,15 +10,15 @@ import { federation } from "./server/fediverse/federation";
 import { db } from "./server/db/client";
 import { polls } from "./server/db/schema";
 import { actors } from "./server/db/schema";
-import { POST as requestOtp } from "./routes/auth/-request-otp";
-import { POST as verifyOtp } from "./routes/auth/-verify-otp";
-import { GET as getMe } from "./routes/auth/-me";
-import { POST as signout } from "./routes/auth/-signout";
-import { GET as listLinkedAccounts, DELETE as unlinkAccount } from "./routes/auth/-linked-accounts";
-import { POST as linkAccount } from "./routes/auth/-link-account";
-import { PATCH as setPrimaryAccount } from "./routes/auth/-set-primary";
-import { POST as mergeAccount } from "./routes/auth/-merge-account";
-import { POST as otpCheck } from "./routes/auth/-otp-check";
+import { POST as requestOtp } from "./server/controllers/auth/request-otp";
+import { POST as verifyOtp } from "./server/controllers/auth/verify-otp";
+import { GET as getMe } from "./server/controllers/auth/me";
+import { POST as signout } from "./server/controllers/auth/signout";
+import { GET as listLinkedAccounts, DELETE as unlinkAccount } from "./server/controllers/auth/linked-accounts";
+import { POST as linkAccount } from "./server/controllers/auth/link-account";
+import { PATCH as setPrimaryAccount } from "./server/controllers/auth/set-primary";
+import { POST as mergeAccount } from "./server/controllers/auth/merge-account";
+import { POST as otpCheck } from "./server/controllers/auth/otp-check";
 import { GET as searchUsers } from "./routes/groups/-search-users";
 import { POST as resolveModerator } from "./routes/groups/-resolve-moderator";
 import { POST as createGroup } from "./routes/groups/-create";
@@ -95,17 +95,17 @@ import { POST as castVote } from "./routes/polls/-vote";
 import { POST as closePoll } from "./routes/polls/-close";
 import { GET as icsFeed } from "./routes/events/-ics";
 import { GET as getFavouriteStatus, POST as toggleFavourite } from "./routes/events/-favourite";
-import { POST as miauthStart } from "./routes/auth/misskey/-miauth-start"
-import { GET as miauthCallback } from "./routes/auth/misskey/-miauth-callback"
-import { POST as miauthCallbackApi } from "./routes/auth/misskey/-miauth-callback-api"
+import { POST as miauthStart } from "./server/controllers/auth/misskey/miauth-start"
+import { GET as miauthCallback } from "./server/controllers/auth/misskey/miauth-callback"
+import { POST as miauthCallbackApi } from "./server/controllers/auth/misskey/miauth-callback-api"
 import { startCleanupInterval } from "./server/miauth-sessions"
-import { POST as mastodonOAuthStart } from "./routes/auth/mastodon/-oauth-start"
-import { GET as mastodonOAuthCallback } from "./routes/auth/mastodon/-oauth-callback"
-import { POST as mastodonOAuthCallbackApi } from "./routes/auth/mastodon/-oauth-callback-api"
+import { POST as mastodonOAuthStart } from "./server/controllers/auth/mastodon/oauth-start"
+import { GET as mastodonOAuthCallback } from "./server/controllers/auth/mastodon/oauth-callback"
+import { POST as mastodonOAuthCallbackApi } from "./server/controllers/auth/mastodon/oauth-callback-api"
 import { startOAuthCleanupInterval } from "./server/mastodon-oauth-sessions"
-import { POST as hackerspubGraphqlStart } from "./routes/auth/hackerspub/-graphql-start"
-import { GET as hackerspubGraphqlCallback } from "./routes/auth/hackerspub/-graphql-callback"
-import { POST as hackerspubGraphqlCallbackApi } from "./routes/auth/hackerspub/-graphql-callback-api"
+import { POST as hackerspubGraphqlStart } from "./server/controllers/auth/hackerspub/graphql-start"
+import { GET as hackerspubGraphqlCallback } from "./server/controllers/auth/hackerspub/graphql-callback"
+import { POST as hackerspubGraphqlCallbackApi } from "./server/controllers/auth/hackerspub/graphql-callback-api"
 import { startHackersPubCleanupInterval } from "./server/hackerspub-sessions"
 import { startGdprCleanupInterval } from "./server/events/gdpr-cleanup"
 
