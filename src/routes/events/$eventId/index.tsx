@@ -9,7 +9,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { events, actors, users, userFediverseAccounts } from "~/server/db/schema";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
-import { renderMarkdown } from "~/lib/markdown";
+import { renderMarkdown, renderMarkdownOrHtml } from "~/lib/markdown";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -1269,12 +1269,12 @@ type PublicNoticeProps = {
 
 function NoticesCard({ notices }: { notices: PublicNoticeProps[] }) {
   const [expanded, setExpanded] = useState(false);
-  const latest = notices[0];
-  const hasMore = notices.length > 1;
+  const recent = notices.slice(0, 3);
+  const hasMore = notices.length > 3;
 
   return (
-    <Card className="rounded-lg">
-      <CardHeader className="pb-2">
+    <Card className="rounded-lg gap-2">
+      <CardHeader className="pb-0 pt-3 px-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Megaphone className="size-4 text-muted-foreground" />
@@ -1297,16 +1297,15 @@ function NoticesCard({ notices }: { notices: PublicNoticeProps[] }) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
-        {expanded ? (
-          <div className="space-y-2">
-            {notices.map((notice) => (
-              <NoticeItem key={notice.id} notice={notice} />
-            ))}
-          </div>
-        ) : (
-          <NoticeItem notice={latest} />
-        )}
+      <CardContent className="pt-0 pb-2 px-4">
+        <div className="divide-y">
+          {recent.map((notice) => (
+            <NoticeItem key={notice.id} notice={notice} />
+          ))}
+          {expanded && notices.slice(3).map((notice) => (
+            <NoticeItem key={notice.id} notice={notice} />
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
@@ -1314,16 +1313,16 @@ function NoticesCard({ notices }: { notices: PublicNoticeProps[] }) {
 
 function NoticeItem({ notice }: { notice: PublicNoticeProps }) {
   return (
-    <div className="flex items-baseline gap-2 text-sm">
-      <span className="shrink-0 text-xs text-muted-foreground/60">
+    <div className="flex items-start gap-2 text-sm py-3">
+      <span className="shrink-0 text-xs text-muted-foreground/60 leading-5">
         {new Date(notice.createdAt).toLocaleDateString(undefined, {
           month: "short",
           day: "numeric",
         })}
       </span>
       <div
-        className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground [&>p]:m-0 [&>p]:inline"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(notice.content) }}
+        className="min-w-0 prose prose-sm max-w-none dark:prose-invert text-muted-foreground [&>p]:m-0 [&>p+p]:mt-0.5 [&>small]:text-xs"
+        dangerouslySetInnerHTML={{ __html: renderMarkdownOrHtml(notice.content) }}
       />
     </div>
   );

@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "~/components/ui/dialog";
 import { Globe, Lock, Megaphone, Send } from "lucide-react";
-import { renderMarkdown } from "~/lib/markdown";
+import { renderMarkdownOrHtml } from "~/lib/markdown";
 
 export const Route = createFileRoute("/events/$eventId/dashboard/")({
   component: OverviewTab,
@@ -109,7 +109,7 @@ function NoticesSection({ eventId }: { eventId: string }) {
             <div key={notice.id} className="rounded-lg border p-4 space-y-2">
               <div
                 className="prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(notice.content) }}
+                dangerouslySetInnerHTML={{ __html: renderMarkdownOrHtml(notice.content) }}
               />
               <div className="text-xs text-muted-foreground">
                 {new Date(notice.createdAt).toLocaleDateString(undefined, {
