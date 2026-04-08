@@ -2,7 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useBottomBarSlot } from "~/routes/__root";
 import { createServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  useEventData,
+  useRsvpData,
+  useFavouriteStatus,
+  usePublicDiscussions,
+  usePublicNotices,
+  useAttendeesData,
+  useDiscussionThread,
+  type ThreadMessage,
+} from "~/hooks/useEventDetail";
 import { z } from "zod";
 import { LeafletMap } from "~/components/LeafletMap";
 import { getEventMeta as fetchEventMeta } from "~/server/services/events";
@@ -76,237 +86,51 @@ export const Route = createFileRoute("/events/$eventId/")({
   },
 });
 
-type EventData = {
-  event: {
-    id: string;
-    title: string;
-    description: string | null;
-    categoryId: string;
-    startsAt: string;
-    endsAt: string | null;
-    timezone: string | null;
-    location: string | null;
-    placeId: string | null;
-    venueDetail: string | null;
-    placeName: string | null;
-    placeAddress: string | null;
-    placeLatitude: string | null;
-    placeLongitude: string | null;
-    externalUrl: string | null;
-    headerImageUrl: string | null;
-    groupHandle: string | null;
-    groupName: string | null;
-    organizerHandle: string | null;
-    organizerDisplayName: string | null;
-    organizerActorUrl: string | null;
-    createdAt: string;
-  };
-  organizers: {
-    handle: string | null;
-    name: string | null;
-    profileUrl: string | null;
-    imageUrl: string | null;
-    domain: string | null;
-    isLocal: boolean | null;
-    homepageUrl: string | null;
-    isExternal: boolean;
-  }[];
-  rsvpCounts: { accepted: number; declined: number; waitlisted: number };
-  attendeePreview: { displayName: string; avatarUrl: string | null }[];
-  questionCount: number;
-  canEdit: boolean;
-};
-
-type TierInfo = {
-  id: string;
-  name: string;
-  description: string | null;
-  price: string | null;
-  opensAt: string | null;
-  closesAt: string | null;
-  capacity: number | null;
-  acceptedCount: number;
-  waitlistedCount: number;
-  sortOrder: number;
-};
-
-type AttendeesData = {
-  questions: Array<{ id: string; question: string; sortOrder: number }>;
-  tiers: TierInfo[];
-  attendees: Array<{
-    userId: string;
-    handle: string;
-    displayName: string;
-    avatarUrl: string | null;
-    status: string;
-    tierId: string | null;
-    tierName: string | null;
-    createdAt: string;
-    answers: Array<{ questionId: string; answer: string }>;
-  }>;
-};
-
-type RsvpData = {
-  questions: Array<{
-    id: string;
-    question: string;
-    sortOrder: number;
-    required: boolean;
-  }>;
-  tiers: TierInfo[];
-  rsvpCounts: { accepted: number; declined: number; waitlisted: number };
-  tierCounts: Array<{ tierId: string; status: string; count: number }>;
-  userRsvp: {
-    status: string;
-    tierId: string | null;
-    answers: Array<{ questionId: string; answer: string }>;
-    waitlistPosition: number | null;
-  } | null;
-  isAuthenticated: boolean;
-  allowAnonymousRsvp: boolean;
-  anonymousContactFields: { email?: string; phone?: string } | null;
-  anonymousCount: number;
-};
-
 function EventDetailPage() {
   const { i18n } = useLingui();
   const { categoryMap } = useEventCategoryMap();
 
   const { eventId } = Route.useParams();
-  const [data, setData] = useState<EventData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
+  // Data fetching via react-query hooks
+  const { data, isLoading: loading, error: eventError } = useEventData(eventId);
+  const error = eventError?.message ?? "";
+  const { data: rsvpData } = useRsvpData(eventId);
+  const { data: favouriteData } = useFavouriteStatus(eventId);
+  const [isFavourite, setIsFavourite] = useState(false);
+  const [favouriteLoading, setFavouriteLoading] = useState(false);
+
+  // Sync favourite from query
+  const fetchedFav = favouriteData?.isFavourite;
+  if (fetchedFav !== undefined && fetchedFav !== isFavourite && !favouriteLoading) {
+    setIsFavourite(fetchedFav);
+  }
 
   // Map dialog
   const [mapOpen, setMapOpen] = useState(false);
 
-  // Attendees (organizer-only)
-  const [attendeesData, setAttendeesData] = useState<AttendeesData | null>(null);
-
-  // RSVP state
-  const [rsvpData, setRsvpData] = useState<RsvpData | null>(null);
-
-  // Favourite state
-  const [isFavourite, setIsFavourite] = useState(false);
-  const [favouriteLoading, setFavouriteLoading] = useState(false);
-
-  useEffect(() => {
-    fetch(`/api/events/${eventId}`)
-      .then((r) => {
-        if (!r.ok) throw new Error("Event not found");
-        return r.json();
-      })
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, [eventId]);
-
-  useEffect(() => {
-    fetch(`/api/events/${eventId}/rsvp`)
-      .then((r) => r.json())
-      .then((d) => setRsvpData(d))
-      .catch(() => {});
-  }, [eventId]);
-
-  useEffect(() => {
-    fetch(`/api/events/${eventId}/favourite`)
-      .then((r) => r.json())
-      .then((d) => setIsFavourite(d.isFavourite))
-      .catch(() => {});
-  }, [eventId]);
-
-  // Public discussions
-  type PublicInquiry = {
-    id: string;
-    content: string;
-    published: string;
-    createdAt: string;
-    lastRepliedAt: string | null;
-    apUrl: string | null;
-    actorHandle: string;
-    actorName: string | null;
-    actorAvatarUrl: string | null;
-    actorDomain: string | null;
-    replyCount: number;
-  };
-  type ThreadMessage = {
-    id: string;
-    content: string;
-    createdAt: string;
-    inReplyToPostId: string | null;
-    apUrl: string | null;
-    actorHandle: string;
-    actorName: string | null;
-    actorAvatarUrl: string | null;
-    actorDomain: string | null;
-  };
-  const [publicInquiries, setPublicInquiries] = useState<PublicInquiry[]>([]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [threadCache, setThreadCache] = useState<Record<string, ThreadMessage[]>>({});
-  const [threadLoading, setThreadLoading] = useState<string | null>(null);
   const isGroupEvent = !!data?.event?.groupHandle;
   const eventNoteApUrl = (data as { eventNoteApUrl?: string | null } | null)?.eventNoteApUrl ?? null;
 
-  useEffect(() => {
-    if (!isGroupEvent) return;
-    fetch(`/api/events/${eventId}/discussions/public`)
-      .then((r) => r.json())
-      .then((d) => setPublicInquiries(d.inquiries ?? []))
-      .catch(() => {});
-  }, [eventId, isGroupEvent]);
+  const { data: publicInquiries = [] } = usePublicDiscussions(eventId, isGroupEvent);
+  const { data: publicNotices = [] } = usePublicNotices(eventId);
+  const { data: attendeesData } = useAttendeesData(eventId);
 
-  // Public notices
-  type PublicNotice = {
-    id: string;
-    postId: string;
-    content: string;
-    senderHandle: string;
-    senderName: string | null;
-    createdAt: string;
-  };
-  const [publicNotices, setPublicNotices] = useState<PublicNotice[]>([]);
+  // Discussion thread expansion
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { data: expandedThread } = useDiscussionThread(eventId, expandedId);
+  const [threadCache, setThreadCache] = useState<Record<string, ThreadMessage[]>>({});
 
-  useEffect(() => {
-    fetch(`/api/events/${eventId}/notices/public`)
-      .then((r) => r.json())
-      .then((d) => setPublicNotices(d.notices ?? []))
-      .catch(() => {});
-  }, [eventId]);
+  // Cache thread data when it arrives
+  if (expandedId && expandedThread && !threadCache[expandedId]) {
+    setThreadCache((prev) => ({ ...prev, [expandedId]: expandedThread }));
+  }
+
+  const threadLoading = expandedId && !threadCache[expandedId] ? expandedId : null;
 
   const toggleThread = (inquiryId: string) => {
-    if (expandedId === inquiryId) {
-      setExpandedId(null);
-      return;
-    }
-    setExpandedId(inquiryId);
-    if (threadCache[inquiryId]) return;
-    setThreadLoading(inquiryId);
-    fetch(`/api/events/${eventId}/discussions/public/${inquiryId}`)
-      .then((r) => r.json())
-      .then((d) => {
-        setThreadCache((prev) => ({ ...prev, [inquiryId]: d.messages ?? [] }));
-      })
-      .catch(() => {})
-      .finally(() => setThreadLoading(null));
+    setExpandedId(expandedId === inquiryId ? null : inquiryId);
   };
-
-  // Fetch attendees (will 403 for non-organizers, that's fine)
-  useEffect(() => {
-    fetch(`/api/events/${eventId}/attendees`)
-      .then((r) => {
-        if (!r.ok) return null;
-        return r.json();
-      })
-      .then((d) => {
-        if (d) setAttendeesData(d);
-      })
-      .catch(() => {});
-  }, [eventId]);
 
   const attendeeCount = rsvpData?.rsvpCounts?.accepted ?? data?.rsvpCounts?.accepted ?? 0;
   const anonymousCount = rsvpData?.anonymousCount ?? 0;
