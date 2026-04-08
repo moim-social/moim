@@ -275,6 +275,7 @@ const getDashboardData = createServerFn({ method: "GET" })
         name: eventTiers.name,
         description: eventTiers.description,
         price: eventTiers.price,
+		priceAmount: eventTiers.priceAmount,
         opensAt: eventTiers.opensAt,
         closesAt: eventTiers.closesAt,
         capacity: eventTiers.capacity,
