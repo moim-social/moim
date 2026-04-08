@@ -31,7 +31,7 @@ import { POST as createEvent } from "./routes/events/-create";
 import { GET as listEvents } from "./routes/events/-list";
 import { GET as eventDetail } from "./routes/events/-detail";
 import { POST as submitRsvp } from "./routes/events/-rsvp";
-import { POST as updateEvent } from "./routes/events/-update";
+import { POST as updateEvent } from "./server/controllers/events/update";
 import { GET as rsvpStatus } from "./routes/events/-rsvp-status";
 import { GET as eventAttendees } from "./routes/events/-attendees";
 import { PATCH as manageRsvp } from "./routes/events/-rsvp-manage";

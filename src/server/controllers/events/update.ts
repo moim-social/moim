@@ -6,6 +6,7 @@ import { getEventCategories } from "~/server/events/categories";
 import { getAcceptedCount, autoPromoteWaitlist } from "~/server/events/waitlist";
 import { sanitizeContactFields } from "~/server/events/rsvp-helpers";
 import { persistRemoteActor } from "~/server/fediverse/resolve";
+import { optional } from "~/server/controllers/utils";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -150,20 +151,20 @@ export const POST = async ({ request }: { request: Request }) => {
       .update(events)
       .set({
         title: body.title.trim(),
-        description: body.description?.trim() || null,
-        categoryId: body.categoryId ?? null,
+        description: optional(body.description, (v) => v?.trim() || null),
+        categoryId: optional(body.categoryId, (v) => v ?? null),
         startsAt,
-        endsAt: endsAt ?? null,
-        timezone: body.timezone ?? undefined,
-        location: body.location?.trim() || null,
-        externalUrl: body.externalUrl?.trim() || "",
-        placeId: body.placeId !== undefined ? (body.placeId || null) : undefined,
-        venueDetail: body.venueDetail !== undefined ? (body.venueDetail?.trim() || null) : undefined,
-        headerImageUrl: body.headerImageUrl !== undefined ? (body.headerImageUrl || null) : undefined,
-        allowAnonymousRsvp: body.allowAnonymousRsvp !== undefined ? !!body.allowAnonymousRsvp : undefined,
-        anonymousContactFields: body.allowAnonymousRsvp !== undefined
-          ? (body.allowAnonymousRsvp ? sanitizeContactFields(body.anonymousContactFields) : null)
-          : undefined,
+        endsAt: optional(body.endsAt, () => endsAt ?? null),
+        timezone: optional(body.timezone),
+        location: optional(body.location, (v) => v?.trim() || null),
+        externalUrl: optional(body.externalUrl, (v) => v?.trim() || ""),
+        placeId: optional(body.placeId, (v) => v || null),
+        venueDetail: optional(body.venueDetail, (v) => v?.trim() || null),
+        headerImageUrl: optional(body.headerImageUrl, (v) => v || null),
+        allowAnonymousRsvp: optional(body.allowAnonymousRsvp, (v) => !!v),
+        anonymousContactFields: optional(body.allowAnonymousRsvp, (v) =>
+          v ? sanitizeContactFields(body.anonymousContactFields) : null,
+        ),
         ...(convertingToGroup
           ? { groupActorId: body.groupActorId!, published: false }
           : {}),
