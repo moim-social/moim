@@ -330,6 +330,13 @@
       "when": 1775123144336,
       "tag": "0046_small_blindfold",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1775616861332,
+      "tag": "0047_broad_firestar",
+      "breakpoints": true
     }
   ]
 }
