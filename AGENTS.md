@@ -45,6 +45,7 @@ pnpm generate-key     # generate RSA key pair for INSTANCE_ACTOR_KEY
 - `src/scripts/` — CLI scripts (`keygen.ts`)
 - `src/server/` — server-side code
   - `src/server/db/` — Drizzle client + schema
+  - `src/server/controllers/` — HTTP handlers, organized by domain, wired in `server-entry.ts`
   - `src/server/repositories/` — typed query functions, one file per database table
   - `src/server/services/` — business logic, one file per domain (orchestrates repositories)
   - `src/server/fediverse/` — Fedify federation setup, actor cache, OTP, polls, handles, groups
@@ -71,7 +72,8 @@ src/server/
     client.ts            # DB connection
   repositories/          # Repository — typed query functions, one file per entity
   services/              # Service — business logic, orchestrates repositories
-src/routes/              # Controller — thin HTTP handlers
+  controllers/           # Controller — HTTP handlers, wired in server-entry.ts
+    utils.ts             # Shared controller utilities (e.g., optional())
 ```
 
 ### Repository Layer (`src/server/repositories/`)
@@ -150,14 +152,16 @@ export class ServiceError extends Error {
 }
 ```
 
-### Route Handlers (Controllers)
+### Controller Layer (`src/server/controllers/`)
 
-- **Thin** — parse request, call service, return response
-- Handle only HTTP concerns: auth check, body parsing, status codes, response serialization
+- **One file per endpoint**, organized by domain (e.g., `controllers/events/update.ts`)
+- Handle HTTP concerns: auth check, body parsing, status codes, response serialization
+- Wired into `src/server-entry.ts` — route files in `src/routes/` are for UI pages only
 - Catch `ServiceError` and map to HTTP responses
+- Use `optional()` from `controllers/utils.ts` for partial update fields
 
 ```typescript
-// src/routes/events/-create.ts
+// src/server/controllers/events/update.ts
 import * as EventService from "~/server/services/events";
 import { ServiceError } from "~/server/services/errors";
 
@@ -183,7 +187,7 @@ export const POST = async ({ request }) => {
 This is a **gradual migration**. Old and new patterns coexist.
 
 - Migration order: Places → Groups → Polls → Events (increasing complexity)
-- Each migration: create repository file(s) → create service file → slim route handler → dissolve old `src/server/{domain}/` module
+- Each migration: create repository file(s) → create service file → move route handler to `controllers/` → update `server-entry.ts` import → dissolve old `src/server/{domain}/` module
 - When touching existing code, migrate it to the new layers if feasible
 - Do not refactor unrelated code just to match the new pattern
 
@@ -194,6 +198,7 @@ This is a **gradual migration**. Old and new patterns coexist.
 | `src/server/places/*.ts` | `repositories/places.ts` + `services/places.ts` |
 | `src/server/events/*.ts` | `repositories/event-*.ts` + `services/events.ts` |
 | `src/server/fediverse/group.ts` (createGroupActor) | `services/groups.ts` |
+| Route handler API endpoints (`src/routes/*/-*.ts`) | `controllers/{domain}/*.ts` |
 | Inline queries in route handlers | `repositories/*.ts` |
 | Inline business logic in route handlers | `services/*.ts` |
 
