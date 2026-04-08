@@ -5,9 +5,7 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import { useMemo, useEffect, useState } from "react";
 import { z } from "zod";
 import { LeafletMap } from "~/components/LeafletMap";
-import { and, eq } from "drizzle-orm";
-import { db } from "~/server/db/client";
-import { events, actors, users, userFediverseAccounts } from "~/server/db/schema";
+import { getEventMeta as fetchEventMeta } from "~/server/services/events";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { renderMarkdown, renderMarkdownOrHtml } from "~/lib/markdown";
 import { Badge } from "~/components/ui/badge";
@@ -35,28 +33,7 @@ import { Trans, useLingui } from "@lingui/react";
 const getEventMeta = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.object({ eventId: z.string() })))
   .handler(async ({ data }) => {
-    const [row] = await db
-      .select({
-        title: events.title,
-        description: events.description,
-        startsAt: events.startsAt,
-        location: events.location,
-        headerImageUrl: events.headerImageUrl,
-        organizerHandle: userFediverseAccounts.fediverseHandle,
-        groupHandle: actors.handle,
-        groupName: actors.name,
-        groupDomain: actors.domain,
-      })
-      .from(events)
-      .innerJoin(users, eq(events.organizerId, users.id))
-      .leftJoin(userFediverseAccounts, and(
-        eq(userFediverseAccounts.userId, users.id),
-        eq(userFediverseAccounts.isPrimary, true),
-      ))
-      .leftJoin(actors, eq(events.groupActorId, actors.id))
-      .where(eq(events.id, data.eventId))
-      .limit(1);
-    return row ?? null;
+    return fetchEventMeta(data.eventId);
   });
 
 export const Route = createFileRoute("/events/$eventId/")({
