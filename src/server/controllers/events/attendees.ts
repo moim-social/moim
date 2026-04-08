@@ -1,10 +1,11 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import {
   events,
   rsvps,
   rsvpAnswers,
   eventQuestions,
+  eventOrganizers,
   eventTiers,
   users,
   actors,
@@ -28,7 +29,7 @@ export const GET = async ({ request }: { request: Request }) => {
 
   // Get event and its group
   const [event] = await db
-    .select({ id: events.id, groupActorId: events.groupActorId })
+    .select({ id: events.id, organizerId: events.organizerId, groupActorId: events.groupActorId })
     .from(events)
     .where(eq(events.id, eventId))
     .limit(1);
@@ -37,8 +38,16 @@ export const GET = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Event not found" }, { status: 404 });
   }
 
-  // Check if user is organizer/moderator of the group
-  if (event.groupActorId) {
+  // Check if user is organizer, group member, or co-organizer
+  let hasAccess = false;
+
+  // Event owner
+  if (event.organizerId === user.id) {
+    hasAccess = true;
+  }
+
+  // Group member (owner/moderator)
+  if (!hasAccess && event.groupActorId) {
     const [membership] = await db
       .select({ role: groupMembers.role })
       .from(groupMembers)
@@ -51,10 +60,35 @@ export const GET = async ({ request }: { request: Request }) => {
         ),
       )
       .limit(1);
+    if (membership) hasAccess = true;
+  }
 
-    if (!membership) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+  // Co-organizer listed in eventOrganizers
+  // Match via actors.userId OR via userFediverseAccounts (for remote actors without userId)
+  if (!hasAccess) {
+    const [coOrg] = await db
+      .select({ id: eventOrganizers.id })
+      .from(eventOrganizers)
+      .innerJoin(actors, eq(eventOrganizers.actorId, actors.id))
+      .leftJoin(
+        userFediverseAccounts,
+        eq(actors.handle, userFediverseAccounts.fediverseHandle),
+      )
+      .where(
+        and(
+          eq(eventOrganizers.eventId, eventId),
+          or(
+            eq(actors.userId, user.id),
+            eq(userFediverseAccounts.userId, user.id),
+          ),
+        ),
+      )
+      .limit(1);
+    if (coOrg) hasAccess = true;
+  }
+
+  if (!hasAccess) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Get questions for this event
