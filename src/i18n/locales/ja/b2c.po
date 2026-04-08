@@ -14,6 +14,11 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. js-lingui-explicit-id
+#: src/routes/__root.tsx:197
+msgid "Toggle menu"
+msgstr ""
+
+#. js-lingui-explicit-id
 #: src/routes/index.tsx:90
 msgid "just now"
 msgstr ""
@@ -34,38 +39,33 @@ msgid "{days}d ago"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:183
-msgid "Toggle menu"
-msgstr ""
-
-#. js-lingui-explicit-id
 #: src/routes/events/index.tsx:144
 msgid "All countries"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:319
+#: src/routes/events/$eventId/index.tsx:337
 msgid "{attendeeCount} attending ({anonymousCount} anonymous)"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:320
+#: src/routes/events/$eventId/index.tsx:338
 msgid "{attendeeCount} attending"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:352
-#: src/routes/events/$eventId/index.tsx:482
+#: src/routes/events/$eventId/index.tsx:370
+#: src/routes/events/$eventId/index.tsx:500
 msgid "Waitlisted (#{position})"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:647
+#: src/routes/events/$eventId/index.tsx:665
 msgid "{names} and {count} others"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:821
+#: src/routes/events/$eventId/index.tsx:844
 msgid "About"
 msgstr ""
 
@@ -75,8 +75,8 @@ msgid "AD"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:223
-#: src/routes/__root.tsx:260
+#: src/routes/__root.tsx:237
+#: src/routes/__root.tsx:274
 msgid "Admin Panel"
 msgstr ""
 
@@ -91,20 +91,20 @@ msgid "at"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:480
-#: src/routes/events/$eventId/index.tsx:1093
+#: src/routes/events/$eventId/index.tsx:498
+#: src/routes/events/$eventId/index.tsx:1116
 msgid "Attending"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:812
-#: src/routes/events/$eventId/index.tsx:1153
+#: src/routes/events/$eventId/index.tsx:830
+#: src/routes/events/$eventId/index.tsx:1176
 msgid "Bookmark"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:812
-#: src/routes/events/$eventId/index.tsx:1153
+#: src/routes/events/$eventId/index.tsx:830
+#: src/routes/events/$eventId/index.tsx:1176
 msgid "Bookmarked"
 msgstr ""
 
@@ -119,8 +119,8 @@ msgid "Browse Events"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:379
-#: src/routes/events/$eventId/index.tsx:509
+#: src/routes/events/$eventId/index.tsx:397
+#: src/routes/events/$eventId/index.tsx:527
 msgid "Change RSVP"
 msgstr ""
 
@@ -130,9 +130,9 @@ msgid "Check In"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:176
-#: src/routes/__root.tsx:246
-#: src/routes/__root.tsx:295
+#: src/routes/__root.tsx:190
+#: src/routes/__root.tsx:260
+#: src/routes/__root.tsx:325
 msgid "Check-ins"
 msgstr ""
 
@@ -142,15 +142,15 @@ msgid "Create a group to start hosting events."
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:217
-#: src/routes/__root.tsx:256
+#: src/routes/__root.tsx:231
+#: src/routes/__root.tsx:270
 #: src/routes/events/index.tsx:113
 msgid "Create Event"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:214
-#: src/routes/__root.tsx:255
+#: src/routes/__root.tsx:228
+#: src/routes/__root.tsx:269
 msgid "Create Group"
 msgstr ""
 
@@ -160,8 +160,8 @@ msgid "Create, discover, and RSVP to events hosted by groups across the fedivers
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:707
-#: src/routes/events/$eventId/index.tsx:768
+#: src/routes/events/$eventId/index.tsx:725
+#: src/routes/events/$eventId/index.tsx:786
 msgid "Dashboard"
 msgstr ""
 
@@ -176,25 +176,25 @@ msgid "Discover upcoming events from groups across the fediverse."
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:918
+#: src/routes/events/$eventId/index.tsx:941
 msgid "Discussion"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:697
-#: src/routes/events/$eventId/index.tsx:758
+#: src/routes/events/$eventId/index.tsx:715
+#: src/routes/events/$eventId/index.tsx:776
 msgid "Edit Event"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:399
+#: src/routes/events/$eventId/index.tsx:417
 msgid "Event not found"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:175
-#: src/routes/__root.tsx:245
-#: src/routes/__root.tsx:294
+#: src/routes/__root.tsx:189
+#: src/routes/__root.tsx:259
+#: src/routes/__root.tsx:324
 #: src/routes/events/index.tsx:106
 #: src/routes/index.tsx:223
 msgid "Events"
@@ -206,7 +206,7 @@ msgid "Federated"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:291
+#: src/routes/__root.tsx:310
 msgid "Federated events & check-ins"
 msgstr ""
 
@@ -222,14 +222,14 @@ msgid "Go to {0} feed page"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:350
+#: src/routes/events/$eventId/index.tsx:368
 msgid "Going"
 msgstr ""
 
 #. js-lingui-explicit-id
 #. placeholder {0}: event.groupName ?? `@${event.groupHandle}`
-#: src/routes/events/$eventId/index.tsx:677
-#: src/routes/events/$eventId/index.tsx:738
+#: src/routes/events/$eventId/index.tsx:695
+#: src/routes/events/$eventId/index.tsx:756
 msgid "Hosted by <0>{0}</0>"
 msgstr ""
 
@@ -241,16 +241,21 @@ msgstr ""
 
 #. js-lingui-explicit-id
 #. placeholder {0}: event.organizerHandle
-#: src/routes/events/$eventId/index.tsx:682
-#: src/routes/events/$eventId/index.tsx:684
-#: src/routes/events/$eventId/index.tsx:743
-#: src/routes/events/$eventId/index.tsx:745
+#: src/routes/events/$eventId/index.tsx:700
+#: src/routes/events/$eventId/index.tsx:702
+#: src/routes/events/$eventId/index.tsx:761
+#: src/routes/events/$eventId/index.tsx:763
 msgid "Hosted by <0>@{0}</0>"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:395
-#: src/routes/events/$eventId/index.tsx:1000
+#: src/routes/__root.tsx:331
+msgid "footer.legal"
+msgstr ""
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:413
+#: src/routes/events/$eventId/index.tsx:1023
 #: src/routes/events/index.tsx:197
 msgid "Loading..."
 msgstr ""
@@ -261,19 +266,19 @@ msgid "Moim is a federated events and places service — like connpass meets fou
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:207
-#: src/routes/__root.tsx:252
+#: src/routes/__root.tsx:221
+#: src/routes/__root.tsx:266
 msgid "My Calendar"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:204
-#: src/routes/__root.tsx:251
+#: src/routes/__root.tsx:218
+#: src/routes/__root.tsx:265
 msgid "My Groups"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:928
+#: src/routes/events/$eventId/index.tsx:951
 msgid "No discussions yet."
 msgstr ""
 
@@ -288,18 +293,23 @@ msgid "No upcoming events"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:483
-#: src/routes/events/$eventId/index.tsx:1093
+#: src/routes/events/$eventId/index.tsx:501
+#: src/routes/events/$eventId/index.tsx:1116
 msgid "Not attending"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:353
+#: src/routes/events/$eventId/index.tsx:371
 msgid "Not going"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:836
+#: src/routes/events/$eventId/index.tsx:1282
+msgid "Notices"
+msgstr ""
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:859
 msgid "Organizers"
 msgstr ""
 
@@ -319,40 +329,65 @@ msgid "Places"
 msgstr ""
 
 #. js-lingui-explicit-id
+#: src/routes/__root.tsx:334
+msgid "Privacy Policy"
+msgstr ""
+
+#. js-lingui-explicit-id
 #: src/routes/index.tsx:173
 msgid "Recent Check-ins"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:370
-#: src/routes/events/$eventId/index.tsx:383
-#: src/routes/events/$eventId/index.tsx:500
-#: src/routes/events/$eventId/index.tsx:513
+#: src/routes/__root.tsx:335
+msgid "Refund Policy"
+msgstr ""
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:388
+#: src/routes/events/$eventId/index.tsx:401
+#: src/routes/events/$eventId/index.tsx:518
+#: src/routes/events/$eventId/index.tsx:531
 msgid "Register"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:329
-#: src/routes/events/$eventId/index.tsx:460
+#: src/routes/events/$eventId/index.tsx:347
+#: src/routes/events/$eventId/index.tsx:478
 msgid "Register externally"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:210
-#: src/routes/__root.tsx:253
+#: src/routes/__root.tsx:322
+msgid "footer.service"
+msgstr ""
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:224
+#: src/routes/__root.tsx:267
 msgid "Settings"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:235
-#: src/routes/__root.tsx:270
+#: src/routes/events/$eventId/index.tsx:1294
+msgid "notices.showAll"
+msgstr ""
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:1292
+msgid "Show less"
+msgstr ""
+
+#. js-lingui-explicit-id
+#: src/routes/__root.tsx:249
+#: src/routes/__root.tsx:284
 #: src/routes/index.tsx:689
 msgid "Sign in"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:374
-#: src/routes/events/$eventId/index.tsx:504
+#: src/routes/events/$eventId/index.tsx:392
+#: src/routes/events/$eventId/index.tsx:522
 msgid "Sign in to RSVP"
 msgstr ""
 
@@ -362,13 +397,18 @@ msgid "Sign in with your fediverse account. Follow groups from Mastodon, Misskey
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/__root.tsx:229
-#: src/routes/__root.tsx:264
+#: src/routes/__root.tsx:243
+#: src/routes/__root.tsx:278
 msgid "Sign out"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:545
+#: src/routes/__root.tsx:333
+msgid "Terms of Service"
+msgstr ""
+
+#. js-lingui-explicit-id
+#: src/routes/events/$eventId/index.tsx:563
 msgid "to {endDateStr} {endTimeStr}"
 msgstr ""
 
@@ -398,7 +438,7 @@ msgid "View Event"
 msgstr ""
 
 #. js-lingui-explicit-id
-#: src/routes/events/$eventId/index.tsx:366
-#: src/routes/events/$eventId/index.tsx:496
+#: src/routes/events/$eventId/index.tsx:384
+#: src/routes/events/$eventId/index.tsx:514
 msgid "View Registration"
 msgstr ""
