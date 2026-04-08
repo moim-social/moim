@@ -1,45 +1,106 @@
 msgid ""
 msgstr ""
 "Language: en\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Content-Type: \n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/checkin.ts:64
 msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
 msgstr "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/checkin.ts:128
 msgid "Map of {placeName}"
 msgstr "Map of {placeName}"
 
-msgid "{categoryLabel} Events"
-msgstr "{categoryLabel} Events"
-
-msgid "Event feed for the {categoryLabel} category on Moim."
-msgstr "Event feed for the {categoryLabel} category on Moim."
-
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:214
 msgid "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
 msgstr "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:221
+#: src/server/fediverse/category.ts:250
 msgid "Register here"
 msgstr "Register here"
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:221
+#: src/server/fediverse/category.ts:250
 msgid "Details"
 msgstr "Details"
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:222
 msgid "RSVP here"
 msgstr "RSVP here"
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:247
 msgid "Organized by: {organizers}"
 msgstr "Organized by: {organizers}"
 
+#. js-lingui-explicit-id
+#: src/server/fediverse/category.ts:251
 msgid "View event details"
 msgstr "View event details"
 
-msgid "An instance actor for Moim."
-msgstr "An instance actor for Moim."
+#. js-lingui-explicit-id
+#: src/server/services/event-notices.ts
+msgid "📢 Notice: {eventTitle}"
+msgstr "📢 Notice: {eventTitle}"
 
-msgid "page"
-msgstr "page"
+#. js-lingui-explicit-id
+#: src/server/services/event-notices.ts
+msgid "This is a no-reply notice. For details, visit the <a href=\"{eventUrl}\">event page</a>."
+msgstr "This is a no-reply notice. For details, visit the <a href=\"{eventUrl}\">event page</a>."
 
-msgid "website"
-msgstr "website"
+#~ msgid "{categoryLabel} Events"
+#~ msgstr "{categoryLabel} Events"
 
-msgid "moderators"
-msgstr "moderators"
+#~ msgid "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
+#~ msgstr "<a href=\"{actorUrl}\" class=\"u-url mention\">@{handle}</a> is hosting an event!"
+
+#~ msgid "An instance actor for Moim."
+#~ msgstr "An instance actor for Moim."
+
+#~ msgid "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
+#~ msgstr "Checked in at <a href=\"{placeUrl}\">{placeName}</a>"
+
+#~ msgid "Details"
+#~ msgstr "Details"
+
+#~ msgid "Event feed for the {categoryLabel} category on Moim."
+#~ msgstr "Event feed for the {categoryLabel} category on Moim."
+
+#~ msgid "Map of {placeName}"
+#~ msgstr "Map of {placeName}"
+
+#~ msgid "moderators"
+#~ msgstr "moderators"
+
+#~ msgid "Organized by: {organizers}"
+#~ msgstr "Organized by: {organizers}"
+
+#~ msgid "page"
+#~ msgstr "page"
+
+#~ msgid "Register here"
+#~ msgstr "Register here"
+
+#~ msgid "RSVP here"
+#~ msgstr "RSVP here"
+
+#~ msgid "View event details"
+#~ msgstr "View event details"
+
+#~ msgid "website"
+#~ msgstr "website"

@@ -1323,7 +1323,7 @@ function NoticeItem({ notice }: { notice: PublicNoticeProps }) {
       </span>
       <div
         className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground [&>p]:m-0 [&>p]:inline"
-        dangerouslySetInnerHTML={{ __html: notice.content }}
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(notice.content) }}
       />
     </div>
   );

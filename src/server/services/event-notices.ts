@@ -12,6 +12,7 @@ import {
   groupMembers,
 } from "~/server/db/schema";
 import { getFederationContext } from "~/server/fediverse/federation";
+import { getI18n } from "~/server/i18n";
 import { ensurePersistedRemoteActor } from "~/server/fediverse/resolve";
 import { createNoticeRecord } from "~/server/repositories/event-notices";
 import { renderMarkdown } from "~/lib/markdown";
@@ -39,6 +40,7 @@ export async function sendEventNotice(
   const [event] = await db
     .select({
       id: events.id,
+      title: events.title,
       organizerId: events.organizerId,
       groupActorId: events.groupActorId,
     })
@@ -91,19 +93,29 @@ export async function sendEventNotice(
 
   if (!sendingActor) throw new Error("No local actor found for sending");
 
-  // 4. Render markdown to HTML and create post record
-  const htmlContent = renderMarkdown(content);
+  // 4. Store raw markdown in DB, build AP HTML separately
+  const i18n = getI18n(sendingActor.language);
+  const fedCtx = getFederationContext();
   const now = new Date();
   const [post] = await db
     .insert(posts)
     .values({
       actorId: sendingActor.id,
       eventId,
-      content: htmlContent,
+      content,
       visibility,
       published: now,
     })
     .returning();
+
+  // Build HTML with header/footer for AP delivery only
+  const bodyHtml = renderMarkdown(content);
+  const eventUrl = new URL(`/events/${eventId}`, fedCtx.canonicalOrigin).href;
+  const apHtmlContent = [
+    `<p><strong>${i18n._("📢 Notice: {eventTitle}", { eventTitle: event.title })}</strong></p>`,
+    bodyHtml,
+    `<p><small>${i18n._("This is a no-reply notice. For details, visit the <a href=\"{eventUrl}\">event page</a>.", { eventUrl })}</small></p>`,
+  ].join("\n");
 
   // 5. Resolve attendee recipients
   // First get all accepted attendees' primary fediverse handles
@@ -150,7 +162,7 @@ export async function sendEventNotice(
   });
 
   // 7. Compose AP Note + Create activity
-  const ctx = getFederationContext();
+  const ctx = fedCtx;
   const senderHandle = sendingActor.handle;
   const noteUri = ctx.getObjectUri(Note, { noteId: post.id });
   const published = Temporal.Instant.from(now.toISOString());
@@ -180,7 +192,7 @@ export async function sendEventNotice(
   const note = new Note({
     id: noteUri,
     attribution: ctx.getActorUri(senderHandle),
-    content: htmlContent,
+    content: apHtmlContent,
     published,
     tos,
     ccs,
