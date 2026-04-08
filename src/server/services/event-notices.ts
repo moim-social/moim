@@ -12,6 +12,7 @@ import {
   groupMembers,
 } from "~/server/db/schema";
 import { getFederationContext } from "~/server/fediverse/federation";
+import { ensurePersistedRemoteActor } from "~/server/fediverse/resolve";
 import { createNoticeRecord } from "~/server/repositories/event-notices";
 import { renderMarkdown } from "~/lib/markdown";
 
@@ -104,13 +105,11 @@ export async function sendEventNotice(
     })
     .returning();
 
-  // 5. Resolve attendee recipients (remote fediverse actors with inboxUrl)
-  // Join: rsvps → userFediverseAccounts (primary) → actors (remote, has inbox)
-  const attendeeActors = await db
+  // 5. Resolve attendee recipients
+  // First get all accepted attendees' primary fediverse handles
+  const attendeeHandles = await db
     .select({
-      actorUrl: actors.actorUrl,
-      inboxUrl: actors.inboxUrl,
-      handle: actors.handle,
+      fediverseHandle: userFediverseAccounts.fediverseHandle,
     })
     .from(rsvps)
     .innerJoin(
@@ -120,14 +119,6 @@ export async function sendEventNotice(
         eq(userFediverseAccounts.isPrimary, true),
       ),
     )
-    .innerJoin(
-      actors,
-      and(
-        eq(actors.handle, userFediverseAccounts.fediverseHandle),
-        eq(actors.isLocal, false),
-        isNotNull(actors.inboxUrl),
-      ),
-    )
     .where(
       and(
         eq(rsvps.eventId, eventId),
@@ -135,6 +126,21 @@ export async function sendEventNotice(
         isNotNull(rsvps.userId),
       ),
     );
+
+  // Ensure each attendee has a persisted remote actor (lazy resolution)
+  const attendeeActors = (
+    await Promise.all(
+      attendeeHandles.map(async ({ fediverseHandle }) => {
+        try {
+          return await ensurePersistedRemoteActor(fediverseHandle);
+        } catch {
+          return null;
+        }
+      }),
+    )
+  ).filter(
+    (a): a is NonNullable<typeof a> => a != null && !!a.inboxUrl,
+  );
 
   // 6. Create notice metadata record
   const notice = await createNoticeRecord({
@@ -149,8 +155,7 @@ export async function sendEventNotice(
   const noteUri = ctx.getObjectUri(Note, { noteId: post.id });
   const published = Temporal.Instant.from(now.toISOString());
 
-  const validAttendees = attendeeActors.filter((a) => a.inboxUrl);
-  const attendeeUris = validAttendees.map((a) => new URL(a.actorUrl));
+  const attendeeUris = attendeeActors.map((a) => new URL(a.actorUrl));
 
   // Build to/cc based on visibility
   let tos: URL[];
@@ -165,8 +170,8 @@ export async function sendEventNotice(
   }
 
   // Include Mention tags for small attendee lists (≤50)
-  const mentions = validAttendees.length <= 50
-    ? validAttendees.map((a) => new Mention({
+  const mentions = attendeeActors.length <= 50
+    ? attendeeActors.map((a) => new Mention({
         href: new URL(a.actorUrl),
         name: `@${a.handle}`,
       }))
@@ -202,12 +207,11 @@ export async function sendEventNotice(
 
   // 9. Direct delivery to each attendee's inbox
   for (const attendee of attendeeActors) {
-    if (!attendee.inboxUrl) continue;
     await ctx.sendActivity(
       { identifier: senderHandle },
       {
         id: new URL(attendee.actorUrl),
-        inboxId: new URL(attendee.inboxUrl),
+        inboxId: new URL(attendee.inboxUrl!),
       },
       createActivity,
       { immediate: true },

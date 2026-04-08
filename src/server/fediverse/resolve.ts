@@ -1,3 +1,4 @@
+import { and, eq, isNotNull } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors } from "~/server/db/schema";
 import { env } from "~/server/env";
@@ -145,4 +146,28 @@ export async function persistRemoteActor(
     .returning();
 
   return actor;
+}
+
+/**
+ * Ensure a remote actor exists in the actors table with an inboxUrl.
+ * Returns the existing record if found, otherwise resolves and persists.
+ */
+export async function ensurePersistedRemoteActor(
+  handle: string,
+): Promise<typeof actors.$inferSelect> {
+  const [existing] = await db
+    .select()
+    .from(actors)
+    .where(
+      and(
+        eq(actors.handle, handle),
+        eq(actors.isLocal, false),
+        isNotNull(actors.inboxUrl),
+      ),
+    )
+    .limit(1);
+
+  if (existing) return existing;
+
+  return persistRemoteActor(handle);
 }

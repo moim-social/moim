@@ -187,6 +187,10 @@ function ComposeNoticeDialog({
             This notice will be posted from the event&apos;s group account and delivered
             directly to each attendee&apos;s fediverse inbox.
           </p>
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            Misskey users may not receive notifications unless they follow the group
+            account or change their notification settings to allow mentions from all users.
+          </p>
           <Textarea
             placeholder="Write your notice (markdown supported)..."
             value={content}
