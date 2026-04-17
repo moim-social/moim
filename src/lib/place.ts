@@ -49,3 +49,13 @@ export function formatDistance(km: number): string {
   if (km < 1) return `${Math.round(km * 1000)}m`;
   return `${km.toFixed(1)}km`;
 }
+
+/** Tier-based zoom → radius mapping (km) shared across nearby-places and POI search. */
+export function zoomToRadius(zoom: number): number {
+  if (zoom >= 18) return 0.2;
+  if (zoom >= 16) return 0.5;
+  if (zoom >= 14) return 1;
+  if (zoom >= 12) return 2;
+  if (zoom >= 10) return 5;
+  return 10;
+}

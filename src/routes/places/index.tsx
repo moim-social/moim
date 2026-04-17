@@ -9,6 +9,7 @@ import {
   type PlaceCategoryOption,
   type PlaceCategorySummary,
   resolveCategoryLabel,
+  zoomToRadius,
 } from "~/lib/place";
 import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
@@ -54,16 +55,6 @@ function formatRelativeTime(dateStr: string): string {
   if (days < 7) return `${days}d ago`;
   return new Date(dateStr).toLocaleDateString();
 }
-
-function zoomToRadius(zoom: number): number {
-  if (zoom >= 18) return 0.2;
-  if (zoom >= 16) return 0.5;
-  if (zoom >= 14) return 1;
-  if (zoom >= 12) return 2;
-  if (zoom >= 10) return 5;
-  return 10;
-}
-
 
 type CheckinConfirmation = {
   placeName: string;
