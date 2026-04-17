@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { UserFacingMap, type MapMarker } from "~/components/maps";
+import { MapSearchOverlay } from "~/components/MapSearchOverlay";
 import {
   formatDistance,
   type NearbyPlace,
@@ -145,6 +146,9 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
   const [mapCategoryId, setMapCategoryId] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
+
+  // Current map zoom — used to scale the POI-search radius in the overlay.
+  const [mapZoom, setMapZoom] = useState(16);
 
   // Name-only mode: null = disabled, string = active with value
   const [nameOnlyValue, setNameOnlyValue] = useState<string | null>(null);
@@ -368,13 +372,41 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
 
   return (
     <div className="space-y-3">
-      {/* Map — always visible */}
-      <UserFacingMap
-        markers={mapMarkers}
-        onMapClick={handleMapClick}
-        onMarkerClick={handleMarkerClick}
-        height="200px"
-      />
+      {/* Map — always visible. Search overlay sits on top for organizers
+          to find places by name; falls back silently when not Kakao. */}
+      <div className="relative" style={{ position: "relative" }}>
+        <UserFacingMap
+          markers={mapMarkers}
+          center={
+            mapLat && mapLng
+              ? [parseFloat(mapLat), parseFloat(mapLng)]
+              : undefined
+          }
+          zoom={mapLat && mapLng ? 16 : undefined}
+          fitToMarkers={!(mapLat && mapLng)}
+          onMapClick={handleMapClick}
+          onMarkerClick={handleMarkerClick}
+          onZoomEnd={setMapZoom}
+          height="200px"
+        />
+        <MapSearchOverlay
+          biasLat={
+            mapLat ? parseFloat(mapLat) : userPos?.lat ?? null
+          }
+          biasLng={
+            mapLng ? parseFloat(mapLng) : userPos?.lng ?? null
+          }
+          biasZoom={mapZoom}
+          onPick={(c) => {
+            setMapLat(c.lat.toFixed(6));
+            setMapLng(c.lng.toFixed(6));
+            setMapName(c.name);
+            setMapCategoryId("");
+            setCreateError("");
+          }}
+          placeholder="Search places…"
+        />
+      </div>
 
       {/* New place creation (when user clicked on map) */}
       {mapLat && mapLng && (

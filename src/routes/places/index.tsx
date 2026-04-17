@@ -14,6 +14,7 @@ import {
 import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
 import { UserFacingMap, type MapMarker } from "~/components/maps";
+import { MapSearchOverlay } from "~/components/MapSearchOverlay";
 import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import {
@@ -413,17 +414,38 @@ function CheckinsPage() {
         )}
       </div>
 
-      {/* Map */}
-      <div className="border border-[#e5e5e5] rounded overflow-hidden">
-        <UserFacingMap
-          center={mapCenter ?? undefined}
-          markers={[...nearbyMarkers, ...pickedMarker]}
-          circle={pinnedLocation ? { center: [parseFloat(pinnedLocation.lat), parseFloat(pinnedLocation.lng)], radiusKm: zoomToRadius(mapZoom) } : undefined}
-          fitToMarkers={false}
-          onMapClick={handleMapClick}
-          onMarkerClick={handleMarkerClick}
-          onZoomEnd={setMapZoom}
-          height={isMobile ? "300px" : "400px"}
+      {/* Map — search overlay must be OUTSIDE the overflow-hidden frame
+          so its dropdown isn't clipped to the rounded map viewport. */}
+      <div className="relative" style={{ position: "relative" }}>
+        <div className="border border-[#e5e5e5] rounded overflow-hidden">
+          <UserFacingMap
+            center={mapCenter ?? undefined}
+            markers={[...nearbyMarkers, ...pickedMarker]}
+            zoom={mapZoom}
+            circle={pinnedLocation ? { center: [parseFloat(pinnedLocation.lat), parseFloat(pinnedLocation.lng)], radiusKm: zoomToRadius(mapZoom) } : undefined}
+            fitToMarkers={false}
+            onMapClick={handleMapClick}
+            onMarkerClick={handleMarkerClick}
+            onZoomEnd={setMapZoom}
+            height={isMobile ? "300px" : "400px"}
+          />
+        </div>
+        <MapSearchOverlay
+          biasLat={mapCenter?.[0] ?? (pinnedLocation ? parseFloat(pinnedLocation.lat) : null)}
+          biasLng={mapCenter?.[1] ?? (pinnedLocation ? parseFloat(pinnedLocation.lng) : null)}
+          biasZoom={mapZoom}
+          onPick={(c) => {
+            setCheckinLat(c.lat.toFixed(6));
+            setCheckinLng(c.lng.toFixed(6));
+            setCheckinName(c.name);
+            setSelectedPlace(null);
+            setCheckinError("");
+            setPinnedLocation({ lat: c.lat.toFixed(6), lng: c.lng.toFixed(6) });
+            setMapCenter([c.lat, c.lng]);
+            setMapZoom(16);
+            setDialogOpen(true);
+          }}
+          placeholder="Search places…"
         />
       </div>
 
