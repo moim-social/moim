@@ -1,35 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "~/lib/utils";
+import { buildMarkerArtwork, buildSelectedPinArtwork } from "~/components/maps/icon";
+import type { UserFacingMapProps } from "~/components/maps/types";
 
-export type MarkerColor = "blue" | "red" | "green" | "gold" | "gray";
+export type { MapMarker, MarkerColor } from "~/components/maps/types";
 
-export type MapMarker = {
-  lat: number;
-  lng: number;
-  label: string;
-  id: string;
-  color?: MarkerColor;
-  glyph?: string | null;
-  highlighted?: boolean;
-};
-
-type CircleOverlay = {
-  center: [number, number];
-  radiusKm: number;
-};
-
-type LeafletMapProps = {
-  center?: [number, number];
-  zoom?: number;
-  markers?: MapMarker[];
-  circle?: CircleOverlay;
-  fitToMarkers?: boolean;
-  onMapClick?: (lat: number, lng: number) => void;
-  onMarkerClick?: (marker: MapMarker) => void;
-  onZoomEnd?: (zoom: number) => void;
-  height?: string;
-  className?: string;
-};
+type LeafletMapProps = UserFacingMapProps;
 
 export function LeafletMap({
   center = [37.5665, 126.978], // Seoul default
@@ -117,89 +93,25 @@ export function LeafletMap({
         gpsMarkerRef.current = null;
       }
 
-      // Colored marker icon factory
-      const MARKER_COLORS: Record<MarkerColor, { text: string }> = {
-        blue: {
-          text: "#1e3a8a",
-        },
-        red: {
-          text: "#991b1b",
-        },
-        green: {
-          text: "#166534",
-        },
-        gold: {
-          text: "#92400e",
-        },
-        gray: {
-          text: "#374151",
-        },
-      };
-      const MARKER_BORDER = "#6b7280";
-      function makeSelectedPin() {
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="42" viewBox="0 0 28 42">
-          <defs>
-            <filter id="selected-pin-shadow" x="-30%" y="-20%" width="160%" height="180%">
-              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#7f1d1d" flood-opacity="0.22"/>
-            </filter>
-          </defs>
-          <g filter="url(#selected-pin-shadow)">
-            <path d="M14 40 C20.5 29, 25 23, 25 14 C25 7.925, 20.075 3, 14 3 C7.925 3, 3 7.925, 3 14 C3 23, 7.5 29, 14 40 Z" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5"/>
-            <circle cx="14" cy="14" r="5.5" fill="#ffffff"/>
-          </g>
-        </svg>`;
+      function toDivIcon(artwork: ReturnType<typeof buildMarkerArtwork>, popupOffset: number) {
         return L.divIcon({
-          html: svg,
-          iconSize: [28, 42],
-          iconAnchor: [14, 42],
-          popupAnchor: [0, -36],
-          className: "",
-        });
-      }
-      function makeIcon(color: MarkerColor, glyph?: string | null, highlighted = false) {
-        const palette = MARKER_COLORS[color];
-        const isHighlighted = highlighted && !!glyph;
-        const width = isHighlighted ? 44 : 44;
-        const height = isHighlighted ? 48 : 48;
-        const iconAnchorX = 22;
-        const iconAnchorY = 48;
-        const shadowId = isHighlighted ? "marker-shadow-active" : "marker-shadow";
-        const strokeColor = isHighlighted ? "#ef4444" : MARKER_BORDER;
-        const fillColor = "#ffffff";
-        const glyphMarkup = glyph
-          ? `<text x="22" y="25.5" text-anchor="middle" font-size="18">${glyph}</text>`
-          : "";
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 48 54">
-          <defs>
-            <filter id="marker-shadow" x="-20%" y="-20%" width="140%" height="160%">
-              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.18"/>
-            </filter>
-            <filter id="marker-shadow-active" x="-30%" y="-30%" width="160%" height="200%">
-              <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#7f1d1d" flood-opacity="0.18"/>
-            </filter>
-          </defs>
-          <g filter="url(#${shadowId})">
-            <rect x="4" y="4" width="40" height="32" rx="11" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${isHighlighted ? 2.25 : 1.5}"/>
-            <path d="M19 36 L19 50 L29 36" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${isHighlighted ? 2.25 : 1.5}" stroke-linejoin="round"/>
-          </g>
-          ${glyphMarkup}
-        </svg>`;
-        return L.divIcon({
-          html: svg,
-          iconSize: [width, height],
-          iconAnchor: [iconAnchorX, iconAnchorY],
-          popupAnchor: [0, isHighlighted ? -50 : -42],
+          html: artwork.svg,
+          iconSize: [artwork.width, artwork.height],
+          iconAnchor: [artwork.anchorX, artwork.anchorY],
+          popupAnchor: [0, popupOffset],
           className: "",
         });
       }
 
       // Add new markers
       for (const marker of markers) {
-        const icon = marker.glyph
-          ? makeIcon(marker.color ?? "blue", marker.glyph, marker.highlighted)
-          : marker.highlighted
-            ? makeSelectedPin()
-          : undefined;
+        let icon: any;
+        if (marker.glyph) {
+          const artwork = buildMarkerArtwork(marker.glyph, marker.highlighted);
+          icon = toDivIcon(artwork, marker.highlighted ? -50 : -42);
+        } else if (marker.highlighted) {
+          icon = toDivIcon(buildSelectedPinArtwork(), -36);
+        }
         const m = L.marker([marker.lat, marker.lng], icon ? { icon } : {})
           .addTo(mapRef.current)
           .bindTooltip(marker.label);
@@ -250,7 +162,9 @@ export function LeafletMap({
 
               // Place a green marker at the user's position
               if (gpsMarkerRef.current) gpsMarkerRef.current.remove();
-              gpsMarkerRef.current = L.marker([lat, lng], { icon: makeIcon("green") })
+              gpsMarkerRef.current = L.marker([lat, lng], {
+                icon: toDivIcon(buildMarkerArtwork(null, false), -42),
+              })
                 .addTo(mapRef.current)
                 .bindPopup("You are here")
                 .openPopup();
