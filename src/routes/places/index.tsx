@@ -9,10 +9,12 @@ import {
   type PlaceCategoryOption,
   type PlaceCategorySummary,
   resolveCategoryLabel,
+  zoomToRadius,
 } from "~/lib/place";
 import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
-import { LeafletMap, type MapMarker } from "~/components/LeafletMap";
+import { UserFacingMap, type MapMarker } from "~/components/maps";
+import { MapSearchOverlay } from "~/components/MapSearchOverlay";
 import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import {
@@ -54,16 +56,6 @@ function formatRelativeTime(dateStr: string): string {
   if (days < 7) return `${days}d ago`;
   return new Date(dateStr).toLocaleDateString();
 }
-
-function zoomToRadius(zoom: number): number {
-  if (zoom >= 18) return 0.2;
-  if (zoom >= 16) return 0.5;
-  if (zoom >= 14) return 1;
-  if (zoom >= 12) return 2;
-  if (zoom >= 10) return 5;
-  return 10;
-}
-
 
 type CheckinConfirmation = {
   placeName: string;
@@ -219,6 +211,13 @@ function CheckinsPage() {
 
   // Map marker click
   const handleMarkerClick = (marker: MapMarker) => {
+    // Synthetic pin for an unsaved location — open the check-in dialog so
+    // the user can name and categorize the new place, rather than routing
+    // to /places/new (which isn't a real place id).
+    if (marker.id === "new") {
+      setDialogOpen(true);
+      return;
+    }
     const place = nearbyPlaces.find((p) => p.id === marker.id);
     if (place) selectPlace(place);
     else navigate({ to: "/places/$placeId", params: { placeId: marker.id } });
@@ -415,17 +414,38 @@ function CheckinsPage() {
         )}
       </div>
 
-      {/* Map */}
-      <div className="border border-[#e5e5e5] rounded overflow-hidden">
-        <LeafletMap
-          center={mapCenter ?? undefined}
-          markers={[...nearbyMarkers, ...pickedMarker]}
-          circle={pinnedLocation ? { center: [parseFloat(pinnedLocation.lat), parseFloat(pinnedLocation.lng)], radiusKm: zoomToRadius(mapZoom) } : undefined}
-          fitToMarkers={false}
-          onMapClick={handleMapClick}
-          onMarkerClick={handleMarkerClick}
-          onZoomEnd={setMapZoom}
-          height={isMobile ? "300px" : "400px"}
+      {/* Map — search overlay must be OUTSIDE the overflow-hidden frame
+          so its dropdown isn't clipped to the rounded map viewport. */}
+      <div className="relative" style={{ position: "relative" }}>
+        <div className="border border-[#e5e5e5] rounded overflow-hidden">
+          <UserFacingMap
+            center={mapCenter ?? undefined}
+            markers={[...nearbyMarkers, ...pickedMarker]}
+            zoom={mapZoom}
+            circle={pinnedLocation ? { center: [parseFloat(pinnedLocation.lat), parseFloat(pinnedLocation.lng)], radiusKm: zoomToRadius(mapZoom) } : undefined}
+            fitToMarkers={false}
+            onMapClick={handleMapClick}
+            onMarkerClick={handleMarkerClick}
+            onZoomEnd={setMapZoom}
+            height={isMobile ? "300px" : "400px"}
+          />
+        </div>
+        <MapSearchOverlay
+          biasLat={mapCenter?.[0] ?? (pinnedLocation ? parseFloat(pinnedLocation.lat) : null)}
+          biasLng={mapCenter?.[1] ?? (pinnedLocation ? parseFloat(pinnedLocation.lng) : null)}
+          biasZoom={mapZoom}
+          onPick={(c) => {
+            setCheckinLat(c.lat.toFixed(6));
+            setCheckinLng(c.lng.toFixed(6));
+            setCheckinName(c.name);
+            setSelectedPlace(null);
+            setCheckinError("");
+            setPinnedLocation({ lat: c.lat.toFixed(6), lng: c.lng.toFixed(6) });
+            setMapCenter([c.lat, c.lng]);
+            setMapZoom(16);
+            setDialogOpen(true);
+          }}
+          placeholder="Search places…"
         />
       </div>
 

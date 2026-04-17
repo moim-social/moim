@@ -20,7 +20,7 @@ import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { usePostHog } from "posthog-js/react";
-import { LeafletMap } from "~/components/LeafletMap";
+import { UserFacingMap } from "~/components/maps";
 import { Calendar } from "lucide-react";
 import { type PlaceCategorySummary, resolveCategoryLabel } from "~/lib/place";
 
@@ -217,7 +217,7 @@ function PlaceDetailPage() {
       {/* Map — full width */}
       {hasCoords && (
         <div className="border border-[#e5e5e5] rounded overflow-hidden">
-          <LeafletMap
+          <UserFacingMap
             center={[parseFloat(place.latitude!), parseFloat(place.longitude!)]}
             zoom={15}
             markers={[{
