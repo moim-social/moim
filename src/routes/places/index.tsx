@@ -219,6 +219,13 @@ function CheckinsPage() {
 
   // Map marker click
   const handleMarkerClick = (marker: MapMarker) => {
+    // Synthetic pin for an unsaved location — open the check-in dialog so
+    // the user can name and categorize the new place, rather than routing
+    // to /places/new (which isn't a real place id).
+    if (marker.id === "new") {
+      setDialogOpen(true);
+      return;
+    }
     const place = nearbyPlaces.find((p) => p.id === marker.id);
     if (place) selectPlace(place);
     else navigate({ to: "/places/$placeId", params: { placeId: marker.id } });
