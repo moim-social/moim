@@ -19,6 +19,8 @@ export type EventData = {
     placeLatitude: string | null;
     placeLongitude: string | null;
     externalUrl: string | null;
+    eventType: "in_person" | "online" | null;
+    meetingUrl: string | null;
     headerImageUrl: string | null;
     groupHandle: string | null;
     groupName: string | null;

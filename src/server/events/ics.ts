@@ -17,6 +17,8 @@ export interface IcsEvent {
   placeAddress: string | null;
   groupName: string | null;
   groupHandle: string | null;
+  eventType?: string | null;
+  meetingUrl?: string | null;
   organizers?: IcsEventOrganizer[];
   status?: "CONFIRMED" | "TENTATIVE";
 }
@@ -40,11 +42,14 @@ export function formatIcsDate(date: Date): string {
 }
 
 export function buildVevent(event: IcsEvent, baseUrl: string): string {
-  const locationParts = [
-    event.location || event.placeName || event.placeAddress || "",
-    event.venueDetail,
-  ].filter(Boolean);
-  const location = locationParts.join(" — ");
+  const isOnline = event.eventType === "online";
+  const locationParts = isOnline
+    ? [event.meetingUrl || ""]
+    : [
+        event.location || event.placeName || event.placeAddress || "",
+        event.venueDetail,
+      ];
+  const location = locationParts.filter(Boolean).join(" — ");
   const lines = [
     "BEGIN:VEVENT",
     `UID:${event.id}@${new URL(baseUrl).hostname}`,
