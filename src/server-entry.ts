@@ -42,6 +42,7 @@ import { GET as placeDetail } from "./server/controllers/places/detail";
 import { POST as checkinPlace } from "./server/controllers/places/checkin";
 import { GET as placeCheckins } from "./server/controllers/places/checkins";
 import { GET as nearbyPlaces } from "./server/controllers/places/nearby";
+import { GET as poiSearch } from "./server/controllers/places/poi-search";
 import { POST as findOrCreatePlace } from "./server/controllers/places/find-or-create";
 import { GET as listPlaceCategories } from "./server/controllers/places/categories";
 import { GET as listEventCategories } from "./server/controllers/events/categories";
@@ -747,6 +748,10 @@ apiRouter.post("/places", defineEventHandler(async (event) => {
 
 apiRouter.get("/places/nearby", defineEventHandler(async (event) => {
   return nearbyPlaces({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/places/poi-search", defineEventHandler(async (event) => {
+  return poiSearch({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/places/:placeId", defineEventHandler(async (event) => {

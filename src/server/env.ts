@@ -44,6 +44,7 @@ export const env = {
   // User-facing map tile provider — osm (default, OSS-safe) | kakao | google
   mapProvider: (process.env.MAP_PROVIDER ?? "osm") as "osm" | "kakao" | "google",
   kakaoMapAppKey: process.env.KAKAO_MAP_APP_KEY || undefined,
+  kakaoMapRestKey: process.env.KAKAO_MAP_REST_KEY || undefined,
   googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || undefined,
 
   // PostHog (optional)
