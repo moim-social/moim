@@ -80,8 +80,11 @@ function CreateEventPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [eventType, setEventType] = useState<"in_person" | "online">("in_person");
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [venueDetail, setVenueDetail] = useState("");
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [organizerCoords, setOrganizerCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [externalUrl, setExternalUrl] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -173,9 +176,13 @@ function CreateEventPage() {
         body: JSON.stringify({
           title,
           description: description || undefined,
-          placeId: selectedPlace?.id || undefined,
-          location: selectedPlace?.name || undefined,
-          venueDetail: venueDetail.trim() || undefined,
+          eventType,
+          meetingUrl: eventType === "online" ? meetingUrl.trim() || undefined : undefined,
+          organizerLat: eventType === "online" ? organizerCoords?.lat : undefined,
+          organizerLng: eventType === "online" ? organizerCoords?.lng : undefined,
+          placeId: eventType === "in_person" ? selectedPlace?.id || undefined : undefined,
+          location: eventType === "in_person" ? selectedPlace?.name || undefined : undefined,
+          venueDetail: eventType === "in_person" ? venueDetail.trim() || undefined : undefined,
           externalUrl: externalUrl || undefined,
           categoryId: categoryId || undefined,
           groupActorId: groupActorId || undefined,
@@ -327,10 +334,15 @@ function CreateEventPage() {
           />
 
           <WhereCard
+            eventType={eventType}
+            onEventTypeChange={setEventType}
             selectedPlace={selectedPlace}
             onSelectedPlaceChange={setSelectedPlace}
             venueDetail={venueDetail}
             onVenueDetailChange={setVenueDetail}
+            meetingUrl={meetingUrl}
+            onMeetingUrlChange={setMeetingUrl}
+            onOrganizerCoordsChange={setOrganizerCoords}
             groupActorId={groupActorId || undefined}
           />
 
