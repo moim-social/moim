@@ -14,7 +14,7 @@ import {
   type ThreadMessage,
 } from "~/hooks/useEventDetail";
 import { z } from "zod";
-import { LeafletMap } from "~/components/LeafletMap";
+import { UserFacingMap } from "~/components/maps";
 import { getEventMeta as fetchEventMeta } from "~/server/services/events";
 import { useEventCategoryMap } from "~/hooks/useEventCategories";
 import { renderMarkdown } from "~/lib/markdown";
@@ -416,7 +416,7 @@ function EventDetailPage() {
                 onClick={() => setMapOpen(true)}
                 className="w-full rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-shadow"
               >
-                <LeafletMap
+                <UserFacingMap
                   center={[parseFloat(event.placeLatitude), parseFloat(event.placeLongitude)]}
                   zoom={15}
                   markers={[{
@@ -860,7 +860,7 @@ function EventDetailPage() {
                 <DialogDescription>{event.placeAddress}</DialogDescription>
               )}
             </DialogHeader>
-            <LeafletMap
+            <UserFacingMap
               center={[parseFloat(event.placeLatitude), parseFloat(event.placeLongitude)]}
               zoom={15}
               markers={[{

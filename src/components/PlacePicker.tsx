@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { LeafletMap, type MapMarker } from "~/components/LeafletMap";
+import { UserFacingMap, type MapMarker } from "~/components/maps";
 import {
   formatDistance,
   type NearbyPlace,
@@ -317,7 +317,7 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
           </Button>
         </div>
         {value.latitude && value.longitude && (
-          <LeafletMap
+          <UserFacingMap
             markers={[{
               lat: parseFloat(value.latitude),
               lng: parseFloat(value.longitude),
@@ -369,7 +369,7 @@ export function PlacePicker({ value, onChange, groupActorId }: PlacePickerProps)
   return (
     <div className="space-y-3">
       {/* Map — always visible */}
-      <LeafletMap
+      <UserFacingMap
         markers={mapMarkers}
         onMapClick={handleMapClick}
         onMarkerClick={handleMarkerClick}

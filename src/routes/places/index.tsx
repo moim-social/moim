@@ -12,7 +12,7 @@ import {
 } from "~/lib/place";
 import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
-import { LeafletMap, type MapMarker } from "~/components/LeafletMap";
+import { UserFacingMap, type MapMarker } from "~/components/maps";
 import { PlaceCategorySelect } from "~/components/PlaceCategorySelect";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import {
@@ -417,7 +417,7 @@ function CheckinsPage() {
 
       {/* Map */}
       <div className="border border-[#e5e5e5] rounded overflow-hidden">
-        <LeafletMap
+        <UserFacingMap
           center={mapCenter ?? undefined}
           markers={[...nearbyMarkers, ...pickedMarker]}
           circle={pinnedLocation ? { center: [parseFloat(pinnedLocation.lat), parseFloat(pinnedLocation.lng)], radiusKm: zoomToRadius(mapZoom) } : undefined}
