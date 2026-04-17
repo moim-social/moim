@@ -1,11 +1,12 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, events, eventOrganizers, eventQuestions, eventTiers, groupMembers, rsvpAnswers, rsvps } from "~/server/db/schema";
+import { actors, events, eventOrganizers, eventQuestions, eventTiers, groupMembers, places, rsvpAnswers, rsvps } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { getEventCategories } from "~/server/events/categories";
 import { getAcceptedCount, autoPromoteWaitlist } from "~/server/events/waitlist";
 import { sanitizeContactFields } from "~/server/events/rsvp-helpers";
 import { persistRemoteActor } from "~/server/fediverse/resolve";
+import { reverseGeocodeCountry } from "~/server/geo/reverse-geocode";
 import { optional } from "~/server/controllers/utils";
 
 export const POST = async ({ request }: { request: Request }) => {
@@ -27,6 +28,10 @@ export const POST = async ({ request }: { request: Request }) => {
     externalUrl?: string;
     placeId?: string | null;
     venueDetail?: string | null;
+    eventType?: string;
+    meetingUrl?: string | null;
+    organizerLat?: number;
+    organizerLng?: number;
     headerImageUrl?: string | null;
     allowAnonymousRsvp?: boolean;
     anonymousContactFields?: { email?: string; phone?: string } | null;
@@ -145,6 +150,78 @@ export const POST = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Invalid endsAt date" }, { status: 400 });
   }
 
+  // Normalize eventType if the client sent one. If absent, we don't touch the column.
+  const requestedEventType =
+    body.eventType === "online" || body.eventType === "in_person"
+      ? body.eventType
+      : undefined;
+
+  // When switching to online, require + validate meetingUrl.
+  let meetingUrlUpdate: string | null | undefined;
+  let clearPlaceForOnline = false;
+  if (requestedEventType === "online") {
+    const raw = body.meetingUrl?.trim();
+    if (!raw) {
+      return Response.json(
+        { error: "meetingUrl is required for online events" },
+        { status: 400 },
+      );
+    }
+    try {
+      new URL(raw);
+    } catch {
+      return Response.json(
+        { error: "meetingUrl must be a valid URL" },
+        { status: 400 },
+      );
+    }
+    meetingUrlUpdate = raw;
+    clearPlaceForOnline = true;
+  } else if (requestedEventType === "in_person") {
+    // Switching back to in-person clears any stale meeting URL.
+    meetingUrlUpdate = null;
+  } else if (body.meetingUrl !== undefined) {
+    // Client sent meetingUrl without changing eventType — honor the patch.
+    meetingUrlUpdate = body.meetingUrl?.trim() || null;
+  }
+
+  // Country recomputation:
+  // - online → derive from organizer GPS coords (if provided), else NULL.
+  // - in_person → if placeId is being set/changed, re-derive from place coords.
+  //   This also fixes the pre-existing bug where country went stale on place change.
+  let countryUpdate: string | null | undefined;
+  if (requestedEventType === "online") {
+    let c: string | null = null;
+    if (
+      typeof body.organizerLat === "number"
+      && typeof body.organizerLng === "number"
+      && Number.isFinite(body.organizerLat)
+      && Number.isFinite(body.organizerLng)
+    ) {
+      const result = await reverseGeocodeCountry(body.organizerLat, body.organizerLng);
+      if (result) c = result.code;
+    }
+    countryUpdate = c;
+  } else if (body.placeId !== undefined) {
+    // Recompute for in-person / any place change.
+    let c: string | null = null;
+    if (body.placeId) {
+      const [place] = await db
+        .select({ latitude: places.latitude, longitude: places.longitude })
+        .from(places)
+        .where(eq(places.id, body.placeId))
+        .limit(1);
+      if (place?.latitude && place?.longitude) {
+        const result = await reverseGeocodeCountry(
+          parseFloat(place.latitude),
+          parseFloat(place.longitude),
+        );
+        if (result) c = result.code;
+      }
+    }
+    countryUpdate = c;
+  }
+
   try {
     // Update event fields
     await db
@@ -158,8 +235,15 @@ export const POST = async ({ request }: { request: Request }) => {
         timezone: optional(body.timezone),
         location: optional(body.location, (v) => v?.trim() || null),
         externalUrl: optional(body.externalUrl, (v) => v?.trim() || ""),
-        placeId: optional(body.placeId, (v) => v || null),
-        venueDetail: optional(body.venueDetail, (v) => v?.trim() || null),
+        placeId: clearPlaceForOnline
+          ? null
+          : optional(body.placeId, (v) => v || null),
+        venueDetail: clearPlaceForOnline
+          ? null
+          : optional(body.venueDetail, (v) => v?.trim() || null),
+        ...(requestedEventType !== undefined ? { eventType: requestedEventType } : {}),
+        ...(meetingUrlUpdate !== undefined ? { meetingUrl: meetingUrlUpdate } : {}),
+        ...(countryUpdate !== undefined ? { country: countryUpdate } : {}),
         headerImageUrl: optional(body.headerImageUrl, (v) => v || null),
         allowAnonymousRsvp: optional(body.allowAnonymousRsvp, (v) => !!v),
         anonymousContactFields: optional(body.allowAnonymousRsvp, (v) =>

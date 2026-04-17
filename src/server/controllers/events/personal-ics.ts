@@ -19,6 +19,8 @@ const eventSelect = {
   placeAddress: places.address,
   groupName: actors.name,
   groupHandle: actors.handle,
+  eventType: events.eventType,
+  meetingUrl: events.meetingUrl,
 } as const;
 
 export const GET = async ({

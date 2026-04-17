@@ -148,6 +148,10 @@ export const events = pgTable("events", {
   placeId: uuid("place_id").references(() => places.id),
   venueDetail: text("venue_detail"),
   country: varchar("country", { length: 2 }), // ISO 3166-1 alpha-2
+  // "in_person" (default) or "online". Plain varchar avoids pg enum migration pain.
+  eventType: varchar("event_type", { length: 16 }).default("in_person").notNull(),
+  // Join URL for online events (Zoom, Meet, Discord invite, etc.). NULL for in-person.
+  meetingUrl: text("meeting_url"),
   headerImageUrl: text("header_image_url"),
   published: boolean("published").default(false).notNull(),
   priority: integer("priority").default(0).notNull(),

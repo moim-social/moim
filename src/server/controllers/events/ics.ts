@@ -39,6 +39,8 @@ export const GET = async ({
       placeAddress: places.address,
       groupName: actors.name,
       groupHandle: actors.handle,
+      eventType: events.eventType,
+      meetingUrl: events.meetingUrl,
     })
     .from(events)
     .innerJoin(actors, eq(events.groupActorId, actors.id))

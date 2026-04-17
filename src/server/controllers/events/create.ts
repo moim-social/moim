@@ -26,6 +26,10 @@ export const POST = async ({ request }: { request: Request }) => {
     externalUrl?: string;
     placeId?: string;
     venueDetail?: string;
+    eventType?: string;
+    meetingUrl?: string;
+    organizerLat?: number;
+    organizerLng?: number;
     organizerHandles?: string[];
     questions?: Array<{
       question: string;
@@ -118,10 +122,50 @@ export const POST = async ({ request }: { request: Request }) => {
     return Response.json({ error: "Invalid endsAt date" }, { status: 400 });
   }
 
+  // Normalize event type; default to in-person for back-compat.
+  const eventType = body.eventType === "online" ? "online" : "in_person";
+  const isOnline = eventType === "online";
+
+  // Online events require a meeting URL.
+  let meetingUrl: string | null = null;
+  if (isOnline) {
+    const raw = body.meetingUrl?.trim();
+    if (!raw) {
+      return Response.json(
+        { error: "meetingUrl is required for online events" },
+        { status: 400 },
+      );
+    }
+    try {
+      new URL(raw);
+    } catch {
+      return Response.json(
+        { error: "meetingUrl must be a valid URL" },
+        { status: 400 },
+      );
+    }
+    meetingUrl = raw;
+  }
+
   try {
-    // Auto-detect country from place coordinates
+    // Country logic:
+    // - in_person → derive from place coords (existing behavior)
+    // - online    → reverse-geocode the organizer's browser coords, if provided.
+    //               Fall back to NULL if no coords (event surfaces in global feeds only).
     let country: string | null = null;
-    if (body.placeId) {
+    let resolvedPlaceId: string | null = null;
+    if (isOnline) {
+      if (
+        typeof body.organizerLat === "number"
+        && typeof body.organizerLng === "number"
+        && Number.isFinite(body.organizerLat)
+        && Number.isFinite(body.organizerLng)
+      ) {
+        const result = await reverseGeocodeCountry(body.organizerLat, body.organizerLng);
+        if (result) country = result.code;
+      }
+    } else if (body.placeId) {
+      resolvedPlaceId = body.placeId;
       const [place] = await db
         .select({ latitude: places.latitude, longitude: places.longitude })
         .from(places)
@@ -147,9 +191,11 @@ export const POST = async ({ request }: { request: Request }) => {
         description: body.description ?? null,
         location: body.location ?? null,
         externalUrl: body.externalUrl ?? "",
-        placeId: body.placeId ?? null,
-        venueDetail: body.venueDetail?.trim() || null,
+        placeId: resolvedPlaceId,
+        venueDetail: isOnline ? null : body.venueDetail?.trim() || null,
         country,
+        eventType,
+        meetingUrl,
         published: body.published ?? (isPersonalEvent ? true : false),
         allowAnonymousRsvp: !!body.allowAnonymousRsvp,
         anonymousContactFields: body.allowAnonymousRsvp

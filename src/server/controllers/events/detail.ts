@@ -27,6 +27,8 @@ export const GET = async ({ request }: { request: Request }) => {
       externalUrl: events.externalUrl,
       placeId: events.placeId,
       venueDetail: events.venueDetail,
+      eventType: events.eventType,
+      meetingUrl: events.meetingUrl,
       headerImageUrl: events.headerImageUrl,
       published: events.published,
       allowAnonymousRsvp: events.allowAnonymousRsvp,

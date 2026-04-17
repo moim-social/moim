@@ -11,7 +11,8 @@ import { renderMarkdown } from "~/lib/markdown";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Checkbox } from "~/components/ui/checkbox";
-import { PlacePicker, type SelectedPlace } from "~/components/PlacePicker";
+import { type SelectedPlace } from "~/components/PlacePicker";
+import { WhereCard } from "~/components/event-form/WhereCard";
 import { TimezonePicker } from "~/components/TimezonePicker";
 import { ImageCropper } from "~/components/ImageCropper";
 import { Switch } from "~/components/ui/switch";
@@ -82,6 +83,9 @@ function EditTab() {
   const [timezone, setTimezone] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [venueDetail, setVenueDetail] = useState("");
+  const [eventType, setEventType] = useState<"in_person" | "online">("in_person");
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [organizerCoords, setOrganizerCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [externalUrl, setExternalUrl] = useState("");
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
@@ -133,6 +137,8 @@ function EditTab() {
         setStartsAt(e.startsAt ? utcToDatetimeLocal(e.startsAt, e.timezone) : "");
         setEndsAt(e.endsAt ? utcToDatetimeLocal(e.endsAt, e.timezone) : "");
         setVenueDetail(e.venueDetail ?? "");
+        setEventType(e.eventType === "online" ? "online" : "in_person");
+        setMeetingUrl(e.meetingUrl ?? "");
         if (e.placeId) {
           setSelectedPlace({
             id: e.placeId,
@@ -204,9 +210,13 @@ function EditTab() {
           startsAt: datetimeLocalToUTC(startsAt, timezone),
           endsAt: endsAt ? datetimeLocalToUTC(endsAt, timezone) : undefined,
           timezone: timezone || undefined,
-          placeId: selectedPlace?.id || undefined,
-          location: selectedPlace?.name || undefined,
-          venueDetail: venueDetail.trim() || undefined,
+          eventType,
+          meetingUrl: eventType === "online" ? meetingUrl.trim() || undefined : null,
+          organizerLat: eventType === "online" ? organizerCoords?.lat : undefined,
+          organizerLng: eventType === "online" ? organizerCoords?.lng : undefined,
+          placeId: eventType === "in_person" ? selectedPlace?.id || null : null,
+          location: eventType === "in_person" ? selectedPlace?.name || undefined : undefined,
+          venueDetail: eventType === "in_person" ? venueDetail.trim() || null : null,
           externalUrl: externalUrl.trim() || undefined,
           groupActorId,
           questions: questions
@@ -257,9 +267,13 @@ function EditTab() {
           startsAt: datetimeLocalToUTC(startsAt, timezone),
           endsAt: endsAt ? datetimeLocalToUTC(endsAt, timezone) : undefined,
           timezone: timezone || undefined,
-          placeId: selectedPlace?.id || undefined,
-          location: selectedPlace?.name || undefined,
-          venueDetail: venueDetail.trim() || undefined,
+          eventType,
+          meetingUrl: eventType === "online" ? meetingUrl.trim() || undefined : null,
+          organizerLat: eventType === "online" ? organizerCoords?.lat : undefined,
+          organizerLng: eventType === "online" ? organizerCoords?.lng : undefined,
+          placeId: eventType === "in_person" ? selectedPlace?.id || null : null,
+          location: eventType === "in_person" ? selectedPlace?.name || undefined : undefined,
+          venueDetail: eventType === "in_person" ? venueDetail.trim() || null : null,
           externalUrl: externalUrl.trim() || undefined,
           allowAnonymousRsvp,
           anonymousContactFields: allowAnonymousRsvp ? anonymousContactFields : undefined,
@@ -816,25 +830,17 @@ function EditTab() {
         </Collapsible>
 
         {/* Location */}
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Location (optional)</Label>
-            <PlacePicker
-              value={selectedPlace}
-              onChange={setSelectedPlace}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="venueDetail">Venue detail (optional)</Label>
-            <Input
-              id="venueDetail"
-              type="text"
-              placeholder="e.g. 3F, Room 301"
-              value={venueDetail}
-              onChange={(e) => setVenueDetail(e.target.value)}
-            />
-          </div>
-        </div>
+        <WhereCard
+          eventType={eventType}
+          onEventTypeChange={setEventType}
+          selectedPlace={selectedPlace}
+          onSelectedPlaceChange={setSelectedPlace}
+          venueDetail={venueDetail}
+          onVenueDetailChange={setVenueDetail}
+          meetingUrl={meetingUrl}
+          onMeetingUrlChange={setMeetingUrl}
+          onOrganizerCoordsChange={setOrganizerCoords}
+        />
 
         {/* External registration URL */}
         <div className="space-y-1.5">

@@ -381,7 +381,30 @@ function EventDetailPage() {
           )}
         </div>
 
-        {(event.location || event.placeName) && (
+        {event.eventType === "online" && event.meetingUrl && (
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 size-5 shrink-0 text-muted-foreground">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                  <path fillRule="evenodd" d="M2 4.25A2.25 2.25 0 0 1 4.25 2h8.5A2.25 2.25 0 0 1 15 4.25v5.5A2.25 2.25 0 0 1 12.75 12h-8.5A2.25 2.25 0 0 1 2 9.75v-5.5Zm2.5 4.75a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5h-8Zm13.5 0a.75.75 0 0 0-.75.75v1.19l-2 2v-5.88l2 2V5.5a.75.75 0 0 1 1.5 0v9a.75.75 0 0 1-1.5 0v-.31l-2-2v1.06a.75.75 0 0 0 1.5 0V10a.75.75 0 0 0-.75-.75Z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Online event</p>
+                <a
+                  href={event.meetingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline break-all"
+                >
+                  {event.meetingUrl}
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {event.eventType !== "online" && (event.location || event.placeName) && (
           <div className="space-y-2">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 size-5 shrink-0 text-muted-foreground">
