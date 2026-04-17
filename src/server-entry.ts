@@ -70,6 +70,8 @@ import { GET as listAdminEvents, PATCH as updateAdminEvent } from "./server/cont
 import { GET as listCountries, PUT as importCountries, DELETE as clearCountries } from "./server/controllers/admin/countries";
 import { GET as listPublicCountries } from "./server/controllers/countries/list";
 import { GET as getCarouselSlides } from "./server/controllers/carousel";
+import { GET as getMapConfig } from "./server/controllers/map-config/get";
+import { env } from "./server/env";
 import { POST as trackBannerClick } from "./server/controllers/banner-click";
 import { POST as webfingerLookup } from "./server/controllers/api/webfinger";
 import { POST as instanceLookup } from "./server/controllers/api/instance-lookup";
@@ -115,27 +117,30 @@ const app = createApp({ onError });
 app.use(integrateFederation(federation, () => undefined));
 
 // Security headers
+const mapProviderScriptSrc =
+  env.mapProvider === "kakao"
+    ? " https://dapi.kakao.com https://t1.daumcdn.net"
+    : "";
+
+const cspHeader = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://us-assets.i.posthog.com${mapProviderScriptSrc}`,
+  "style-src 'self' 'unsafe-inline' https://unpkg.com",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self'",
+  "connect-src 'self' https:",
+  "frame-ancestors 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+
 app.use(defineEventHandler((event) => {
   setResponseHeader(event, "X-Frame-Options", "SAMEORIGIN");
   setResponseHeader(event, "X-Content-Type-Options", "nosniff");
   setResponseHeader(event, "Referrer-Policy", "strict-origin-when-cross-origin");
   setResponseHeader(event, "Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
   setResponseHeader(event, "Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-  setResponseHeader(
-    event,
-    "Content-Security-Policy",
-    [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://us-assets.i.posthog.com",
-      "style-src 'self' 'unsafe-inline' https://unpkg.com",
-      "img-src 'self' data: blob: https:",
-      "font-src 'self'",
-      "connect-src 'self' https:",
-      "frame-ancestors 'self'",
-      "base-uri 'self'",
-      "form-action 'self'",
-    ].join("; "),
-  );
+  setResponseHeader(event, "Content-Security-Policy", cspHeader);
 }));
 
 // Start the MiAuth session cleanup interval
@@ -950,6 +955,10 @@ apiRouter.get("/countries", defineEventHandler(async () => {
 
 apiRouter.get("/home/carousel", defineEventHandler(async (event) => {
   return getCarouselSlides({ request: toWebRequest(event) });
+}));
+
+apiRouter.get("/map-config", defineEventHandler(async () => {
+  return getMapConfig();
 }));
 
 apiRouter.post("/banner-clicks", defineEventHandler(async (event) => {

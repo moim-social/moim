@@ -41,6 +41,11 @@ export const env = {
   // Map link providers (comma-separated: kakao,naver,google)
   mapLinkProviders: (process.env.MAP_LINK_PROVIDERS ?? "").split(",").map(s => s.trim()).filter(Boolean),
 
+  // User-facing map tile provider — osm (default, OSS-safe) | kakao | google
+  mapProvider: (process.env.MAP_PROVIDER ?? "osm") as "osm" | "kakao" | "google",
+  kakaoMapAppKey: process.env.KAKAO_MAP_APP_KEY || undefined,
+  googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || undefined,
+
   // PostHog (optional)
   posthogKey: process.env.POSTHOG_KEY || undefined,
   posthogHost: process.env.POSTHOG_HOST || undefined,
