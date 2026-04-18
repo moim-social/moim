@@ -1,7 +1,9 @@
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { ExternalLink } from "lucide-react";
 import { RemoteDiscussionDialog } from "~/components/RemoteDiscussionDialog";
 import { Trans } from "@lingui/react";
+import { cn } from "~/lib/utils";
 import type { PublicInquiry, ThreadMessage } from "~/hooks/useEventDetail";
 
 function buildThreadTree<T extends { id: string; inReplyToPostId: string | null }>(
@@ -50,6 +52,82 @@ function stripMentionHtml(html: string): string {
     .replace(/<p>\s+/g, "<p>")
     .trim();
   return result;
+}
+
+/**
+ * Renders HTML content clamped to N lines by default with a
+ * Show more / Show less toggle. The toggle is hidden when the content
+ * actually fits — we measure scrollHeight vs clientHeight with a
+ * ResizeObserver so the affordance only appears when needed.
+ *
+ * stopPropagation on the toggle is required because this component is
+ * rendered inside a parent <button> that toggles the reply thread.
+ */
+function ExpandableContent({
+  html,
+  className,
+  clampLines = 3,
+}: {
+  html: string;
+  className?: string;
+  clampLines?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (expanded) {
+      // No need to measure when fully shown.
+      return;
+    }
+    const measure = () => {
+      // Plus 1 to tolerate sub-pixel rounding.
+      setOverflowing(el.scrollHeight > el.clientHeight + 1);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [html, expanded, clampLines]);
+
+  const toggle = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setExpanded((prev) => !prev);
+  };
+
+  return (
+    <div className="min-w-0 flex-1">
+      <div
+        ref={ref}
+        className={cn(
+          className,
+          !expanded && clampLines === 3 && "line-clamp-3",
+        )}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+      {(overflowing || expanded) && (
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={toggle}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") toggle(e);
+          }}
+          className="mt-1 inline-block cursor-pointer text-xs font-medium text-primary hover:underline"
+        >
+          {expanded ? (
+            <Trans id="Show less" message="Show less" />
+          ) : (
+            <Trans id="Show more" message="Show more" />
+          )}
+        </span>
+      )}
+    </div>
+  );
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -139,12 +217,12 @@ export function PublicDiscussions({
                           </span>
                         </div>
                         <div className="flex items-start gap-2 mt-1">
-                          <div
-                            className="text-sm text-muted-foreground line-clamp-3 prose prose-sm max-w-none [&_p]:my-0.5 flex-1 min-w-0"
-                            dangerouslySetInnerHTML={{ __html: stripMentionHtml(inq.content) }}
+                          <ExpandableContent
+                            html={stripMentionHtml(inq.content)}
+                            className="text-sm text-muted-foreground prose prose-sm max-w-none [&_p]:my-0.5 flex-1"
                           />
                           {inq.apUrl && (
-                            <span className="shrink-0 opacity-0 group-hover/inq:opacity-100 transition-opacity">
+                            <span className="ml-auto shrink-0 opacity-0 group-hover/inq:opacity-100 transition-opacity">
                               <RemoteDiscussionDialog
                                 apUrl={inq.apUrl}
                                 triggerLabel={<><ExternalLink className="size-3" /> Reply</>}
