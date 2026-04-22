@@ -343,10 +343,14 @@ apiRouter.get("/groups/by-handle/:handle", defineEventHandler(async (event) => {
 apiRouter.patch("/groups/:groupId", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   const groupId = event.context.params?.groupId;
-  if (!groupId) return Response.json({ error: "groupId is required" }, { status: 400 });
+  if (!groupId) {
+    return Response.json({ error: "groupId is required" }, { status: 400 });
+  }
 
   const handle = await resolveGroupHandle(groupId);
-  if (!handle) return Response.json({ error: "Group not found" }, { status: 404 });
+  if (!handle) {
+    return Response.json({ error: "Group not found" }, { status: 404 });
+  }
 
   return updateGroup({
     request: await forwardJson(request, `/api/groups/${groupId}`, "POST", (body) => ({
@@ -634,24 +638,24 @@ apiRouter.get("/events/:eventId/notices/public", defineEventHandler(async (event
 }));
 
 // --- Poll endpoints ---
-apiRouter.post("/groups/:groupActorId/polls", defineEventHandler(async (event) => {
+apiRouter.post("/groups/:groupId/polls", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  const groupActorId = event.context.params?.groupActorId;
-  if (!groupActorId) return Response.json({ error: "groupActorId is required" }, { status: 400 });
+  const groupId = event.context.params?.groupId;
+  if (!groupId) return Response.json({ error: "groupId is required" }, { status: 400 });
 
   return createPoll({
-    request: await forwardJson(request, `/api/groups/${groupActorId}/polls`, "POST", (body) => ({
+    request: await forwardJson(request, `/api/groups/${groupId}/polls`, "POST", (body) => ({
       ...(body ?? {}),
-      groupActorId,
+      groupActorId: groupId,
     })),
   });
 }));
 
-apiRouter.get("/groups/:groupActorId/polls", defineEventHandler(async (event) => {
+apiRouter.get("/groups/:groupId/polls", defineEventHandler(async (event) => {
   const request = toWebRequest(event);
-  const groupActorId = event.context.params?.groupActorId;
+  const groupId = event.context.params?.groupId;
   return listPolls({
-    request: forwardGet(request, `/api/groups/${groupActorId}/polls`, { groupActorId }),
+    request: forwardGet(request, `/api/groups/${groupId}/polls`, { groupActorId: groupId }),
   });
 }));
 
