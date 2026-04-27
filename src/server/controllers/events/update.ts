@@ -8,6 +8,8 @@ import { sanitizeContactFields } from "~/server/events/rsvp-helpers";
 import { persistRemoteActor } from "~/server/fediverse/resolve";
 import { reverseGeocodeCountry } from "~/server/geo/reverse-geocode";
 import { optional } from "~/server/controllers/utils";
+import { deriveNewEventTicketingSettings } from "~/server/services/ticketing";
+import * as EventTicketingSettingsRepo from "~/server/repositories/event-ticketing-settings";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -394,6 +396,24 @@ export const POST = async ({ request }: { request: Request }) => {
           sortOrder: 0,
         });
       }
+
+      const currentTiers = await db
+        .select({ priceAmount: eventTiers.priceAmount })
+        .from(eventTiers)
+        .where(eq(eventTiers.eventId, event.id));
+      const ticketingSettings = deriveNewEventTicketingSettings(
+        currentTiers,
+        process.env.DEFAULT_PORTONE_PROVIDER_ACCOUNT_ID,
+      );
+      await EventTicketingSettingsRepo.upsert({
+        eventId: event.id,
+        mode: ticketingSettings.mode,
+        provider: ticketingSettings.provider,
+        providerAccountId: ticketingSettings.providerAccountId,
+        currency: ticketingSettings.currency,
+        enabled: ticketingSettings.enabled,
+        legacy: false,
+      });
     }
 
     // Reconcile organizers (replace all when provided)
