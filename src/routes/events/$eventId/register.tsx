@@ -22,6 +22,7 @@ export const Route = createFileRoute("/events/$eventId/register")({
   validateSearch: zodValidator(
     z.object({
       token: z.string().optional(),
+      payment: z.enum(["success", "cancel"]).optional(),
     }),
   ),
 });
@@ -78,7 +79,7 @@ type EventMeta = {
 
 function RegisterPage() {
   const { eventId } = Route.useParams();
-  const { token: urlToken } = Route.useSearch();
+  const { token: urlToken, payment } = Route.useSearch();
   const navigate = useNavigate();
 
   const [rsvpData, setRsvpData] = useState<RsvpData | null>(null);
@@ -164,9 +165,48 @@ function RegisterPage() {
   const { tiers, questions } = rsvpData;
   const event = eventMeta.event;
   const contactConfig = rsvpData.anonymousContactFields;
+  const existingRsvp = rsvpData.userRsvp;
+
+  if (payment === "success" && !existingRsvp) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-12">
+        <Card>
+          <CardContent className="pt-6 text-center space-y-4">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-muted">
+              <Ticket className="size-8 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold">Payment is being confirmed</h2>
+            <p className="text-sm text-muted-foreground">
+              Your payment was completed. Refresh this page in a moment if your ticket does not appear.
+            </p>
+            <Button asChild className="w-full">
+              <Link to="/events/$eventId/register" params={{ eventId }}>Refresh Registration</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (payment === "cancel") {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-12">
+        <Card>
+          <CardContent className="pt-6 text-center space-y-4">
+            <h2 className="text-xl font-semibold">Payment was cancelled</h2>
+            <p className="text-sm text-muted-foreground">
+              Your registration has not been confirmed. You can try again when you're ready.
+            </p>
+            <Button asChild className="w-full">
+              <Link to="/events/$eventId/register" params={{ eventId }}>Back to Registration</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Already registered — show status instead of form
-  const existingRsvp = rsvpData.userRsvp;
   if (existingRsvp && (existingRsvp.status === "accepted" || existingRsvp.status === "waitlisted")) {
     const existingTier = tiers.find((t) => t.id === existingRsvp.tierId);
     return (

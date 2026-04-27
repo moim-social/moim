@@ -124,8 +124,8 @@ describe("startPaidRegistration", () => {
         reservationId: "reservation-1",
         amount: 15000,
         currency: "KRW",
-        successUrl: "https://moim.example/events/event-1/register/success",
-        cancelUrl: "https://moim.example/events/event-1/register",
+        successUrl: "https://moim.example/events/event-1/register?payment=success",
+        cancelUrl: "https://moim.example/events/event-1/register?payment=cancel",
       }),
       "reservation:reservation-1",
     );
