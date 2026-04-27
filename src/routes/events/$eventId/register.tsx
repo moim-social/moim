@@ -328,6 +328,10 @@ function RegisterPage() {
         setSubmitting(false);
         return;
       }
+      if (result.requiresPayment && result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+        return;
+      }
       setResultStatus(result.status);
       if (result.token) {
         setAnonToken(result.token);
