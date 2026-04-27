@@ -7,6 +7,8 @@ import { announceEvent } from "~/server/fediverse/category";
 import { reverseGeocodeCountry } from "~/server/geo/reverse-geocode";
 import { getEventCategories } from "~/server/events/categories";
 import { sanitizeContactFields } from "~/server/events/rsvp-helpers";
+import { deriveNewEventTicketingSettings } from "~/server/services/ticketing";
+import * as EventTicketingSettingsRepo from "~/server/repositories/event-ticketing-settings";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -222,6 +224,20 @@ export const POST = async ({ request }: { request: Request }) => {
         }))
       : [{ eventId: event.id, name: "General", sortOrder: 0 }];
     await db.insert(eventTiers).values(tiersToInsert);
+
+    const ticketingSettings = deriveNewEventTicketingSettings(
+      tiersToInsert.map((tier) => ({ priceAmount: "priceAmount" in tier ? tier.priceAmount : null })),
+      process.env.DEFAULT_PORTONE_PROVIDER_ACCOUNT_ID,
+    );
+    await EventTicketingSettingsRepo.upsert({
+      eventId: event.id,
+      mode: ticketingSettings.mode,
+      provider: ticketingSettings.provider,
+      providerAccountId: ticketingSettings.providerAccountId,
+      currency: ticketingSettings.currency,
+      enabled: ticketingSettings.enabled,
+      legacy: false,
+    });
 
     // Insert survey questions
     if (body.questions && body.questions.length > 0) {
