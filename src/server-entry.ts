@@ -111,6 +111,7 @@ import { GET as hackerspubGraphqlCallback } from "./server/controllers/auth/hack
 import { POST as hackerspubGraphqlCallbackApi } from "./server/controllers/auth/hackerspub/graphql-callback-api"
 import { startHackersPubCleanupInterval } from "./server/hackerspub-sessions"
 import { startGdprCleanupInterval } from "./server/events/gdpr-cleanup"
+import { POST as ticketPaymentCallback } from "./server/controllers/ticket-payments/callback"
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
@@ -257,6 +258,10 @@ apiRouter.post("/auth/hackerspub/graphql-start", defineEventHandler(async (event
 
 apiRouter.post("/auth/hackerspub/graphql-callback", defineEventHandler(async (event) => {
   return hackerspubGraphqlCallbackApi({ request: toWebRequest(event) });
+}));
+
+apiRouter.post("/ticket-payment-callbacks", defineEventHandler(async (event) => {
+  return ticketPaymentCallback({ request: toWebRequest(event) });
 }));
 
 apiRouter.get("/session", defineEventHandler(async (event) => {

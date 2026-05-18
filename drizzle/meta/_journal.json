@@ -344,6 +344,13 @@
       "when": 1776408696065,
       "tag": "0048_wonderful_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1777293520020,
+      "tag": "0049_slimy_puma",
+      "breakpoints": true
     }
   ]
 }

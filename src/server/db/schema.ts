@@ -260,6 +260,53 @@ export const rsvpAnswers = pgTable("rsvp_answers", {
   uniqueAnswer: unique().on(table.rsvpId, table.questionId),
 }));
 
+export const eventTicketingSettings = pgTable("event_ticketing_settings", {
+  eventId: uuid("event_id").references(() => events.id, { onDelete: "cascade" }).primaryKey(),
+  mode: varchar("mode", { length: 32 }).notNull(),
+  provider: varchar("provider", { length: 32 }),
+  providerAccountId: text("provider_account_id"),
+  currency: varchar("currency", { length: 3 }),
+  enabled: boolean("enabled").default(true).notNull(),
+  legacy: boolean("legacy").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const ticketReservations = pgTable("ticket_reservations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  eventId: uuid("event_id").references(() => events.id).notNull(),
+  tierId: uuid("tier_id").references(() => eventTiers.id),
+  userId: uuid("user_id").references(() => users.id),
+  token: varchar("token", { length: 64 }),
+  rsvpId: uuid("rsvp_id").references(() => rsvps.id),
+  provider: varchar("provider", { length: 32 }).notNull(),
+  providerAccountId: text("provider_account_id"),
+  amount: integer("amount").notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(),
+  status: varchar("status", { length: 32 }).notNull(),
+  checkoutId: text("checkout_id"),
+  answersSnapshot: jsonb("answers_snapshot"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const ticketPayments = pgTable("ticket_payments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  reservationId: uuid("reservation_id").references(() => ticketReservations.id, { onDelete: "cascade" }).notNull(),
+  provider: varchar("provider", { length: 32 }).notNull(),
+  providerPaymentId: text("provider_payment_id"),
+  providerTxId: text("provider_tx_id"),
+  checkoutId: text("checkout_id"),
+  status: varchar("status", { length: 32 }).notNull(),
+  amount: integer("amount").notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(),
+  rawEvent: jsonb("raw_event"),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const eventFavourites = pgTable("event_favourites", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").references(() => users.id).notNull(),
