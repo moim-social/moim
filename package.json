@@ -3,6 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.25.0",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
@@ -62,6 +63,10 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "core-js",
+      "core-js-pure",
+      "esbuild",
+      "protobufjs",
       "sharp"
     ]
   },
