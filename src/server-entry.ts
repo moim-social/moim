@@ -74,8 +74,7 @@ import { GET as getCarouselSlides } from "./server/controllers/carousel";
 import { GET as getMapConfig } from "./server/controllers/map-config/get";
 import { env } from "./server/env";
 import { POST as trackBannerClick } from "./server/controllers/banner-click";
-import { POST as webfingerLookup } from "./server/controllers/api/webfinger";
-import { POST as instanceLookup } from "./server/controllers/api/instance-lookup";
+import { POST as resolveInstance } from "./server/controllers/api/resolve-instance";
 import { GET as groupFeed } from "./server/controllers/groups/feed";
 import { GET as eventDashboard } from "./server/controllers/events/dashboard";
 import { GET as eventDashboardActivity } from "./server/controllers/events/dashboard-activity";
@@ -979,12 +978,8 @@ apiRouter.post("/banner-clicks", defineEventHandler(async (event) => {
   return trackBannerClick({ request: toWebRequest(event) });
 }));
 
-apiRouter.post("/webfinger", defineEventHandler(async (event) => {
-  return webfingerLookup({ request: toWebRequest(event) });
-}));
-
-apiRouter.post("/instance-lookup", defineEventHandler(async (event) => {
-  return instanceLookup({ request: toWebRequest(event) });
+apiRouter.post("/resolve-instance", defineEventHandler(async (event) => {
+  return resolveInstance({ request: toWebRequest(event) });
 }));
 
 app.use("/api", useBase("/api", apiRouter.handler));
