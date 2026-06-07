@@ -26,9 +26,9 @@
     "@fedify/vocab-runtime": "2.1.16",
     "@fedify/vocab-tools": "2.1.16",
     "@js-temporal/polyfill": "^0.5.1",
-    "@lingui/core": "^5.9.4",
-    "@lingui/macro": "5.9.4",
-    "@lingui/react": "5.9.4",
+    "@lingui/core": "5.9.5",
+    "@lingui/macro": "5.9.5",
+    "@lingui/react": "5.9.5",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.0",
     "@tanstack/react-query": "^5.90.0",
@@ -74,8 +74,8 @@
     ]
   },
   "devDependencies": {
-    "@lingui/cli": "^5.9.4",
-    "@lingui/vite-plugin": "^5.9.4",
+    "@lingui/cli": "5.9.5",
+    "@lingui/vite-plugin": "5.9.5",
     "@tanstack/router-devtools": "1.157.16",
     "@types/leaflet": "^1.9.21",
     "@types/markdown-it": "^14.1.2",
