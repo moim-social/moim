@@ -9,7 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import type { CalendarEvent } from "~/routes/users/-calendar-events";
+import type { CalendarEvent } from "~/server/controllers/users/calendar-events";
 
 export const Route = createFileRoute("/calendar/")({
   component: MyCalendarPage,
