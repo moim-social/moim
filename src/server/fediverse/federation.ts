@@ -3,21 +3,14 @@ import {
   Announce,
   Application,
   Create,
-  createFederation,
   EmojiReact,
   Endpoints,
-  exportJwk,
   Follow,
-  generateCryptoKeyPair,
   Group,
   Image,
-  importJwk,
-  InProcessMessageQueue,
   Like,
-  MemoryKvStore,
   Note,
   Place,
-  parseSemVer,
   Person,
   PropertyValue,
   PUBLIC_COLLECTION,
@@ -25,12 +18,33 @@ import {
   Reject,
   Service,
   Undo,
+} from "@fedify/vocab";
+import {
+  createFederation,
+  exportJwk,
+  generateCryptoKeyPair,
+  importJwk,
+  InProcessMessageQueue,
+  MemoryKvStore,
 } from "@fedify/fedify";
 import type { Context, RequestContext } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, activityLogs, follows, groupMembers, keypairs, otpChallenges, otpVotes, places, polls, pollOptions, pollVotes as pollVotesTable, posts, users } from "~/server/db/schema";
+import {
+  actors,
+  activityLogs,
+  follows,
+  groupMembers,
+  keypairs,
+  otpChallenges,
+  otpVotes,
+  places,
+  polls,
+  pollOptions,
+  pollVotes as pollVotesTable,
+  posts,
+  users,
+} from "~/server/db/schema";
 import { ensureRemoteActor } from "~/server/fediverse/actor-cache";
 import { env } from "~/server/env";
 import { getI18n } from "~/server/i18n";
@@ -161,7 +175,8 @@ federation
       const attachments: PropertyValue[] = [];
 
       // Page link
-      const pageUrl = new URL(`/groups/@${identifier}`, ctx.canonicalOrigin).href;
+      const pageUrl = new URL(`/groups/@${identifier}`, ctx.canonicalOrigin)
+        .href;
       attachments.push(
         new PropertyValue({
           name: groupI18n._("page"),
@@ -191,10 +206,16 @@ federation
 
       if (moderatorRows.length > 0) {
         const moderatorLinks = moderatorRows
-          .map((m) => `<a href="${m.actorUrl}" rel="nofollow noopener noreferrer" target="_blank">@${m.handle}</a>`)
+          .map(
+            (m) =>
+              `<a href="${m.actorUrl}" rel="nofollow noopener noreferrer" target="_blank">@${m.handle}</a>`,
+          )
           .join(", ");
         attachments.push(
-          new PropertyValue({ name: groupI18n._("moderators"), value: moderatorLinks }),
+          new PropertyValue({
+            name: groupI18n._("moderators"),
+            value: moderatorLinks,
+          }),
         );
       }
 
@@ -360,14 +381,19 @@ federation
       const existing = existingKeys.find((k) => k.algorithm === algorithm);
       if (existing) {
         result.push({
-          privateKey: await importJwk(JSON.parse(existing.privateKey), "private"),
+          privateKey: await importJwk(
+            JSON.parse(existing.privateKey),
+            "private",
+          ),
           publicKey: await importJwk(JSON.parse(existing.publicKey), "public"),
         });
       } else {
         // Auto-generate missing key type
         const generated = await generateCryptoKeyPair(algorithm);
         const publicJwk = JSON.stringify(await exportJwk(generated.publicKey));
-        const privateJwk = JSON.stringify(await exportJwk(generated.privateKey));
+        const privateJwk = JSON.stringify(
+          await exportJwk(generated.privateKey),
+        );
 
         await db.insert(keypairs).values({
           algorithm,
@@ -460,7 +486,9 @@ federation.setObjectDispatcher(
       id: ctx.getObjectUri(Question, { questionId }),
       attribution: ctx.getActorUri(instanceId),
       to: new URL(challenge.actorUrl),
-      inclusiveOptions: EMOJI_SET.map((emoji: string) => new Note({ name: emoji })),
+      inclusiveOptions: EMOJI_SET.map(
+        (emoji: string) => new Note({ name: emoji }),
+      ),
       closed: Temporal.Instant.from(challenge.expiresAt.toISOString()),
       published: Temporal.Instant.from(challenge.createdAt.toISOString()),
     });
@@ -511,7 +539,7 @@ federation.setNodeInfoDispatcher("/nodeinfo/2.1", async () => {
   return {
     software: {
       name: "moim",
-      version: parseSemVer(__APP_VERSION__),
+      version: __APP_VERSION__,
     },
     protocols: ["activitypub"] as const,
     services: { inbound: [], outbound: [] },
@@ -521,7 +549,10 @@ federation.setNodeInfoDispatcher("/nodeinfo/2.1", async () => {
         activeMonth: activeMonth?.total ?? 0,
         activeHalfyear: activeHalfyear?.total ?? 0,
       },
-      localPosts: await db.select({ total: count() }).from(posts).then(([r]) => r?.total ?? 0),
+      localPosts: await db
+        .select({ total: count() })
+        .from(posts)
+        .then(([r]) => r?.total ?? 0),
       localComments: 0,
     },
     openRegistrations: false,
@@ -653,7 +684,9 @@ federation
         if (existingFollow?.status === "accepted") {
           await db
             .update(actors)
-            .set({ followersCount: sql`GREATEST(${actors.followersCount} - 1, 0)` })
+            .set({
+              followersCount: sql`GREATEST(${actors.followersCount} - 1, 0)`,
+            })
             .where(eq(actors.id, followedActor.id));
         }
 
@@ -851,7 +884,8 @@ federation
         if (poll) {
           // Check if poll is still open
           if (poll.closed) return;
-          if (poll.expiresAt && new Date(poll.expiresAt).getTime() < Date.now()) return;
+          if (poll.expiresAt && new Date(poll.expiresAt).getTime() < Date.now())
+            return;
 
           const voteName = object.name?.toString();
           if (!voteName) return;
@@ -860,7 +894,12 @@ federation
           const [option] = await db
             .select()
             .from(pollOptions)
-            .where(and(eq(pollOptions.pollId, poll.id), eq(pollOptions.label, voteName)))
+            .where(
+              and(
+                eq(pollOptions.pollId, poll.id),
+                eq(pollOptions.label, voteName),
+              ),
+            )
             .limit(1);
           if (!option) return;
 
@@ -873,10 +912,12 @@ federation
           if (poll.type === "single") {
             await db
               .delete(pollVotesTable)
-              .where(and(
-                eq(pollVotesTable.pollId, poll.id),
-                eq(pollVotesTable.voterActorUrl, voterActorUrl),
-              ));
+              .where(
+                and(
+                  eq(pollVotesTable.pollId, poll.id),
+                  eq(pollVotesTable.voterActorUrl, voterActorUrl),
+                ),
+              );
           }
 
           await db
@@ -1194,9 +1235,7 @@ federation
           object: new Note({
             id: noteUri,
             attribution: ctx.getActorUri(identifier),
-            replyTarget: post.inReplyTo
-              ? new URL(post.inReplyTo)
-              : undefined,
+            replyTarget: post.inReplyTo ? new URL(post.inReplyTo) : undefined,
             content: post.content,
             attachments: noteAttachments,
             published: Temporal.Instant.from(post.published.toISOString()),
@@ -1295,10 +1334,7 @@ federation
         .from(follows)
         .innerJoin(actors, eq(follows.followingId, actors.id))
         .where(
-          and(
-            eq(follows.followerId, actor.id),
-            eq(follows.status, "accepted"),
-          ),
+          and(eq(follows.followerId, actor.id), eq(follows.status, "accepted")),
         )
         .limit(limit)
         .offset(offset);
@@ -1307,10 +1343,7 @@ federation
         .select({ total: count() })
         .from(follows)
         .where(
-          and(
-            eq(follows.followerId, actor.id),
-            eq(follows.status, "accepted"),
-          ),
+          and(eq(follows.followerId, actor.id), eq(follows.status, "accepted")),
         );
       const total = totalResult?.total ?? 0;
       const isLast = offset + limit >= total;

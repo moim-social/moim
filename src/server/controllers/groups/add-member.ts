@@ -1,6 +1,5 @@
 import { eq, and } from "drizzle-orm";
-import { Create, Mention, Note } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
+import { Create, Mention, Note } from "@fedify/vocab";
 import { db } from "~/server/db/client";
 import { actors, groupMembers } from "~/server/db/schema";
 import { requireGroupMember } from "~/server/group-auth";
@@ -15,27 +14,36 @@ export const POST = async ({ request }: { request: Request }) => {
   } | null;
 
   if (!body?.groupActorId) {
-    return Response.json({ error: "groupActorId is required" }, { status: 400 });
+    return Response.json(
+      { error: "groupActorId is required" },
+      { status: 400 },
+    );
   }
 
   // Only owners can add members
   const { role } = await requireGroupMember(request, body.groupActorId);
   if (role !== "owner") {
-    return Response.json({ error: "Only owners can add members" }, { status: 403 });
+    return Response.json(
+      { error: "Only owners can add members" },
+      { status: 403 },
+    );
   }
 
   if (!body.handle) {
     return Response.json({ error: "handle is required" }, { status: 400 });
   }
 
-  const handle = body.handle.startsWith("@") ? body.handle.slice(1) : body.handle;
+  const handle = body.handle.startsWith("@")
+    ? body.handle.slice(1)
+    : body.handle;
 
   // Resolve the actor
   let modActor: Awaited<ReturnType<typeof persistRemoteActor>>;
   try {
     modActor = await persistRemoteActor(handle);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to resolve handle";
+    const message =
+      err instanceof Error ? err.message : "Failed to resolve handle";
     return Response.json({ error: message }, { status: 422 });
   }
 
@@ -52,7 +60,10 @@ export const POST = async ({ request }: { request: Request }) => {
     .limit(1);
 
   if (existing) {
-    return Response.json({ error: "This user is already a member of the group" }, { status: 409 });
+    return Response.json(
+      { error: "This user is already a member of the group" },
+      { status: 409 },
+    );
   }
 
   // Check for same identity via linked accounts (same userId, different actor)
@@ -71,7 +82,9 @@ export const POST = async ({ request }: { request: Request }) => {
 
     if (sameUser) {
       return Response.json(
-        { error: `This user is already a member of the group (as ${sameUser.role}) via another linked account` },
+        {
+          error: `This user is already a member of the group (as ${sameUser.role}) via another linked account`,
+        },
         { status: 409 },
       );
     }
@@ -95,7 +108,8 @@ export const POST = async ({ request }: { request: Request }) => {
     try {
       const ctx = getFederationContext();
       const instanceHostname = new URL(env.federationOrigin).hostname;
-      const groupPageUrl = new URL(`/groups/@${group.handle}`, env.baseUrl).href;
+      const groupPageUrl = new URL(`/groups/@${group.handle}`, env.baseUrl)
+        .href;
       const content = `<p>You have been added as a moderator of <a href="${groupPageUrl}">@${group.handle}</a>.</p>`;
 
       const noteId = new URL(

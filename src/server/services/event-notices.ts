@@ -1,5 +1,4 @@
-import { Create, Mention, Note, PUBLIC_COLLECTION } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
+import { Create, Mention, Note, PUBLIC_COLLECTION } from "@fedify/vocab";
 import { and, eq, isNotNull } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import {
@@ -114,7 +113,7 @@ export async function sendEventNotice(
   const apHtmlContent = [
     `<p><strong>${i18n._("📢 Notice: {eventTitle}", { eventTitle: event.title })}</strong></p>`,
     bodyHtml,
-    `<p><small>${i18n._("This is a no-reply notice. For details, visit the <a href=\"{eventUrl}\">event page</a>.", { eventUrl })}</small></p>`,
+    `<p><small>${i18n._('This is a no-reply notice. For details, visit the <a href="{eventUrl}">event page</a>.', { eventUrl })}</small></p>`,
   ].join("\n");
 
   // 5. Resolve attendee recipients
@@ -150,9 +149,7 @@ export async function sendEventNotice(
         }
       }),
     )
-  ).filter(
-    (a): a is NonNullable<typeof a> => a != null && !!a.inboxUrl,
-  );
+  ).filter((a): a is NonNullable<typeof a> => a != null && !!a.inboxUrl);
 
   // 6. Create notice metadata record
   const notice = await createNoticeRecord({
@@ -182,12 +179,16 @@ export async function sendEventNotice(
   }
 
   // Include Mention tags for small attendee lists (≤50)
-  const mentions = attendeeActors.length <= 50
-    ? attendeeActors.map((a) => new Mention({
-        href: new URL(a.actorUrl),
-        name: `@${a.handle}`,
-      }))
-    : [];
+  const mentions =
+    attendeeActors.length <= 50
+      ? attendeeActors.map(
+          (a) =>
+            new Mention({
+              href: new URL(a.actorUrl),
+              name: `@${a.handle}`,
+            }),
+        )
+      : [];
 
   const note = new Note({
     id: noteUri,

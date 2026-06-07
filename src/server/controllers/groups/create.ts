@@ -1,5 +1,4 @@
-import { Create, Mention, Note } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
+import { Create, Mention, Note } from "@fedify/vocab";
 import { db } from "~/server/db/client";
 import { groupMembers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
@@ -43,17 +42,25 @@ export const POST = async ({ request }: { request: Request }) => {
 
   const allCategories = await getEventCategories();
   const validCategoryIds = new Set(allCategories.map((c) => c.slug));
-  const categories = (body.categories ?? []).filter((c) => validCategoryIds.has(c));
+  const categories = (body.categories ?? []).filter((c) =>
+    validCategoryIds.has(c),
+  );
 
   const website = body.website?.trim() || undefined;
 
   try {
     const timezone = body.timezone?.trim() || undefined;
-    const actor = await createGroupActor(body.handle, body.name, body.summary, user.id, {
-      website,
-      categories,
-      timezone,
-    });
+    const actor = await createGroupActor(
+      body.handle,
+      body.name,
+      body.summary,
+      user.id,
+      {
+        website,
+        categories,
+        timezone,
+      },
+    );
 
     // Process moderators
     const moderatorHandles = body.moderatorHandles ?? [];
@@ -76,9 +83,12 @@ export const POST = async ({ request }: { request: Request }) => {
       }
     }
 
-    return Response.json({ group: { id: actor.id, handle: actor.handle, name: actor.name } });
+    return Response.json({
+      group: { id: actor.id, handle: actor.handle, name: actor.name },
+    });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create group";
+    const message =
+      err instanceof Error ? err.message : "Failed to create group";
     return Response.json({ error: message }, { status: 500 });
   }
 };

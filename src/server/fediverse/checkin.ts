@@ -1,8 +1,20 @@
-import { Create, Image, LanguageString, Mention, Note, Place, PUBLIC_COLLECTION } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
+import {
+  Create,
+  Image,
+  LanguageString,
+  Mention,
+  Note,
+  Place,
+  PUBLIC_COLLECTION,
+} from "@fedify/vocab";
 import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
-import { actors, places as placesTable, posts, userFediverseAccounts } from "~/server/db/schema";
+import {
+  actors,
+  places as placesTable,
+  posts,
+  userFediverseAccounts,
+} from "~/server/db/schema";
 import { getI18n, resolveLocale } from "~/server/i18n";
 import { getFederationContext } from "./federation";
 
@@ -13,7 +25,12 @@ import { getFederationContext } from "./federation";
 export async function postCheckin(
   userId: string,
   checkin: { id: string; placeId: string; note: string | null },
-  place: { id: string; name: string; latitude: string | null; longitude: string | null },
+  place: {
+    id: string;
+    name: string;
+    latitude: string | null;
+    longitude: string | null;
+  },
 ): Promise<void> {
   const ctx = getFederationContext();
 
@@ -22,7 +39,13 @@ export async function postCheckin(
     db
       .select()
       .from(actors)
-      .where(and(eq(actors.userId, userId), eq(actors.type, "Person"), eq(actors.isLocal, true)))
+      .where(
+        and(
+          eq(actors.userId, userId),
+          eq(actors.type, "Person"),
+          eq(actors.isLocal, true),
+        ),
+      )
       .limit(1),
     db
       .select({ actorUrl: actors.actorUrl, inboxUrl: actors.inboxUrl })
@@ -31,17 +54,24 @@ export async function postCheckin(
         userFediverseAccounts,
         eq(actors.handle, userFediverseAccounts.fediverseHandle),
       )
-      .where(and(
-        eq(actors.userId, userId),
-        eq(actors.type, "Person"),
-        eq(actors.isLocal, false),
-        eq(userFediverseAccounts.isPrimary, true),
-      ))
+      .where(
+        and(
+          eq(actors.userId, userId),
+          eq(actors.type, "Person"),
+          eq(actors.isLocal, false),
+          eq(userFediverseAccounts.isPrimary, true),
+        ),
+      )
       .limit(1),
     db
       .select({ fediverseHandle: userFediverseAccounts.fediverseHandle })
       .from(userFediverseAccounts)
-      .where(and(eq(userFediverseAccounts.userId, userId), eq(userFediverseAccounts.isPrimary, true)))
+      .where(
+        and(
+          eq(userFediverseAccounts.userId, userId),
+          eq(userFediverseAccounts.isPrimary, true),
+        ),
+      )
       .limit(1),
   ]);
   const personActor = proxyRows[0];
@@ -61,10 +91,13 @@ export async function postCheckin(
     : "";
 
   // Build HTML content
-  const checkinText = i18n._("Checked in at <a href=\"{placeUrl}\">{placeName}</a>", {
-    placeUrl,
-    placeName: place.name,
-  });
+  const checkinText = i18n._(
+    'Checked in at <a href="{placeUrl}">{placeName}</a>',
+    {
+      placeUrl,
+      placeName: place.name,
+    },
+  );
   const content = checkin.note
     ? `<p>${checkinText}${mentionHtml}</p>\n<p>${checkin.note}</p>`
     : `<p>${checkinText}${mentionHtml}</p>`;
@@ -113,7 +146,10 @@ export async function postCheckin(
 
   // Always public (same pattern as announceEvent)
   const to = PUBLIC_COLLECTION;
-  const ccs: (typeof PUBLIC_COLLECTION | URL)[] = [PUBLIC_COLLECTION, ctx.getFollowersUri(proxyHandle)];
+  const ccs: (typeof PUBLIC_COLLECTION | URL)[] = [
+    PUBLIC_COLLECTION,
+    ctx.getFollowersUri(proxyHandle),
+  ];
   if (remoteActor?.actorUrl) {
     ccs.push(new URL(remoteActor.actorUrl));
   }

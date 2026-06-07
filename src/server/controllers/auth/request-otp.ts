@@ -1,5 +1,4 @@
-import { Collection, Create, Mention, Note, Question } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
+import { Collection, Create, Mention, Note, Question } from "@fedify/vocab";
 import { db } from "~/server/db/client";
 import { otpChallenges } from "~/server/db/schema";
 import { env } from "~/server/env";
@@ -16,7 +15,9 @@ export const POST = async ({ request }: { request: Request }) => {
     return Response.json({ error: "handle is required" }, { status: 400 });
   }
 
-  const handle = body.handle.startsWith("@") ? body.handle.slice(1) : body.handle;
+  const handle = body.handle.startsWith("@")
+    ? body.handle.slice(1)
+    : body.handle;
 
   // Resolve and persist the remote actor before generating OTP
   let actor;
@@ -30,10 +31,7 @@ export const POST = async ({ request }: { request: Request }) => {
   }
 
   if (!actor.inboxUrl) {
-    return Response.json(
-      { error: "Actor has no inbox URL" },
-      { status: 422 },
-    );
+    return Response.json({ error: "Actor has no inbox URL" }, { status: 422 });
   }
 
   const expectedEmojis = generateEmojiChallenge();
@@ -71,11 +69,12 @@ export const POST = async ({ request }: { request: Request }) => {
     content: `<p><span class="h-card"><a href="${actor.actorUrl}" class="u-url mention">@${handle}</a></span> Select the highlighted emojis to sign in to Moim:</p>`,
     mediaType: "text/html",
     tags: [mentionTag],
-    inclusiveOptions: EMOJI_SET.map((emoji) =>
-      new Note({
-        name: emoji,
-        replies: new Collection({ totalItems: 0 }),
-      }),
+    inclusiveOptions: EMOJI_SET.map(
+      (emoji) =>
+        new Note({
+          name: emoji,
+          replies: new Collection({ totalItems: 0 }),
+        }),
     ),
     closed: Temporal.Instant.from(expiresAt.toISOString()),
     endTime: Temporal.Instant.from(expiresAt.toISOString()),
