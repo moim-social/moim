@@ -366,3 +366,16 @@ Instance:
 
 Analytics (optional):
 - `POSTHOG_KEY`, `POSTHOG_HOST`
+
+## Contribution and refactor conventions
+
+Use `CONVENTION.md` as the contributor-facing source of truth for refactor conventions and review checklist.
+
+Key rules for future changes:
+
+- Keep server changes on the `controller -> service -> repository` path.
+- Do not add new direct database access in controllers, route files, or `src/server-entry.ts` unless the exception is documented and temporary.
+- Keep TanStack route files as route shells where practical; move domain UI composition, form state, query hooks, and DTO mapping into domain-owned modules.
+- Prefer TanStack Query or route loaders for repeated server-state reads; avoid using `useEffect + fetch` as the default loading pattern.
+- Use reducers or form hooks for multi-field forms with invariants, especially event create/edit and RSVP flows.
+- Use existing UI primitives, semantic markup, and explicit loading/empty/error states for frontend work.
