@@ -69,7 +69,7 @@ export function registerAdminCatalogRoutes(router: Router): void {
           `/api/admin/place-categories/${categoryId}`,
           "PATCH",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             categorySlug: categoryId,
           }),
         ),
@@ -115,7 +115,7 @@ export function registerAdminCatalogRoutes(router: Router): void {
           `/api/admin/event-categories/${categorySlug}`,
           "PATCH",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             categorySlug,
           }),
         ),
@@ -144,7 +144,7 @@ export function registerAdminCatalogRoutes(router: Router): void {
           `/api/admin/places/${placeId}`,
           "PATCH",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             id: placeId,
           }),
         ),

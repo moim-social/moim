@@ -86,7 +86,7 @@ export function registerGroupRoutes(router: Router): void {
           `/api/groups/${groupId}`,
           "POST",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             handle,
           }),
         ),
@@ -178,7 +178,7 @@ export function registerGroupRoutes(router: Router): void {
           `/api/groups/${groupId}/places/${placeId}`,
           "PATCH",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             groupActorId: groupId,
             placeId,
           }),

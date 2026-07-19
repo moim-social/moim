@@ -87,7 +87,7 @@ export function registerDiscussionRoutes(router: Router): void {
           `/api/events/${eventId}/discussions/${inquiryId}/replies`,
           "POST",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             eventId,
             inquiryId,
           }),
@@ -114,7 +114,7 @@ export function registerDiscussionRoutes(router: Router): void {
           `/api/events/${eventId}/discussions/${inquiryId}`,
           "PATCH",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             eventId,
             inquiryId,
           }),

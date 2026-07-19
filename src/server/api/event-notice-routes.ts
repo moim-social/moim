@@ -19,7 +19,7 @@ export function registerEventNoticeRoutes(router: Router): void {
           `/api/events/${eventId}/notices`,
           "POST",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             eventId,
           }),
         ),

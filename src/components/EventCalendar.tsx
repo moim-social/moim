@@ -226,6 +226,7 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
               {selectedEvents.map((evt) => {
                 const start = new Date(evt.startsAt);
                 const evtTz = evt.timezone ?? undefined;
+                const locationLabel = showCountry ? evt.country : evt.location;
                 const timeStr = start.toLocaleTimeString(undefined, {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -245,10 +246,10 @@ export function EventCalendar({ events, showCountry = false, onMonthChange }: Ev
                       </p>
                       <div className="flex items-center gap-2 text-[11px] text-[#888] mt-0.5">
                         <span>{timeStr}</span>
-                        {evt.location && (
+                        {locationLabel && (
                           <>
                             <span className="text-[#ddd]">&middot;</span>
-                            <span className="truncate">{evt.location}</span>
+                            <span className="truncate">{locationLabel}</span>
                           </>
                         )}
                       </div>

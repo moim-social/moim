@@ -141,6 +141,7 @@ export function DateTimePicker({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-required={required || undefined}
           className={cn(
             "w-full justify-start font-normal",
             !value && "text-muted-foreground",

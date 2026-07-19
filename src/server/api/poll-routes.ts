@@ -25,7 +25,7 @@ export function registerPollRoutes(router: Router): void {
           `/api/groups/${groupId}/polls`,
           "POST",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             groupActorId: groupId,
           }),
         ),
@@ -71,7 +71,7 @@ export function registerPollRoutes(router: Router): void {
           `/api/polls/${pollId}/vote`,
           "POST",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             pollId,
           }),
         ),
@@ -93,7 +93,7 @@ export function registerPollRoutes(router: Router): void {
           `/api/polls/${pollId}/close`,
           "POST",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             pollId,
           }),
         ),

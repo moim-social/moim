@@ -15,7 +15,6 @@ import {
 } from "~/components/ui/carousel";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -97,7 +96,6 @@ function timeAgo(dateStr: string): string {
 
 function HomePage() {
   const { user } = useAuth();
-  const { categoryMap } = useEventCategoryMap();
   const [slides, setSlides] = useState<CarouselSlide[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [checkins, setCheckins] = useState<CheckinItem[]>([]);

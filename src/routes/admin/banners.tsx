@@ -166,11 +166,13 @@ function AdminBannersPage() {
       hopCount: form.latitude && form.longitude ? form.hopCount : null,
     };
 
-    await fetch(editingId ? `/api/admin/banners/${editingId}` : "/api/admin/banners", {
+    const saveRequest: RequestInit = {
       method: editingId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    });
+    };
+
+    await fetch(editingId ? `/api/admin/banners/${editingId}` : "/api/admin/banners", saveRequest);
 
     setSaving(false);
     setShowForm(false);
