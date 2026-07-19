@@ -55,7 +55,7 @@ export function registerAdminDirectoryRoutes(router: Router): void {
           `/api/admin/events/${eventId}`,
           "PATCH",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             id: eventId,
           }),
         ),

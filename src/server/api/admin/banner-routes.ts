@@ -45,7 +45,7 @@ export function registerAdminBannerRoutes(router: Router): void {
           `/api/admin/banners/${bannerId}`,
           "PUT",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             id: bannerId,
           }),
         ),

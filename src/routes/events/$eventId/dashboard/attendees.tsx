@@ -47,7 +47,7 @@ function AttendeesTab() {
     setManagingRsvpId(null);
   }
 
-  function statusBadge(status: string, isAnonymous?: boolean) {
+  function statusBadge(status: string) {
     if (status === "accepted") return <Badge variant="default">Attending</Badge>;
     if (status === "waitlisted") return <Badge variant="outline">Waitlisted</Badge>;
     return <Badge variant="secondary">Not attending</Badge>;
@@ -91,7 +91,7 @@ function AttendeesTab() {
           </div>
         </td>
         <td className="px-4 py-3">
-          {statusBadge(a.status, a.isAnonymous)}
+          {statusBadge(a.status)}
         </td>
         <td className="px-4 py-3 text-muted-foreground text-xs">
           {new Date(a.createdAt).toLocaleDateString()}

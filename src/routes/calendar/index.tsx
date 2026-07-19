@@ -252,7 +252,7 @@ function MonthlyCalendar({
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const weeks: (number | null)[][] = [];
-  let week: (number | null)[] = new Array(firstDay).fill(null);
+  let week: (number | null)[] = Array.from({ length: firstDay }, () => null);
 
   for (let day = 1; day <= daysInMonth; day++) {
     week.push(day);

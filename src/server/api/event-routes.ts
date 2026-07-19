@@ -65,7 +65,7 @@ export function registerEventRoutes(router: Router): void {
           `/api/events/${eventId}`,
           "POST",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             eventId,
           }),
         ),
@@ -98,7 +98,7 @@ export function registerEventRoutes(router: Router): void {
           `/api/events/${eventId}/rsvp`,
           "POST",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             eventId,
           }),
         ),
@@ -120,7 +120,7 @@ export function registerEventRoutes(router: Router): void {
           `/api/events/${eventId}/rsvp/anonymous`,
           "POST",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             eventId,
           }),
         ),
@@ -157,7 +157,7 @@ export function registerEventRoutes(router: Router): void {
           request,
           `/api/events/${eventId}/rsvps/${rsvpId}`,
           "PATCH",
-          (body) => body ?? {},
+          (body) => body,
         ),
         eventId,
         rsvpId,
@@ -255,7 +255,7 @@ export function registerEventRoutes(router: Router): void {
           `/api/events/${eventId}/publish`,
           "POST",
           (body) => ({
-            ...(body ?? {}),
+            ...body,
             eventId,
           }),
         ),

@@ -30,7 +30,7 @@ export async function forwardJson(
   request: Request,
   pathname: string,
   method: string,
-  mutate: (body: Record<string, unknown> | null) => Record<string, unknown>,
+  mutate: (body: Record<string, unknown>) => Record<string, unknown>,
 ): Promise<Request> {
   const body = (await request.json().catch(() => null)) as Record<
     string,
@@ -41,7 +41,7 @@ export async function forwardJson(
   return new Request(buildForwardUrl(request, pathname), {
     method,
     headers,
-    body: JSON.stringify(mutate(body)),
+    body: JSON.stringify(mutate(body ?? {})),
   });
 }
 
