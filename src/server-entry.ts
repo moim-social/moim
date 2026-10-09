@@ -1,3 +1,6 @@
+// Must run before any module that logs through LogTape (Fedify).
+import "~/server/logging";
+
 import { createApp, toWebHandler, useBase } from "h3";
 import {
   createStartHandler,

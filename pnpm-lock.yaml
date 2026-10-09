@@ -41,6 +41,9 @@ importers:
       '@lingui/react':
         specifier: 5.9.5
         version: 5.9.5(@lingui/babel-plugin-lingui-macro@5.9.5(typescript@6.0.3))(react@19.1.0)
+      '@logtape/logtape':
+        specifier: ^2.4.0
+        version: 2.4.0
       '@tailwindcss/typography':
         specifier: ^0.5.19
         version: 0.5.19(tailwindcss@4.3.0)
