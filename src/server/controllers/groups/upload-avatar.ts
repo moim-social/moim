@@ -1,5 +1,5 @@
 import { eq, and } from "drizzle-orm";
-import { Update, PUBLIC_COLLECTION } from "@fedify/fedify";
+import { Update, PUBLIC_COLLECTION } from "@fedify/vocab";
 import { db } from "~/server/db/client";
 import { actors, groupMembers } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
@@ -92,10 +92,7 @@ export const POST = async ({ request }: { request: Request }) => {
         { identifier: handle },
         "followers",
         new Update({
-          id: new URL(
-            `#update/${now.toISOString()}`,
-            ctx.getActorUri(handle),
-          ),
+          id: new URL(`#update/${now.toISOString()}`, ctx.getActorUri(handle)),
           actor: ctx.getActorUri(handle),
           to: PUBLIC_COLLECTION,
           object: await ctx.getActor(handle),

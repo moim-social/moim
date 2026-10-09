@@ -5,7 +5,7 @@ import type {
   Organization,
   Person,
   Service,
-} from "@fedify/fedify";
+} from "@fedify/vocab";
 import { db } from "~/server/db/client";
 import { actors } from "~/server/db/schema";
 

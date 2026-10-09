@@ -1,5 +1,4 @@
-import { Create, Note, PUBLIC_COLLECTION } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
+import { Create, Note, PUBLIC_COLLECTION } from "@fedify/vocab";
 import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, groupMembers, posts, users } from "~/server/db/schema";

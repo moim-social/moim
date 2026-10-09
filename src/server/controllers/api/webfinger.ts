@@ -1,4 +1,4 @@
-import { isActor } from "@fedify/fedify";
+import { isActor } from "@fedify/vocab";
 import { getFederationContext } from "~/server/fediverse/federation";
 import { env } from "~/server/env";
 
@@ -21,12 +21,18 @@ export async function POST({ request }: { request: Request }) {
   };
 
   if (!fediverseId || typeof fediverseId !== "string") {
-    return Response.json({ error: "Fediverse handle is required." }, { status: 400 });
+    return Response.json(
+      { error: "Fediverse handle is required." },
+      { status: 400 },
+    );
   }
 
   const match = fediverseId.trim().match(/^@?([^@]+)@([^@]+)$/);
   if (!match) {
-    return Response.json({ error: "Invalid fediverse handle format." }, { status: 400 });
+    return Response.json(
+      { error: "Invalid fediverse handle format." },
+      { status: 400 },
+    );
   }
 
   const [, username, domain] = match;
@@ -39,14 +45,18 @@ export async function POST({ request }: { request: Request }) {
       headers: { Accept: "application/jrd+json, application/json" },
     });
     if (!wfResponse.ok) {
-      return Response.json({ error: `WebFinger lookup failed: ${wfResponse.status}` }, { status: 404 });
+      return Response.json(
+        { error: `WebFinger lookup failed: ${wfResponse.status}` },
+        { status: 404 },
+      );
     }
 
     const wfData = (await wfResponse.json()) as WebFingerResponse;
 
     // Find the ActivityPub self link
     const apLink = wfData.links?.find(
-      (link) => link.rel === "self" && link.type === "application/activity+json",
+      (link) =>
+        link.rel === "self" && link.type === "application/activity+json",
     );
 
     // Find the subscribe template
@@ -82,7 +92,8 @@ export async function POST({ request }: { request: Request }) {
           const icon = await actorObject.getIcon();
           let iconUrl: string | undefined;
           if (icon?.url) {
-            iconUrl = icon.url instanceof URL ? icon.url.href : icon.url?.href?.href;
+            iconUrl =
+              icon.url instanceof URL ? icon.url.href : icon.url?.href?.href;
           }
           if (!iconUrl && actorObject.iconId) {
             iconUrl = actorObject.iconId.href;
@@ -103,6 +114,9 @@ export async function POST({ request }: { request: Request }) {
 
     return Response.json({ actor: actorInfo });
   } catch {
-    return Response.json({ error: "WebFinger lookup failed." }, { status: 500 });
+    return Response.json(
+      { error: "WebFinger lookup failed." },
+      { status: 500 },
+    );
   }
 }

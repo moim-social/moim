@@ -1,6 +1,5 @@
-import { Create, Note, PUBLIC_COLLECTION, Question } from "@fedify/fedify";
+import { Create, Note, PUBLIC_COLLECTION, Question } from "@fedify/vocab";
 import type { Context } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
 import { and, eq, countDistinct } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, polls, pollOptions, pollVotes } from "~/server/db/schema";
@@ -25,7 +24,8 @@ export async function publishPoll(pollId: string): Promise<void> {
     .from(actors)
     .where(and(eq(actors.id, poll.groupActorId), eq(actors.isLocal, true)))
     .limit(1);
-  if (!groupActor) throw new Error(`Group actor not found: ${poll.groupActorId}`);
+  if (!groupActor)
+    throw new Error(`Group actor not found: ${poll.groupActorId}`);
 
   // Load options
   const options = await db
@@ -36,7 +36,9 @@ export async function publishPoll(pollId: string): Promise<void> {
 
   const optionNotes = options.map((o) => new Note({ name: o.label }));
 
-  const questionUri = ctx.getObjectUri(Question, { questionId: poll.questionId });
+  const questionUri = ctx.getObjectUri(Question, {
+    questionId: poll.questionId,
+  });
   const published = Temporal.Instant.from(poll.createdAt.toISOString());
 
   const question = new Question({
@@ -95,7 +97,9 @@ export async function buildPollQuestion(
 
   const optionNotes = options.map((o) => new Note({ name: o.label }));
 
-  const questionUri = ctx.getObjectUri(Question, { questionId: poll.questionId });
+  const questionUri = ctx.getObjectUri(Question, {
+    questionId: poll.questionId,
+  });
   const published = Temporal.Instant.from(poll.createdAt.toISOString());
 
   return new Question({

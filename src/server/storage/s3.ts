@@ -36,7 +36,7 @@ export async function uploadBuffer(
   return key;
 }
 
-export async function getObject(key: string): Promise<Uint8Array | null> {
+export async function getObject(key: string): Promise<ArrayBuffer | null> {
   const s3 = getClient();
   try {
     const result = await s3.send(
@@ -46,7 +46,11 @@ export async function getObject(key: string): Promise<Uint8Array | null> {
       }),
     );
     if (!result.Body) return null;
-    return await result.Body.transformToByteArray();
+    const bytes = await result.Body.transformToByteArray();
+    return bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength,
+    ) as ArrayBuffer;
   } catch (err: unknown) {
     if (err instanceof Error && err.name === "NoSuchKey") return null;
     throw err;

@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { useCallback } from "react";
 import { useRouter } from "@tanstack/react-router";
+import { Create, Mention, Note } from "@fedify/vocab";
 import { Badge } from "~/components/ui/badge";
 import {
   LayoutDashboard,
@@ -14,10 +15,7 @@ import {
   Pencil,
   BarChart,
 } from "lucide-react";
-import {
-  DashboardShell,
-  DashboardSidebar,
-} from "~/components/dashboard";
+import { DashboardShell, DashboardSidebar } from "~/components/dashboard";
 import type { NavSection } from "~/components/dashboard";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
@@ -43,8 +41,6 @@ import { renderMarkdown } from "~/lib/markdown";
 import { persistRemoteActor } from "~/server/fediverse/resolve";
 import { getFederationContext } from "~/server/fediverse/federation";
 import { env } from "~/server/env";
-import { Create, Mention, Note } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
 import type { PlaceCategorySummary } from "~/lib/place";
 
 // ── Shared types ────────────────────────────────────────────────────────────
@@ -163,12 +159,17 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
           ),
         );
       if (memberships.length > 0) {
-        currentUserRole = memberships.some((m) => m.role === "owner") ? "owner" : memberships[0].role;
+        currentUserRole = memberships.some((m) => m.role === "owner")
+          ? "owner"
+          : memberships[0].role;
       }
     }
 
     if (!currentUserRole) {
-      throw redirect({ to: "/groups/$identifier", params: { identifier: `@${handle}` } });
+      throw redirect({
+        to: "/groups/$identifier",
+        params: { identifier: `@${handle}` },
+      });
     }
 
     // Get members
@@ -178,7 +179,9 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
         role: groupMembers.role,
         handle: actors.handle,
         name: actors.name,
-        avatarUrl: sql<string | null>`COALESCE(${users.avatarUrl}, ${actors.avatarUrl})`,
+        avatarUrl: sql<
+          string | null
+        >`COALESCE(${users.avatarUrl}, ${actors.avatarUrl})`,
         actorUrl: actors.actorUrl,
         isLocal: actors.isLocal,
       })
@@ -214,7 +217,9 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
       .select({
         handle: actors.handle,
         name: actors.name,
-        avatarUrl: sql<string | null>`COALESCE(${users.avatarUrl}, ${actors.avatarUrl})`,
+        avatarUrl: sql<
+          string | null
+        >`COALESCE(${users.avatarUrl}, ${actors.avatarUrl})`,
         actorUrl: actors.actorUrl,
         domain: actors.domain,
         isLocal: actors.isLocal,
@@ -246,7 +251,12 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
 
     // Engagement across all group events
     const eventIds = groupEvents.map((e) => e.id);
-    let engagementCounts = { reactions: 0, announces: 0, replies: 0, quotes: 0 };
+    let engagementCounts = {
+      reactions: 0,
+      announces: 0,
+      replies: 0,
+      quotes: 0,
+    };
     let recentActivity: Array<{
       id: string;
       type: string;
@@ -325,13 +335,18 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
           count: sql<number>`count(${pollVotesTable.id})::int`,
         })
         .from(pollOptionsTable)
-        .leftJoin(pollVotesTable, eq(pollVotesTable.optionId, pollOptionsTable.id))
+        .leftJoin(
+          pollVotesTable,
+          eq(pollVotesTable.optionId, pollOptionsTable.id),
+        )
         .where(eq(pollOptionsTable.pollId, poll.id))
         .groupBy(pollOptionsTable.id)
         .orderBy(pollOptionsTable.sortOrder);
 
       const [voterCount] = await db
-        .select({ count: sql<number>`count(distinct ${pollVotesTable.voterActorUrl})::int` })
+        .select({
+          count: sql<number>`count(distinct ${pollVotesTable.voterActorUrl})::int`,
+        })
         .from(pollVotesTable)
         .where(eq(pollVotesTable.pollId, poll.id));
 
@@ -366,7 +381,11 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
         latitude: p.latitude,
         longitude: p.longitude,
         category: p.categorySlug
-          ? { slug: p.categorySlug, label: p.categoryLabel, emoji: p.categoryEmoji }
+          ? {
+              slug: p.categorySlug,
+              label: p.categoryLabel,
+              emoji: p.categoryEmoji,
+            }
           : null,
       })),
       engagementCounts,
@@ -379,7 +398,11 @@ const getGroupDashboardData = createServerFn({ method: "GET" })
 // ── Post note server function ────────────────────────────────────────────────
 
 export const postGroupNoteFn = createServerFn({ method: "POST" })
-  .inputValidator(zodValidator(z.object({ groupActorId: z.string(), content: z.string().min(1) })))
+  .inputValidator(
+    zodValidator(
+      z.object({ groupActorId: z.string(), content: z.string().min(1) }),
+    ),
+  )
   .handler(async ({ data: { groupActorId, content } }) => {
     const request = getRequest();
     const user = await getSessionUser(request);
@@ -398,7 +421,13 @@ export const postGroupNoteFn = createServerFn({ method: "POST" })
       .select({ role: groupMembers.role })
       .from(groupMembers)
       .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
-      .where(and(eq(groupMembers.groupActorId, group.id), eq(actors.userId, user.id), eq(actors.type, "Person")))
+      .where(
+        and(
+          eq(groupMembers.groupActorId, group.id),
+          eq(actors.userId, user.id),
+          eq(actors.type, "Person"),
+        ),
+      )
       .limit(1);
     if (!membership) throw new Error("Forbidden");
 
@@ -410,7 +439,9 @@ export const postGroupNoteFn = createServerFn({ method: "POST" })
 // ── Add member server function ───────────────────────────────────────────────
 
 export const addGroupMemberFn = createServerFn({ method: "POST" })
-  .inputValidator(zodValidator(z.object({ groupActorId: z.string(), handle: z.string() })))
+  .inputValidator(
+    zodValidator(z.object({ groupActorId: z.string(), handle: z.string() })),
+  )
   .handler(async ({ data: { groupActorId, handle } }) => {
     const request = getRequest();
     const user = await getSessionUser(request);
@@ -421,9 +452,17 @@ export const addGroupMemberFn = createServerFn({ method: "POST" })
       .select({ role: groupMembers.role })
       .from(groupMembers)
       .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
-      .where(and(eq(groupMembers.groupActorId, groupActorId), eq(actors.userId, user.id), eq(actors.type, "Person")));
+      .where(
+        and(
+          eq(groupMembers.groupActorId, groupActorId),
+          eq(actors.userId, user.id),
+          eq(actors.type, "Person"),
+        ),
+      );
 
-    const callerRole = memberships.some((m) => m.role === "owner") ? "owner" : memberships[0]?.role;
+    const callerRole = memberships.some((m) => m.role === "owner")
+      ? "owner"
+      : memberships[0]?.role;
     if (callerRole !== "owner") throw new Error("Only owners can add members");
 
     const cleanHandle = handle.startsWith("@") ? handle.slice(1) : handle;
@@ -435,7 +474,12 @@ export const addGroupMemberFn = createServerFn({ method: "POST" })
     const [existing] = await db
       .select({ id: groupMembers.id })
       .from(groupMembers)
-      .where(and(eq(groupMembers.groupActorId, groupActorId), eq(groupMembers.memberActorId, modActor.id)))
+      .where(
+        and(
+          eq(groupMembers.groupActorId, groupActorId),
+          eq(groupMembers.memberActorId, modActor.id),
+        ),
+      )
       .limit(1);
 
     if (existing) throw new Error("This user is already a member of the group");
@@ -446,10 +490,18 @@ export const addGroupMemberFn = createServerFn({ method: "POST" })
         .select({ id: groupMembers.id, role: groupMembers.role })
         .from(groupMembers)
         .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
-        .where(and(eq(groupMembers.groupActorId, groupActorId), eq(actors.userId, modActor.userId)))
+        .where(
+          and(
+            eq(groupMembers.groupActorId, groupActorId),
+            eq(actors.userId, modActor.userId),
+          ),
+        )
         .limit(1);
 
-      if (sameUser) throw new Error(`Already a member (as ${sameUser.role}) via another linked account`);
+      if (sameUser)
+        throw new Error(
+          `Already a member (as ${sameUser.role}) via another linked account`,
+        );
     }
 
     // Insert membership
@@ -470,9 +522,13 @@ export const addGroupMemberFn = createServerFn({ method: "POST" })
       try {
         const ctx = getFederationContext();
         const instanceHostname = new URL(env.federationOrigin).hostname;
-        const groupPageUrl = new URL(`/groups/@${group.handle}`, env.baseUrl).href;
+        const groupPageUrl = new URL(`/groups/@${group.handle}`, env.baseUrl)
+          .href;
         const content = `<p>You have been added as a moderator of <a href="${groupPageUrl}">@${group.handle}</a>.</p>`;
-        const noteId = new URL(`/ap/notes/mention-${group.handle}-${Date.now()}`, env.baseUrl);
+        const noteId = new URL(
+          `/ap/notes/mention-${group.handle}-${Date.now()}`,
+          env.baseUrl,
+        );
 
         const note = new Note({
           id: noteId,
@@ -480,12 +536,20 @@ export const addGroupMemberFn = createServerFn({ method: "POST" })
           content,
           published: Temporal.Now.instant(),
           to: new URL(modActor.actorUrl),
-          tags: [new Mention({ href: new URL(modActor.actorUrl), name: `@${cleanHandle}` })],
+          tags: [
+            new Mention({
+              href: new URL(modActor.actorUrl),
+              name: `@${cleanHandle}`,
+            }),
+          ],
         });
 
         await ctx.sendActivity(
           { identifier: instanceHostname },
-          { id: new URL(modActor.actorUrl), inboxId: new URL(modActor.inboxUrl) },
+          {
+            id: new URL(modActor.actorUrl),
+            inboxId: new URL(modActor.inboxUrl),
+          },
           new Create({
             id: new URL(`${noteId.href}#activity`),
             actor: ctx.getActorUri(instanceHostname),
@@ -495,7 +559,10 @@ export const addGroupMemberFn = createServerFn({ method: "POST" })
           }),
         );
       } catch (err) {
-        console.error(`Failed to send mention notification to ${cleanHandle}:`, err);
+        console.error(
+          `Failed to send mention notification to ${cleanHandle}:`,
+          err,
+        );
       }
     }
 
@@ -512,7 +579,9 @@ export const addGroupMemberFn = createServerFn({ method: "POST" })
 // ── Remove member server function ────────────────────────────────────────────
 
 export const removeGroupMemberFn = createServerFn({ method: "POST" })
-  .inputValidator(zodValidator(z.object({ groupActorId: z.string(), handle: z.string() })))
+  .inputValidator(
+    zodValidator(z.object({ groupActorId: z.string(), handle: z.string() })),
+  )
   .handler(async ({ data: { groupActorId, handle } }) => {
     const request = getRequest();
     const user = await getSessionUser(request);
@@ -523,10 +592,19 @@ export const removeGroupMemberFn = createServerFn({ method: "POST" })
       .select({ role: groupMembers.role })
       .from(groupMembers)
       .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
-      .where(and(eq(groupMembers.groupActorId, groupActorId), eq(actors.userId, user.id), eq(actors.type, "Person")));
+      .where(
+        and(
+          eq(groupMembers.groupActorId, groupActorId),
+          eq(actors.userId, user.id),
+          eq(actors.type, "Person"),
+        ),
+      );
 
-    const callerRole = memberships.some((m) => m.role === "owner") ? "owner" : memberships[0]?.role;
-    if (callerRole !== "owner") throw new Error("Only owners can remove members");
+    const callerRole = memberships.some((m) => m.role === "owner")
+      ? "owner"
+      : memberships[0]?.role;
+    if (callerRole !== "owner")
+      throw new Error("Only owners can remove members");
 
     const cleanHandle = handle.startsWith("@") ? handle.slice(1) : handle;
 
@@ -534,7 +612,12 @@ export const removeGroupMemberFn = createServerFn({ method: "POST" })
       .select({ id: groupMembers.id, role: groupMembers.role })
       .from(groupMembers)
       .innerJoin(actors, eq(groupMembers.memberActorId, actors.id))
-      .where(and(eq(groupMembers.groupActorId, groupActorId), eq(actors.handle, cleanHandle)))
+      .where(
+        and(
+          eq(groupMembers.groupActorId, groupActorId),
+          eq(actors.handle, cleanHandle),
+        ),
+      )
       .limit(1);
 
     if (!membership) throw new Error("Member not found");

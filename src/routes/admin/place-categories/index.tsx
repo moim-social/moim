@@ -183,15 +183,17 @@ function AdminPlaceCategoriesPage() {
       enabled: form.enabled,
     };
 
+    const saveRequest: RequestInit = {
+      method: editingSlug ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editingSlug ? { ...payload, categorySlug: editingSlug } : payload),
+    };
+
     const response = await fetch(
       editingSlug
         ? `/api/admin/place-categories/${editingSlug}`
         : "/api/admin/place-categories",
-      {
-        method: editingSlug ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingSlug ? { ...payload, categorySlug: editingSlug } : payload),
-      },
+      saveRequest,
     );
 
     if (!response.ok) {

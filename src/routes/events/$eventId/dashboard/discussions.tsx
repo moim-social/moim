@@ -98,7 +98,7 @@ function DiscussionsTab() {
   // Selected inquiry state
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [, setParticipants] = useState<Participant[]>([]);
   const [groupActorId, setGroupActorId] = useState<string | null>(null);
   const [threadStatus, setThreadStatus] = useState<string | null>(null);
   const [threadLoading, setThreadLoading] = useState(false);

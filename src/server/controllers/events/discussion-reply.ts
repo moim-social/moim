@@ -1,15 +1,15 @@
 import { eq, and, or, ne } from "drizzle-orm";
-import { db } from "~/server/db/client";
 import {
-  events,
-  actors,
-  groupMembers,
-  posts,
-} from "~/server/db/schema";
+  Create,
+  isActor,
+  Mention,
+  Note,
+  PUBLIC_COLLECTION,
+} from "@fedify/vocab";
+import { db } from "~/server/db/client";
+import { events, actors, groupMembers, posts } from "~/server/db/schema";
 import { getSessionUser } from "~/server/auth";
 import { getFederationContext } from "~/server/fediverse/federation";
-import { Create, isActor, Mention, Note, PUBLIC_COLLECTION } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
 
 export const POST = async ({ request }: { request: Request }) => {
   const user = await getSessionUser(request);
@@ -60,10 +60,7 @@ export const POST = async ({ request }: { request: Request }) => {
     .limit(1);
 
   if (!groupActor) {
-    return Response.json(
-      { error: "Group actor not found" },
-      { status: 500 },
-    );
+    return Response.json({ error: "Group actor not found" }, { status: 500 });
   }
 
   // Find the user's actor within this group
@@ -135,14 +132,13 @@ export const POST = async ({ request }: { request: Request }) => {
 
   // Build AP URI for the parent — use original remote URI if available
   const ctx = getFederationContext();
-  const parentApUri = parentPost?.apUri
-    ?? ctx.getObjectUri(Note, { noteId: replyToPostId }).href;
+  const parentApUri =
+    parentPost?.apUri ?? ctx.getObjectUri(Note, { noteId: replyToPostId }).href;
 
   // Reply is public by default, but respect private visibility from the root
   const rootVis = rootPost.visibility ?? "public";
-  const replyVisibility = (rootVis === "followers_only" || rootVis === "direct")
-    ? rootVis
-    : "unlisted";
+  const replyVisibility =
+    rootVis === "followers_only" || rootVis === "direct" ? rootVis : "unlisted";
 
   // Insert reply post
   const now = new Date();
@@ -186,7 +182,10 @@ export const POST = async ({ request }: { request: Request }) => {
       if (resolved && isActor(resolved) && resolved.id) {
         actorUri = resolved.id;
         const resolvedUrl = resolved.url;
-        profileUrl = (resolvedUrl instanceof URL ? resolvedUrl.href : null) ?? p.actorProfileUrl ?? p.actorUrl;
+        profileUrl =
+          (resolvedUrl instanceof URL ? resolvedUrl.href : null) ??
+          p.actorProfileUrl ??
+          p.actorUrl;
         inboxUri = resolved.inboxId ?? null;
       } else {
         actorUri = new URL(p.actorUrl);
@@ -231,18 +230,24 @@ export const POST = async ({ request }: { request: Request }) => {
   let cleanedContent = content.trim();
   for (const { name } of mentionLinks) {
     // Remove plain text @handle (with optional trailing space)
-    cleanedContent = cleanedContent.replace(new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s?`, "g"), "");
+    cleanedContent = cleanedContent.replace(
+      new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s?`, "g"),
+      "",
+    );
   }
   cleanedContent = cleanedContent.trim();
 
   const mentionHtml = mentionLinks
-    .map(({ name, href }) => `<a href="${href}" class="u-url mention">${name}</a>`)
+    .map(
+      ({ name, href }) => `<a href="${href}" class="u-url mention">${name}</a>`,
+    )
     .join(" ");
-  const htmlContent = mentionHtml && cleanedContent
-    ? `<p>${mentionHtml}</p><p>${cleanedContent}</p>`
-    : mentionHtml
-      ? `<p>${mentionHtml}</p>`
-      : `<p>${cleanedContent}</p>`;
+  const htmlContent =
+    mentionHtml && cleanedContent
+      ? `<p>${mentionHtml}</p><p>${cleanedContent}</p>`
+      : mentionHtml
+        ? `<p>${mentionHtml}</p>`
+        : `<p>${cleanedContent}</p>`;
 
   const note = new Note({
     id: noteUri,

@@ -1,5 +1,11 @@
-import { Announce, Create, LanguageString, Mention, Note, PUBLIC_COLLECTION } from "@fedify/fedify";
-import { Temporal } from "@js-temporal/polyfill";
+import {
+  Announce,
+  Create,
+  LanguageString,
+  Mention,
+  Note,
+  PUBLIC_COLLECTION,
+} from "@fedify/vocab";
 import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db/client";
 import { actors, posts } from "~/server/db/schema";
@@ -30,9 +36,14 @@ export async function ensureCategoryActor(
   const ctx = getFederationContext();
 
   const defaultI18n = getI18n();
-  const expectedName = defaultI18n._("{categoryLabel} Events", { categoryLabel: category.label });
-  const expectedSummary = category.description
-    ?? defaultI18n._("Event feed for the {categoryLabel} category on Moim.", { categoryLabel: category.label });
+  const expectedName = defaultI18n._("{categoryLabel} Events", {
+    categoryLabel: category.label,
+  });
+  const expectedSummary =
+    category.description ??
+    defaultI18n._("Event feed for the {categoryLabel} category on Moim.", {
+      categoryLabel: category.label,
+    });
 
   const [existing] = await db
     .select()
@@ -40,8 +51,12 @@ export async function ensureCategoryActor(
     .where(and(eq(actors.handle, handle), eq(actors.isLocal, true)))
     .limit(1);
   if (existing) {
-    if (existing.name !== expectedName || existing.summary !== expectedSummary) {
-      const [updated] = await db.update(actors)
+    if (
+      existing.name !== expectedName ||
+      existing.summary !== expectedSummary
+    ) {
+      const [updated] = await db
+        .update(actors)
         .set({ name: expectedName, summary: expectedSummary })
         .where(eq(actors.id, existing.id))
         .returning();
@@ -86,7 +101,10 @@ export async function ensureCategoryActor(
 /**
  * Get the feed actor handle for a country-specific category.
  */
-export function countryCategoryHandle(categoryId: string, countryCode: string): string {
+export function countryCategoryHandle(
+  categoryId: string,
+  countryCode: string,
+): string {
   return `feed_${categoryId}_${countryCode.toLowerCase()}`;
 }
 
@@ -106,9 +124,16 @@ export async function ensureCountryCategoryActor(
 
   const cc = countryCode.toUpperCase();
   const defaultI18n = getI18n();
-  const expectedName = defaultI18n._("{categoryLabel} Events ({countryCode})", { categoryLabel: category.label, countryCode: cc });
-  const expectedSummary = category.description
-    ?? defaultI18n._("Event feed for {categoryLabel} events in {countryCode} on Moim.", { categoryLabel: category.label, countryCode: cc });
+  const expectedName = defaultI18n._("{categoryLabel} Events ({countryCode})", {
+    categoryLabel: category.label,
+    countryCode: cc,
+  });
+  const expectedSummary =
+    category.description ??
+    defaultI18n._(
+      "Event feed for {categoryLabel} events in {countryCode} on Moim.",
+      { categoryLabel: category.label, countryCode: cc },
+    );
 
   const [existing] = await db
     .select()
@@ -116,8 +141,12 @@ export async function ensureCountryCategoryActor(
     .where(and(eq(actors.handle, handle), eq(actors.isLocal, true)))
     .limit(1);
   if (existing) {
-    if (existing.name !== expectedName || existing.summary !== expectedSummary) {
-      const [updated] = await db.update(actors)
+    if (
+      existing.name !== expectedName ||
+      existing.summary !== expectedSummary
+    ) {
+      const [updated] = await db
+        .update(actors)
         .set({ name: expectedName, summary: expectedSummary })
         .where(eq(actors.id, existing.id))
         .returning();
@@ -201,9 +230,7 @@ export async function announceEvent(
   const tz = resolveTimezone(event.timezone, hostActor.timezone);
   const dateRangeStr = formatEventDateRange(event.startsAt, event.endsAt, tz);
   const eventUrl = new URL(`/events/${event.id}`, ctx.canonicalOrigin).href;
-  const descHtml = event.description
-    ? renderMarkdown(event.description)
-    : "";
+  const descHtml = event.description ? renderMarkdown(event.description) : "";
 
   let content: string;
   const tags: Mention[] = [];
@@ -211,7 +238,10 @@ export async function announceEvent(
   if (options?.creatorMention) {
     // Personal event: casual format with visible creator mention
     const cm = options.creatorMention;
-    const hostingMsg = i18n._('<a href="{actorUrl}" class="u-url mention">@{handle}</a> is hosting an event!', { actorUrl: cm.actorUrl, handle: cm.handle });
+    const hostingMsg = i18n._(
+      '<a href="{actorUrl}" class="u-url mention">@{handle}</a> is hosting an event!',
+      { actorUrl: cm.actorUrl, handle: cm.handle },
+    );
     content = [
       `<p>${hostingMsg}</p>`,
       `<p><strong><a href="${eventUrl}">${event.title}</a></strong></p>`,
@@ -234,8 +264,7 @@ export async function announceEvent(
     // Group event: structured format with organizer list
     const orgMentions = organizers
       .map(
-        (o) =>
-          `<a href="${o.actorUrl}" class="u-url mention">@${o.handle}</a>`,
+        (o) => `<a href="${o.actorUrl}" class="u-url mention">@${o.handle}</a>`,
       )
       .join(", ");
 
@@ -340,7 +369,10 @@ export async function announceEvent(
 
   // 3. Country-specific category actor also Announces
   if (!options?.skipAnnounce && categoryId && event.country) {
-    const countryActor = await ensureCountryCategoryActor(categoryId, event.country);
+    const countryActor = await ensureCountryCategoryActor(
+      categoryId,
+      event.country,
+    );
     const countryHandle = countryActor.handle;
     await ctx.sendActivity(
       { identifier: countryHandle },
