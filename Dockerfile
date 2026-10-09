@@ -1,6 +1,8 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
+# pnpm.patchedDependencies needs the patch files before install
+COPY patches ./patches
 RUN corepack enable && corepack prepare pnpm@10.25.0 --activate
 RUN pnpm install --frozen-lockfile
 COPY . .
