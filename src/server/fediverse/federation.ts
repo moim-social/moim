@@ -5,6 +5,8 @@ import {
   Create,
   EmojiReact,
   Endpoints,
+  FeatureAuthorization,
+  FeatureRequest,
   Follow,
   Group,
   Image,
@@ -46,6 +48,11 @@ import {
   users,
 } from "~/server/db/schema";
 import { ensureRemoteActor } from "~/server/fediverse/actor-cache";
+import {
+  buildFeaturePolicy,
+  decodeCollectionUri,
+  encodeCollectionUri,
+} from "~/server/fediverse/featured-collections";
 import { env } from "~/server/env";
 import { getI18n } from "~/server/i18n";
 import { EMOJI_SET } from "~/server/fediverse/otp";
@@ -231,6 +238,13 @@ federation
         following: ctx.getFollowingUri(identifier),
         followers: ctx.getFollowersUri(identifier),
         manuallyApprovesFollowers: actor.manuallyApprovesFollowers,
+        // FEP-7aa9: let remote curators feature this group in their collections
+        discoverable: true,
+        interactionPolicy: buildFeaturePolicy(
+          ctx,
+          identifier,
+          actor.manuallyApprovesFollowers,
+        ),
         icon: actor.avatarUrl
           ? new Image({
               url: new URL(`/avatars/${actor.id}.webp`, env.baseUrl),
@@ -514,6 +528,38 @@ federation.setObjectDispatcher(
       latitude: place.latitude ? parseFloat(place.latitude) : undefined,
       longitude: place.longitude ? parseFloat(place.longitude) : undefined,
       url: new URL(`/places/${placeId}`, ctx.canonicalOrigin),
+    });
+  },
+);
+
+// --- FeatureAuthorization object dispatcher (FEP-7aa9 approval stamp) ---
+// Stateless: the collection URI is encoded in the path, so the stamp is
+// valid as long as the Group exists. Remote servers verify a FeaturedItem by
+// fetching this and comparing interactingObject / interactionTarget.
+federation.setObjectDispatcher(
+  FeatureAuthorization,
+  "/ap/feature-authorizations/{identifier}/{collection}",
+  async (ctx, { identifier, collection }) => {
+    const collectionUri = decodeCollectionUri(collection);
+    if (!collectionUri) return null;
+
+    const [actor] = await db
+      .select({ id: actors.id })
+      .from(actors)
+      .where(
+        and(
+          eq(actors.handle, identifier),
+          eq(actors.isLocal, true),
+          eq(actors.type, "Group"),
+        ),
+      )
+      .limit(1);
+    if (!actor) return null;
+
+    return new FeatureAuthorization({
+      id: ctx.getObjectUri(FeatureAuthorization, { identifier, collection }),
+      interactingObject: collectionUri,
+      interactionTarget: ctx.getActorUri(identifier),
     });
   },
 );
@@ -809,6 +855,87 @@ federation
           ),
         );
     }
+  })
+  .on(FeatureRequest, async (ctx, request) => {
+    // FEP-7aa9: a remote curator asks to feature one of our Groups in a
+    // collection. object = our Group, instrument = their collection.
+    if (request.id == null || request.actorId == null) return;
+    if (request.objectId == null || request.instrumentId == null) return;
+
+    const parsed = ctx.parseUri(request.objectId);
+    if (parsed == null || parsed.type !== "actor") return;
+    const identifier = parsed.identifier;
+
+    const [group] = await db
+      .select()
+      .from(actors)
+      .where(
+        and(
+          eq(actors.handle, identifier),
+          eq(actors.isLocal, true),
+          eq(actors.type, "Group"),
+        ),
+      )
+      .limit(1);
+    if (!group) return;
+
+    const curator = await request.getActor();
+    if (curator?.id == null || curator.inboxId == null) return;
+
+    // Locked groups only accept curators who already follow them;
+    // this matches the policy advertised in the actor document.
+    let allowed = !group.manuallyApprovesFollowers;
+    if (!allowed) {
+      const [row] = await db
+        .select({ id: follows.followerId })
+        .from(follows)
+        .innerJoin(actors, eq(follows.followerId, actors.id))
+        .where(
+          and(
+            eq(actors.actorUrl, curator.id.href),
+            eq(follows.followingId, group.id),
+            eq(follows.status, "accepted"),
+          ),
+        )
+        .limit(1);
+      allowed = row != null;
+    }
+
+    if (!allowed) {
+      await ctx.sendActivity(
+        { identifier },
+        curator,
+        new Reject({
+          id: new URL(
+            `#rejects/feature-requests/${encodeCollectionUri(request.instrumentId)}`,
+            ctx.getActorUri(identifier),
+          ),
+          actor: ctx.getActorUri(identifier),
+          to: curator.id,
+          object: request.id,
+        }),
+      );
+      return;
+    }
+
+    const collection = encodeCollectionUri(request.instrumentId);
+    await ctx.sendActivity(
+      { identifier },
+      curator,
+      new Accept({
+        id: new URL(
+          `#accepts/feature-requests/${collection}`,
+          ctx.getActorUri(identifier),
+        ),
+        actor: ctx.getActorUri(identifier),
+        to: curator.id,
+        object: request.id,
+        result: ctx.getObjectUri(FeatureAuthorization, {
+          identifier,
+          collection,
+        }),
+      }),
+    );
   })
   .on(Create, async (ctx, create) => {
     const object = await create.getObject();

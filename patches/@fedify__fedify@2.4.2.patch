@@ -1,0 +1,45 @@
+diff --git a/dist/middleware-BqefXH6B.js b/dist/middleware-BqefXH6B.js
+index 51dee9c19027e60c6b0455def7b40da1af27179e..aa3223fa4d8bc4fc6611c61c3ed72900d9c99e13 100644
+--- a/dist/middleware-BqefXH6B.js
++++ b/dist/middleware-BqefXH6B.js
+@@ -6003,6 +6003,40 @@ async function handleInboxInternal(request, parameters, span) {
+ 		status: "verified",
+ 		attempts: observation.verification.attempts.filter((attempt) => attempt.status === "verified")
+ 	};
++	// [moim patch] FEP-7aa9 interop: Mastodon's FeatureRequest carries no `actor`
++	// (the FEP example omits it; Pixelfed accepts it the same way). Mastodon always
++	// HTTP-signs deliveries, so authenticate the request by its HTTP Signature here
++	// (Fedify skips that step once an LD Signature or proof has verified the body)
++	// and use the key owner as the actor instead of rejecting with "Missing actor".
++	if (activity.actorId == null && !skipSignatureVerification && getTypeId(activity).href === "https://w3id.org/fep/7aa9#FeatureRequest") {
++		let signerKey = httpSigKey;
++		if (signerKey == null) {
++			const verification = await verifyRequestDetailed(request, {
++				contextLoader: ctx.contextLoader,
++				documentLoader: ctx.documentLoader,
++				timeWindow: signatureTimeWindow,
++				maxSignatures: maxHttpSignatures,
++				keyCache,
++				meterProvider,
++				tracerProvider
++			});
++			if (verification.verified) signerKey = verification.key;
++		}
++		const signer = signerKey == null ? null : await getKeyOwner(signerKey, {
++			documentLoader: ctx.documentLoader,
++			contextLoader: ctx.contextLoader,
++			tracerProvider
++		});
++		if (signer?.id != null) {
++			logger.debug("FeatureRequest has no actor; using the HTTP signature key owner {actorId} as the actor (FEP-7aa9 interop).", {
++				actorId: signer.id.href,
++				recipient
++			});
++			if (json != null && typeof json === "object" && !Array.isArray(json)) json.actor = signer.id.href;
++			if (compactedJson != null && compactedJson !== json && typeof compactedJson === "object" && !Array.isArray(compactedJson)) compactedJson.actor = signer.id.href;
++			activity = activity.clone({ actor: signer.id });
++		} else logger.warn("FeatureRequest has no actor and its HTTP Signature could not be resolved to an owner.", { recipient });
++	}
+ 	observation.stage = "dispatch";
+ 	const routeResult = await routeActivity({
+ 		context: ctx,

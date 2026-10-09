@@ -72,7 +72,10 @@
       "esbuild",
       "protobufjs",
       "sharp"
-    ]
+    ],
+    "patchedDependencies": {
+      "@fedify/fedify@2.4.2": "patches/@fedify__fedify@2.4.2.patch"
+    }
   },
   "devDependencies": {
     "@lingui/cli": "5.9.5",
