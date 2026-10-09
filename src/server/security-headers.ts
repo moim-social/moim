@@ -5,7 +5,7 @@ import { env } from "~/server/env";
 export function createSecurityHeadersMiddleware(): EventHandler {
   const mapProviderScriptSrc =
     env.mapProvider === "kakao"
-      ? " https://dapi.kakao.com https://t1.daumcdn.net"
+      ? " https://dapi.kakao.com https://*.kakaocdn.net https://*.daumcdn.net"
       : "";
 
   const cspHeader = [
