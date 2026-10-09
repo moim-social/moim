@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@fedify/fedify@2.4.2':
+    hash: e3a5391adb60a5cf94b706362705a12276c756d3b50b0b6ea625358d976af4ba
+    path: patches/@fedify__fedify@2.4.2.patch
+
 importers:
 
   .:
@@ -16,10 +21,10 @@ importers:
         version: 16.0.1
       '@fedify/fedify':
         specifier: 2.4.2
-        version: 2.4.2
+        version: 2.4.2(patch_hash=e3a5391adb60a5cf94b706362705a12276c756d3b50b0b6ea625358d976af4ba)
       '@fedify/h3':
         specifier: 2.4.2
-        version: 2.4.2(@fedify/fedify@2.4.2)(h3@1.15.11)
+        version: 2.4.2(@fedify/fedify@2.4.2(patch_hash=e3a5391adb60a5cf94b706362705a12276c756d3b50b0b6ea625358d976af4ba))(h3@1.15.11)
       '@fedify/vocab':
         specifier: 2.4.2
         version: 2.4.2
@@ -5438,7 +5443,7 @@ snapshots:
   '@esbuild/win32-x64@0.28.0':
     optional: true
 
-  '@fedify/fedify@2.4.2':
+  '@fedify/fedify@2.4.2(patch_hash=e3a5391adb60a5cf94b706362705a12276c756d3b50b0b6ea625358d976af4ba)':
     dependencies:
       '@fedify/uri-template': 2.4.2
       '@fedify/vocab': 2.4.2
@@ -5460,9 +5465,9 @@ snapshots:
       temporal-polyfill: 1.0.5
       urlpattern-polyfill: 10.1.0
 
-  '@fedify/h3@2.4.2(@fedify/fedify@2.4.2)(h3@1.15.11)':
+  '@fedify/h3@2.4.2(@fedify/fedify@2.4.2(patch_hash=e3a5391adb60a5cf94b706362705a12276c756d3b50b0b6ea625358d976af4ba))(h3@1.15.11)':
     dependencies:
-      '@fedify/fedify': 2.4.2
+      '@fedify/fedify': 2.4.2(patch_hash=e3a5391adb60a5cf94b706362705a12276c756d3b50b0b6ea625358d976af4ba)
       h3: 1.15.11
 
   '@fedify/uri-template@2.4.2': {}
