@@ -1,3 +1,7 @@
+// Install the global `Temporal` first: server code uses it as a global and Fedify 2.4 uses
+// the same temporal-polyfill implementation, so vocab objects and our values interoperate.
+import "temporal-polyfill/global";
+
 // Must run before any module that logs through LogTape (Fedify).
 import "~/server/logging";
 
