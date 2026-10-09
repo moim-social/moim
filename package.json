@@ -29,6 +29,7 @@
     "@lingui/core": "5.9.5",
     "@lingui/macro": "5.9.5",
     "@lingui/react": "5.9.5",
+    "@logtape/logtape": "^2.4.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.0",
     "@tanstack/react-query": "^5.90.0",
@@ -71,7 +72,10 @@
       "esbuild",
       "protobufjs",
       "sharp"
-    ]
+    ],
+    "patchedDependencies": {
+      "@fedify/fedify@2.4.2": "patches/@fedify__fedify@2.4.2.patch"
+    }
   },
   "devDependencies": {
     "@lingui/cli": "5.9.5",

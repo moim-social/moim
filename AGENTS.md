@@ -363,6 +363,7 @@ Instance:
 - `DEFAULT_LOCALE` (default `en`)
 - `MAP_LINK_PROVIDERS` — comma-separated: `google`, `naver`, `kakao`
 - `ENABLE_PLACE_AUDIT_LOG` — set to `1` or `true` to enable
+- `FEDIFY_LOG_LEVEL` (default `info`) — LogTape level for Fedify federation logs; `debug` dumps inbox/outbox activity payloads
 
 Analytics (optional):
 - `POSTHOG_KEY`, `POSTHOG_HOST`
