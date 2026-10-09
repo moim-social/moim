@@ -53,4 +53,7 @@ export const env = {
 
   // Place audit log (optional)
   enablePlaceAuditLog: process.env.ENABLE_PLACE_AUDIT_LOG === "true" || process.env.ENABLE_PLACE_AUDIT_LOG === "1",
+
+  // Fedify (LogTape) log level: trace | debug | info | warning | error | fatal
+  fedifyLogLevel: process.env.FEDIFY_LOG_LEVEL || undefined,
 };
